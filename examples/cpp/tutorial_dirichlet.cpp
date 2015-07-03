@@ -1,10 +1,16 @@
+// gedit /opt/fb/bempp/lib/assembly/dense_global_assembler.hpp
+// gedit /opt/fb/bempp/lib/assembly/general_elementary_singular_integral_operator.hpp
 
-//pushd /opt/bemppNew/bempp/build; make -j6 2>~/Desktop/Doctoraat/GreenBempp/brol; popd
+//// pushd /opt/bemppNew/bempp/build; make -j6 2>~/Desktop/Doctoraat/GreenBempp/brol; popd
+// pushd ../..; make tutorial_dirichlet -j6 2>/opt/fb/bempp/build/examples/cpp/brol; popd
 
-// compilecommand werkt niet:
-// g++ -I/opt/bemppNew/bempp/build/include -I/opt/bemppNew/bempp/build/include/bempp ~/Desktop/Doctoraat/GreenBempp/helmholtzRep.cpp -L/opt/bemppNew/bempp/build/lib -L/opt/bemppNew/bempp/build/external/lib -I/opt/bemppNew/bempp/build/external/include/ -I/opt/anaconda/inst/include/python2.7/ -I/opt/bemppNew/bempp/build/external/include/Trilinos -w -g -Wall -Werror -std=gnu++11 -lbempp -lteuchoscore -lpthread -Wl,-rpath,/opt/bemppNew/bempp/lib
+// cd  /opt/fb/bempp/build/examples/cpp/
+// pushd ../..; make tutorial_dirichlet -j6; popd
 
-// opt/fb/bempp/build/examples/cpp/make
+//// compilecommand werkt niet:
+//// g++ -I/opt/bemppNew/bempp/build/include -I/opt/bemppNew/bempp/build/include/bempp ~/Desktop/Doctoraat/GreenBempp/helmholtzRep.cpp -L/opt/bemppNew/bempp/build/lib -L/opt/bemppNew/bempp/build/external/lib -I/opt/bemppNew/bempp/build/external/include/ -I/opt/anaconda/inst/include/python2.7/ -I/opt/bemppNew/bempp/build/external/include/Trilinos -w -g -Wall -Werror -std=gnu++11 -lbempp -lteuchoscore -lpthread -Wl,-rpath,/opt/bemppNew/bempp/lib
+
+//// opt/fb/bempp/build/examples/cpp/make
 
 #include <complex>
 
@@ -49,6 +55,8 @@
 #include <cmath>
 #include <iostream>
 #include <memory>
+//Extra na 2.9.0
+#include "assembly/general_elementary_singular_integral_operator.hpp"
 
 using namespace Bempp;
 
@@ -80,8 +88,9 @@ public:
 int main(int argc, char* argv[])
 {
 	std::cout << "iosauhdfiosaujhdfs" << std::endl;
-	argv[1] = "/home/peter/Desktop/Doctoraat/Bol/sphere0.msh";
-	shared_ptr<Grid> grid = loadTriangularMeshFromFile(argv[1]);
+//	argv[1] = "/home/peter/Desktop/Doctoraat/Bol/sphere0.msh";
+//	shared_ptr<Grid> grid = loadTriangularMeshFromFile(argv[1]);
+	shared_ptr<Grid> grid = loadTriangularMeshFromFile("/home/peter/Desktop/Doctoraat/Bol/sphere0.msh");
 	std::cout << "palosidjfaoslidjnfs" << std::endl;
 	PiecewiseLinearContinuousScalarSpace<BFT> HplusHalfSpace(grid);
 	PiecewiseConstantScalarSpace<BFT> HminusHalfSpace(grid);
@@ -97,6 +106,14 @@ int main(int argc, char* argv[])
 
 	std::cout << "poasijdfoiajs" << std::endl;
 	BoundaryOperator<BFT, RT> slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
+
+	boost::shared_ptr<const Bempp::AbstractBoundaryOperator<double, std::complex<double> > > asdf = slpOp.abstractOperator();
+	std::cout << "iohussdifgoahs'sadf" << std::endl;
+	const GeneralElementarySingularIntegralOperator<BFT,RT,RT> bla = dynamic_cast<const GeneralElementarySingularIntegralOperator<BFT,RT,RT>& > (*asdf);
+
+	std::cout << "aowisuehfoasdhf" << std::endl;
+	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weak = bla.weakFormPeter("soifdj",context);
+//	std::cerr << weak->asMatrix() << std::endl;
 
 	std::cout << "Assemble rhs" << std::endl;
 	GridFunction<BFT, RT> rhs(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), // is this the right choice?

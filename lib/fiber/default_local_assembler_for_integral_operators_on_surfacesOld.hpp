@@ -91,30 +91,6 @@ public:
           CoordinateType>> &quadDescSelector,
       const shared_ptr<const DoubleQuadratureRuleFamily<CoordinateType>> &
           quadRuleFamily);
-//template <typename BasisFunctionType, typename KernelType, typename ResultType,         typename GeometryFactory>
-//DefaultLocalAssemblerForIntegralOperatorsOnSurfaces<   BasisFunctionType, KernelType, ResultType, GeometryFactory>::
-//    DefaultLocalAssemblerForIntegralOperatorsOnSurfaces<BasisFunctionType, KernelType, ResultType, GeometryFactory>( DefaultLocalAssemblerForIntegralOperatorsOnSurfaces<BasisFunctionType, KernelType, ResultType, GeometryFactory> ds) {
-/*    DefaultLocalAssemblerForIntegralOperatorsOnSurfaces<BasisFunctionType, KernelType, ResultType, GeometryFactory> (const DefaultLocalAssemblerForIntegralOperatorsOnSurfaces<BasisFunctionType, KernelType, ResultType, GeometryFactory>& ds) {
-        m_testGeometryFactory = ds.m_testGeometryFactory;
-      m_trialGeometryFactory = ds.m_trialGeometryFactory;
-      m_testRawGeometry = ds.m_testRawGeometry;
-	m_trialRawGeometry = ds.m_trialRawGeometry;
-      m_testShapesets = ds.m_testShapesets;
-	m_trialShapesets = ds.m_trialShapesets;
-      m_testTransformations = ds.m_testTransformations;	
-	m_kernels = ds.m_kernels;
-      m_trialTransformations = ds.m_trialTransformations;
-	m_integral = ds.m_integral;
-      m_openClHandler = ds.m_openClHandler;
-      m_parallelizationOptions = ds.m_parallelizationOptions;
-      m_verbosityLevel = ds.m_verbosityLevel;
-	m_quadDescSelector = ds.m_quadDescSelector;
-      m_quadRuleFamily = ds.m_quadRuleFamily;
-Utilities::checkConsistencyOfGeometryAndShapesets(*ds.m_testRawGeometry, *ds.m_testShapesets);
-  Utilities::checkConsistencyOfGeometryAndShapesets(*ds.m_trialRawGeometry, *ds.m_trialShapesets);
-//  if (cacheSingularIntegrals)
-//    cacheSingularLocalWeakForms();
-}*/
   virtual ~DefaultLocalAssemblerForIntegralOperatorsOnSurfaces();
 
 public:
@@ -124,15 +100,6 @@ public:
                          int elementIndexB, LocalDofIndex localDofIndexB,
                          std::vector<arma::Mat<ResultType>> &result,
                          CoordinateType nominalDistance = -1.);
-
-//Peter
-	void evaluateLocalWeakFormsPeter(std::string str, CallVariant callVariant,
-                           const std::vector<int> &elementIndicesA,
-                           int elementIndexB, LocalDofIndex localDofIndexB,
-                           std::vector<arma::Mat<ResultType>> &result,
-                           CoordinateType nominalDistance) {
-		std::cout << "djfoij " << str << std::cout;
-}
 
   virtual void
   evaluateLocalWeakForms(const std::vector<int> &testElementIndices,

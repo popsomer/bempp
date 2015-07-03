@@ -125,40 +125,6 @@ DefaultLocalAssemblerForIntegralOperatorsOnSurfaces<
     cacheSingularLocalWeakForms();
 }
 
-
-
-//Peter: Needed for dynamic cast in lib/assembly/dense_global_assembler.hpp
-/*
-template <typename BasisFunctionType, typename KernelType, typename ResultType,
-          typename GeometryFactory>
-DefaultLocalAssemblerForIntegralOperatorsOnSurfaces<
-    BasisFunctionType, KernelType, ResultType, GeometryFactory>::
-    DefaultLocalAssemblerForIntegralOperatorsOnSurfaces( DefaultLocalAssemblerForIntegralOperatorsOnSurfaces ds) {
-        m_testGeometryFactory = ds.testGeometryFactory;
-      m_trialGeometryFactory = ds.trialGeometryFactory;
-      m_testRawGeometry = ds.testRawGeometry;
-	m_trialRawGeometry = ds.trialRawGeometry;
-      m_testShapesets = ds.testShapesets;
-	m_trialShapesets = ds.trialShapesets;
-      m_testTransformations = ds.testTransformations;	
-	m_kernels = ds.kernels;
-      m_trialTransformations = ds.trialTransformations;
-	m_integral = ds.integral;
-      m_openClHandler = ds.openClHandler;
-      m_parallelizationOptions = ds.parallelizationOptions;
-      m_verbosityLevel = ds.verbosityLevel;
-	m_quadDescSelector = ds.quadDescSelector;
-      m_quadRuleFamily = ds.quadRuleFamily;
-Utilities::checkConsistencyOfGeometryAndShapesets(*testRawGeometry, *testShapesets);
-  Utilities::checkConsistencyOfGeometryAndShapesets(*trialRawGeometry, *trialShapesets);
-//  if (cacheSingularIntegrals)
-//    cacheSingularLocalWeakForms();
-}*/
-
-
-
-
-
 template <typename BasisFunctionType, typename KernelType, typename ResultType,
           typename GeometryFactory>
 DefaultLocalAssemblerForIntegralOperatorsOnSurfaces<
@@ -191,8 +157,6 @@ void DefaultLocalAssemblerForIntegralOperatorsOnSurfaces<
                            int elementIndexB, LocalDofIndex localDofIndexB,
                            std::vector<arma::Mat<ResultType>> &result,
                            CoordinateType nominalDistance) {
-// Peter:
-	std::cout << "Using CallVariaqnnt" << std::endl;
   typedef Shapeset<BasisFunctionType> Shapeset;
 
   const int elementACount = elementIndicesA.size();
@@ -309,8 +273,6 @@ void DefaultLocalAssemblerForIntegralOperatorsOnSurfaces<
                            const std::vector<int> &trialElementIndices,
                            Fiber::_2dArray<arma::Mat<ResultType>> &result,
                            CoordinateType nominalDistance) {
-// Peter:
-	std::cout << "Using testTrielResultNominaldistance3" << std::endl;
   typedef Fiber::Shapeset<BasisFunctionType> Shapeset;
 
   const int testElementCount = testElementIndices.size();

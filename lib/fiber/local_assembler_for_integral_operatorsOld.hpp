@@ -75,14 +75,6 @@ public:
                          int elementIndexB, LocalDofIndex localDofIndexB,
                          std::vector<arma::Mat<ResultType>> &result,
                          CoordinateType nominalDistance = -1.) = 0;
-	//Peter, to be overwritten by default_...
-  void evaluateLocalWeakFormsPeter(std::string str, CallVariant callVariant,
-                         const std::vector<int> &elementIndicesA,
-                         int elementIndexB, LocalDofIndex localDofIndexB,
-                         std::vector<arma::Mat<ResultType>> &result,
-                         CoordinateType nominalDistance = -1.)  { 
-		throw 20;//Should be overwritten by default...
-};
 
   /** \brief Assemble local weak forms.
 
