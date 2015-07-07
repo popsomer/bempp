@@ -69,19 +69,26 @@ class DWFALBPeter
 {
 public:
     typedef tbb::spin_mutex MutexType;
-    DWFALBPeter(std::string strIn, const std::vector<int>& testIndices, const std::vector<std::vector<GlobalDofIndex> >& testGlobalDofs, const std::vector<std::vector<GlobalDofIndex> >& trialGlobalDofs, const std::vector<std::vector<BasisFunctionType> >& testLocalDofWeights, const std::vector<std::vector<BasisFunctionType> >& trialLocalDofWeights, Fiber::LocalAssemblerForIntegralOperators<ResultType>& assembler, arma::Mat<ResultType>& result, MutexType& mutex) :
-        str(strIn), m_testIndices(testIndices), m_testGlobalDofs(testGlobalDofs), m_trialGlobalDofs(trialGlobalDofs), m_testLocalDofWeights(testLocalDofWeights), m_trialLocalDofWeights(trialLocalDofWeights), m_assembler(assembler), m_result(result), m_mutex(mutex) {    }
+    DWFALBPeter(std::string strIn, const std::vector<int>& testIndices, const std::vector<std::vector<GlobalDofIndex> >& testGlobalDofs, const std::vector<std::vector<GlobalDofIndex> >& trialGlobalDofs, const std::vector<std::vector<BasisFunctionType> >& testLocalDofWeights, const std::vector<std::vector<BasisFunctionType> >& trialLocalDofWeights, Fiber::LocalAssemblerForIntegralOperators<ResultType>& assembler, arma::Mat<ResultType>& result, MutexType& mutex) : //,std::unique_ptr<Fiber::LocalAssemblerForIntegralOperators<ResultType> > asmblr) :
+        str(strIn), m_testIndices(testIndices), m_testGlobalDofs(testGlobalDofs), m_trialGlobalDofs(trialGlobalDofs), m_testLocalDofWeights(testLocalDofWeights), m_trialLocalDofWeights(trialLocalDofWeights), m_assembler(assembler), m_result(result), m_mutex(mutex) { }  //, p_asmblr(asmblr) {    }
 
 //        DWFALBPeter(const DWFALBPeter&) = delete;
 
     void operator() (const tbb::blocked_range<size_t>& r) const {
         const int elementCount = m_testIndices.size();
         std::vector<arma::Mat<ResultType> > localResult;
+
+//	std::unique_ptr<Fiber::LocalAssemblerForIntegralOperators<ResultType> > p_asmblr = std::unique_ptr<Fiber::LocalAssemblerForIntegralOperators<ResultType> >(m_assembler);
+//	std::unique_ptr<Fiber::LocalAssemblerForIntegralOperators<ResultType> > p_asmblr = &m_assembler;
+
 //	std::cout << r.begin() << "iurogijaosijfd" << r.end() << std::endl;
         for (size_t trialIndex = r.begin(); trialIndex != r.end(); ++trialIndex) {
             // Evaluate integrals over pairs of the current trial element and all the test elements
-            m_assembler.evaluateLocalWeakForms(TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);
-            m_assembler.evaluateLocalWeakFormsPeter(str,TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);
+//            m_assembler.evaluateLocalWeakForms(TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);
+//            m_assembler.evaluateLocalWeakFormsPeter(str,TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult); //Does not get overridden, use pointer
+//            p_asmblr->evaluateLocalWeakFormsPeter(str,TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);
+		(&m_assembler)->evaluateLocalWeakFormsPeter(str,TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);
+
 
 //	const GeneralElementarySingularIntegralOperator<BFT,RT,RT> bla = dynamic_cast<const GeneralElementarySingularIntegralOperator<BFT,RT,RT>& > (*asdf);
 //		DefaultLocalAssemblerForIntegralOperatorsOnSurfaces<    BasisFunctionType, KernelType, ResultType, GeometryFactory> asCast = dynamic_cast<DefaultLocalAssemblerForIntegralOperatorsOnSurfaces<    BasisFunctionType, KernelType, ResultType, GeometryFactory> > (m_assembler);
@@ -131,6 +138,7 @@ private:
     // mutable OK because Assembler is thread-safe. (Alternative to "mutable" here:
     // make assembler's internal integrator map mutable)
     typename Fiber::LocalAssemblerForIntegralOperators<ResultType>& m_assembler;
+//    std::unique_ptr<Fiber::LocalAssemblerForIntegralOperators<ResultType> > p_asmblr;
     // mutable OK because write access to this matrix is protected by a mutex
     arma::Mat<ResultType>& m_result;
     // mutex must be mutable because we need to lock and unlock it
@@ -215,8 +223,11 @@ public:
 //DenseGlobalAssembler<BasisFunctionType, ResultType>::
 static std::unique_ptr<DiscreteBoundaryOperator<ResultType> >
 assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& testSpace, const Space<BasisFunctionType>& trialSpace, LocalAssemblerForIntegralOperators& assembler, const Context<BasisFunctionType, ResultType>& context)
+//static std::unique_ptr<DiscreteBoundaryOperator<ResultType> >
+//assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& testSpace, const Space<BasisFunctionType>& trialSpace, std::unique_ptr<LocalAssemblerForIntegralOperators> asmblr, const Context<BasisFunctionType, ResultType>& context)
 {
 	std::cout << "In denseglobalassembler: " << str << std::endl;
+//	LocalAssemblerForIntegralOperators& assembler = *asmblr;
 /*   
     // Make a vector of all element indices
     std::vector<int> testIndices(testElementCount);
@@ -273,6 +284,7 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
     {
         Fiber::SerialBlasRegion region;
         tbb::parallel_for(tbb::blocked_range<size_t>(0, trialElementCount), Body(str, testIndices, testGlobalDofs, trialGlobalDofs,testLocalDofWeights, trialLocalDofWeights, assembler, result, mutex));
+//        tbb::parallel_for(tbb::blocked_range<size_t>(0, trialElementCount), Body(str, testIndices, testGlobalDofs, trialGlobalDofs,testLocalDofWeights, trialLocalDofWeights, assembler, result, mutex,asmblr));
     }
 //    return std::auto_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(result));
     return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(

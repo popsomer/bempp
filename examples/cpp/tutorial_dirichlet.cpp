@@ -1,5 +1,8 @@
 // gedit /opt/fb/bempp/lib/assembly/dense_global_assembler.hpp
 // gedit /opt/fb/bempp/lib/assembly/general_elementary_singular_integral_operator.hpp
+// gedit /opt/fb/bempp/lib/fiber/default_local_assembler_for_integral_operators_on_surfaces.hpp
+// gedit /opt/fb/bempp/lib/fiber/local_assembler_for_integral_operators.hpp
+
 
 //// pushd /opt/bemppNew/bempp/build; make -j6 2>~/Desktop/Doctoraat/GreenBempp/brol; popd
 // pushd ../..; make tutorial_dirichlet -j6 2>/opt/fb/bempp/build/examples/cpp/brol; popd
@@ -112,9 +115,20 @@ int main(int argc, char* argv[])
 	const GeneralElementarySingularIntegralOperator<BFT,RT,RT> bla = dynamic_cast<const GeneralElementarySingularIntegralOperator<BFT,RT,RT>& > (*asdf);
 
 	std::cout << "aowisuehfoasdhf" << std::endl;
-	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weak = bla.weakFormPeter("soifdj",context);
+	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weak = bla.weakFormPeter(" Passed From tutorial_dirichlet.cpp ",context);
+	std::cerr << (weak->asMatrix())[0,0] << std::endl; // Should be(0.0022927,0.000174001)
+
 //	std::cerr << weak->asMatrix() << std::endl;
 
+	return 1;
+
+
+	weak = slpOp.weakForm();
+	std::cerr << (weak->asMatrix())[0,0] << std::endl;
+	return 1;
+
+
+	
 	std::cout << "Assemble rhs" << std::endl;
 	GridFunction<BFT, RT> rhs(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), // is this the right choice?
             surfaceNormalIndependentFunction(MyFunctor()));

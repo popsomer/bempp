@@ -76,13 +76,19 @@ public:
                          std::vector<arma::Mat<ResultType>> &result,
                          CoordinateType nominalDistance = -1.) = 0;
 	//Peter, to be overwritten by default_...
+  virtual void evaluateLocalWeakFormsPeter(std::string str, CallVariant callVariant,
+                         const std::vector<int> &elementIndicesA,
+                         int elementIndexB, LocalDofIndex localDofIndexB,
+                         std::vector<arma::Mat<ResultType>> &result,
+                         CoordinateType nominalDistance = -1.) = 0;
+/*
   void evaluateLocalWeakFormsPeter(std::string str, CallVariant callVariant,
                          const std::vector<int> &elementIndicesA,
                          int elementIndexB, LocalDofIndex localDofIndexB,
                          std::vector<arma::Mat<ResultType>> &result,
                          CoordinateType nominalDistance = -1.)  { 
-		throw 20;//Should be overwritten by default...
-};
+		throw 20;//Should be overwritten by default_local...
+};*/
 
   /** \brief Assemble local weak forms.
 

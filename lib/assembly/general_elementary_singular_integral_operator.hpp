@@ -116,6 +116,7 @@ shared_ptr<const DiscreteBoundaryOperator<ResultType> > weakFormPeter(std::strin
 //        return shared_ptr<DiscreteBoundaryOperator<ResultType> >( assembleWeakFormInDenseMode(assembler, context).release());
 //	return shared_ptr<DiscreteBoundaryOperator<ResultType> >(DenseGlobalAssembler<BasisFunctionType, ResultType>:: assembleDetachedWeakForm(*this->dualToRange(), *this->domain(), *assembler, context).release());
 		return shared_ptr<DiscreteBoundaryOperator<ResultType> >(DenseGlobalAssembler<BasisFunctionType, ResultType>:: assembleDetachedWeakFormPeter(str,*this->dualToRange(), *this->domain(), *assembler, context).release());
+//		return shared_ptr<DiscreteBoundaryOperator<ResultType> >(DenseGlobalAssembler<BasisFunctionType, ResultType>:: assembleDetachedWeakFormPeter(str,*this->dualToRange(), *this->domain(), assembler, context).release());
 	}
 	default:
 		throw std::runtime_error("ACA or other not implemented");
