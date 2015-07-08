@@ -75,7 +75,8 @@ public:
                          int elementIndexB, LocalDofIndex localDofIndexB,
                          std::vector<arma::Mat<ResultType>> &result,
                          CoordinateType nominalDistance = -1.) = 0;
-	//Peter, to be overwritten by default_...
+	//Peter, to be overwritten by default_local...
+//  void evaluateLocalWeakFormsPeter(std::string str, CallVariant callVariant,
   virtual void evaluateLocalWeakFormsPeter(std::string str, CallVariant callVariant,
                          const std::vector<int> &elementIndicesA,
                          int elementIndexB, LocalDofIndex localDofIndexB,

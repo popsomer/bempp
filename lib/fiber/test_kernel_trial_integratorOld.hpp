@@ -52,14 +52,6 @@ public:
             LocalDofIndex localDofIndexB,
             const std::vector<arma::Mat<ResultType> *> &result) const = 0;
 
-//  void 
-
-  virtual void integratePeter(std::string str, CallVariant callVariant, const std::vector<int> &elementIndicesA,
-            int elementIndexB, const Shapeset<BasisFunctionType> &basisA,
-            const Shapeset<BasisFunctionType> &basisB,
-            LocalDofIndex localDofIndexB,
-            const std::vector<arma::Mat<ResultType> *> &result) const = 0;
-
   virtual void
   integrate(const std::vector<ElementIndexPair> &elementIndexPairs,
             const Shapeset<BasisFunctionType> &testShapeset,

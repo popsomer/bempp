@@ -106,20 +106,6 @@ public:
       const std::vector<CoordinateType> &trialQuadWeights,
       arma::Mat<ResultType> &result) const;
 
-// Peter: repeat for other classes with same name and other templates!!
-void evaluateWithTensorQuadratureRulePeter(std::string str,
-      const GeometricalData<CoordinateType> &testGeomData,
-      const GeometricalData<CoordinateType> &trialGeomData,
-      const CollectionOf3dArrays<BasisFunctionType> &testTransformations,
-      const CollectionOf3dArrays<BasisFunctionType> &trialTransformations,
-      const CollectionOf4dArrays<KernelType> &kernels,
-      const std::vector<CoordinateType> &testQuadWeights,
-      const std::vector<CoordinateType> &trialQuadWeights,
-      arma::Mat<ResultType> &result) const {
-	std::cerr << "typical_test_scalar... not implemented" << std::endl;
-	throw 2;
-};
-
   virtual void evaluateWithNontensorQuadratureRule(
       const GeometricalData<CoordinateType> &testGeomData,
       const GeometricalData<CoordinateType> &trialGeomData,
@@ -161,19 +147,6 @@ public:
       const std::vector<CoordinateType> &trialQuadWeights,
       arma::Mat<ResultType> &result) const;
 
-// Peter: repeat for other classes with same name and other templates!!
-void evaluateWithTensorQuadratureRulePeter(std::string str,
-      const GeometricalData<CoordinateType> &testGeomData,
-      const GeometricalData<CoordinateType> &trialGeomData,
-      const CollectionOf3dArrays<BasisFunctionType> &testTransformations,
-      const CollectionOf3dArrays<BasisFunctionType> &trialTransformations,
-      const CollectionOf4dArrays<KernelType> &kernels,
-      const std::vector<CoordinateType> &testQuadWeights,
-      const std::vector<CoordinateType> &trialQuadWeights,
-      arma::Mat<ResultType> &result) const {
-	std::cerr << "typical_test_scalar... not implemented" << std::endl;
-	throw 2;
-};
   virtual void evaluateWithNontensorQuadratureRule(
       const GeometricalData<CoordinateType> &testGeomData,
       const GeometricalData<CoordinateType> &trialGeomData,
@@ -217,19 +190,6 @@ public:
       const std::vector<CoordinateType> &trialQuadWeights,
       arma::Mat<ResultType> &result) const;
 
-// Peter: repeat for other classes with same name and other templates!!
-void evaluateWithTensorQuadratureRulePeter(std::string str,
-      const GeometricalData<CoordinateType> &testGeomData,
-      const GeometricalData<CoordinateType> &trialGeomData,
-      const CollectionOf3dArrays<BasisFunctionType> &testTransformations,
-      const CollectionOf3dArrays<BasisFunctionType> &trialTransformations,
-      const CollectionOf4dArrays<KernelType> &kernels,
-      const std::vector<CoordinateType> &testQuadWeights,
-      const std::vector<CoordinateType> &trialQuadWeights,
-      arma::Mat<ResultType> &result) const {
-	std::cerr << "typical_test_scalar... not implemented" << std::endl;
-	throw 2;
-};
   virtual void evaluateWithNontensorQuadratureRule(
       const GeometricalData<CoordinateType> &testGeomData,
       const GeometricalData<CoordinateType> &trialGeomData,

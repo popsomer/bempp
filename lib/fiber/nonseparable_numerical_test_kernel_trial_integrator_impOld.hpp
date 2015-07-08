@@ -169,12 +169,6 @@ void NonseparableNumericalTestKernelTrialIntegrator<
 
   // Evaluate constants
 
-
-	//Peter
-	//if (indexElementB == 0) {
-	//	std::cout << "nonseparable_n_.._imp.hpp integrate(CallVariant)" << std::endl;
-	//}
-
   const int dofCountA = basisA.size();
   const int dofCountB = localDofIndexB == ALL_DOFS ? basisB.size() : 1;
   const int testDofCount = callVariant == TEST_TRIAL ? dofCountA : dofCountB;

@@ -45,6 +45,9 @@
 #include <utility>
 #include <vector>
 
+//Peter:
+#include "nonseparable_numerical_test_kernel_trial_integrator.hpp" // For casting
+
 namespace Fiber {
 
 /** \cond FORWARD_DECL */
@@ -137,7 +140,9 @@ public:
                            int elementIndexB, LocalDofIndex localDofIndexB,
                            std::vector<arma::Mat<ResultType>> &result,
                            CoordinateType nominalDistance) {
-	std::cout << "djfoij " << str << std::cout;
+	if (elementIndexB == 0) {
+		std::cout << "djfoij " << str << std::endl;
+	}
 	typedef Shapeset<BasisFunctionType> Shapeset;
 
 	const int elementACount = elementIndicesA.size();
@@ -161,6 +166,9 @@ public:
     // Try to find matrix in cache
     const arma::Mat<ResultType> *cachedLocalWeakForm = 0;
     if (callVariant == TEST_TRIAL) {
+	if ((elementIndexB == 0) && (i==0)){
+		std::cout << "TestTrial" << &m_cache << std::endl;
+	}
       const int testElementIndex = elementIndicesA[i];
       const int trialElementIndex = elementIndexB;
       for (size_t n = 0; n < m_cache.extent(0); ++n)
@@ -169,6 +177,9 @@ public:
           break;
         }
     } else {
+	if ((elementIndexB == 0) && (i==0)){
+		std::cout << "No TestTrial" << std::endl;
+	}
       const int testElementIndex = elementIndexB;
       const int trialElementIndex = elementIndicesA[i];
       for (size_t n = 0; n < m_cache.extent(0); ++n)
@@ -180,15 +191,30 @@ public:
 
     if (cachedLocalWeakForm) { // Matrix found in cache
       quadVariants[i] = CACHED;
-      if (localDofIndexB == ALL_DOFS)
+      if (localDofIndexB == ALL_DOFS) {
         result[i] = *cachedLocalWeakForm;
+	if ((elementIndexB == 0) && (i==0)){
+		std::cout << *cachedLocalWeakForm << "Matrix found in cache ALL_DOFS" << result[i] << std::endl;
+	}
+	}
       else {
-        if (callVariant == TEST_TRIAL)
+        if (callVariant == TEST_TRIAL) {
+	if ((elementIndexB == 0) && (i==0)){
+		std::cout << "Matrix found in cache TEST_TRIAL" << std::endl;
+	}
           result[i] = cachedLocalWeakForm->col(localDofIndexB);
-        else
+	}
+        else{
+	if ((elementIndexB == 0) && (i==0)){
+		std::cout << "Matrix found in cache NO test_trial" << std::endl;
+	}
           result[i] = cachedLocalWeakForm->row(localDofIndexB);
+	}
       }
     } else {
+	if ((elementIndexB == 0) && (i==0)){
+		std::cout << "No matrix found in cache" << std::endl;
+	}
       const Integrator *integrator =
           callVariant == TEST_TRIAL
               ? &selectIntegrator(elementIndicesA[i], elementIndexB,
@@ -220,6 +246,11 @@ public:
     if (activeQuadVariant == CACHED)
       continue;
     const Integrator &activeIntegrator = *it->first;
+
+	if ((elementIndexB == 0) && (it == uniqueQuadVariants.begin()) ) {
+		std::cout << "type actInt = " << typeid(activeIntegrator).name() << std::endl;
+//		const NonseparableNumericalTestKernelTrialIntegrator<BasisFunctionType, KernelType, ResultType, GeometryFactory> bla = dynamic_cast<const NonseparableNumericalTestKernelTrialIntegrator<BasisFunctionType, KernelType, ResultType, GeometryFactory> & > (activeIntegrator);
+	}
     const Shapeset &activeBasisA = *it->second;
 
     // Find all the test elements for which quadrature should proceed
@@ -232,11 +263,18 @@ public:
         activeLocalResults.push_back(&result[indexA]);
       }
 
+	if ((elementIndexB == 0) && (it==uniqueQuadVariants.begin() )){
+		std::cout << "not activeQuadvariant=cached, actLocRes = "<< *activeLocalResults[0] << std::endl;
+	}
     // Integrate!
-    activeIntegrator.integrate(callVariant, activeElementIndicesA,
-                               elementIndexB, activeBasisA, basisB,
-                               localDofIndexB, activeLocalResults);
+//    activeIntegrator.integrate(callVariant, activeElementIndicesA,
+//                               elementIndexB, activeBasisA, basisB,
+//                               localDofIndexB, activeLocalResults);
+    activeIntegrator.integratePeter(str,callVariant, activeElementIndicesA, elementIndexB, activeBasisA, basisB, localDofIndexB, activeLocalResults);
 
+	if ((elementIndexB == 0) && (it==uniqueQuadVariants.begin() )){
+		std::cout << "result actLocRes = "<< *activeLocalResults[0] << std::endl;
+	}
     // // Distribute the just calculated integrals into the result array
     // // that will be returned to caller
     // int i = 0;

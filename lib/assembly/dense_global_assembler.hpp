@@ -105,8 +105,9 @@ public:
                 // Loop over test indices
                 for (int testIndex = 0; testIndex < elementCount; ++testIndex) {
                     const int testDofCount = m_testGlobalDofs[testIndex].size();
-		if ((r.begin() == 1) && (r.end() == 2) && (testIndex == 0) ) {
-			std::cout << localResult[testIndex] << std::endl;
+//		if ((r.begin() == 1) && (r.end() == 2) && (testIndex == 0) ) {
+		if ((trialIndex == 0) && (testIndex == 0) ) {
+			std::cout << "locres = " << localResult[testIndex] << std::endl; // Should be (+1.106e-03,+1.960e-04)
 			std::cout << testDofCount << "iurogi" << trialIndex << "jaosijfd" << trialDofCount << " aosijfd" << elementCount << std::endl;	
 			std::cout << "typeAssembler=" << typeid(m_assembler).name() << '\n';
 		}

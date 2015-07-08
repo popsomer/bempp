@@ -28,10 +28,6 @@
 #include <tbb/concurrent_unordered_map.h>
 #include <tbb/enumerable_thread_specific.h>
 
-//Peter:
-#include "geometrical_data.hpp" // For DOMAIN_INDEX
-
-
 namespace Fiber {
 
 /** \cond FORWARD_DECL */
@@ -80,125 +76,6 @@ public:
             const Shapeset<BasisFunctionType> &basisB,
             LocalDofIndex localDofIndexB,
             const std::vector<arma::Mat<ResultType> *> &result) const;
-
-
-//Peter
-//template <typename BasisFunctionType, typename KernelType, typename ResultType,
-//          typename GeometryFactory>
-//void NonseparableNumericalTestKernelTrialIntegrator<
-//    BasisFunctionType, KernelType, ResultType, GeometryFactory>::
-    void integratePeter(std::string str, CallVariant callVariant, const std::vector<int> &elementIndicesA,
-              int elementIndexB, const Shapeset<BasisFunctionType> &basisA,
-              const Shapeset<BasisFunctionType> &basisB,
-              LocalDofIndex localDofIndexB,
-              const std::vector<arma::Mat<ResultType> *> &result) const {
-  const int pointCount = m_quadWeights.size();
-  const int elementACount = elementIndicesA.size();
-
-  if (result.size() != elementIndicesA.size())
-    throw std::invalid_argument(
-        "NonseparableNumericalTestKernelTrialIntegrator::integrate(): "
-        "arrays 'result' and 'elementIndicesA' must have the same number "
-        "of elements");
-  if (pointCount == 0 || elementACount == 0)
-    return;
-  // TODO: in the (pathological) case that pointCount == 0 but
-  // geometryCount != 0, set elements of result to 0.
-
-  // Evaluate constants
-
-	//Peter
-	if (elementIndexB == 0) {
-		std::cout << "nonseparable_n_.._imp.hpp integrate(CallVariant)" << std::endl;
-	}
-	else{
-//		std::cout << "nonsepar" << elementIndexB << ", ";
-	}
-  const int dofCountA = basisA.size();
-  const int dofCountB = localDofIndexB == ALL_DOFS ? basisB.size() : 1;
-  const int testDofCount = callVariant == TEST_TRIAL ? dofCountA : dofCountB;
-  const int trialDofCount = callVariant == TEST_TRIAL ? dofCountB : dofCountA;
-
-  BasisData<BasisFunctionType> testBasisData, trialBasisData;
-  GeometricalData<CoordinateType> &testGeomData = m_testGeomData.local();
-  GeometricalData<CoordinateType> &trialGeomData = m_trialGeomData.local();
-
-  size_t testBasisDeps = 0, trialBasisDeps = 0;
-  size_t testGeomDeps = 0, trialGeomDeps = 0;
-
-  m_testTransformations.addDependencies(testBasisDeps, testGeomDeps);
-  m_trialTransformations.addDependencies(trialBasisDeps, trialGeomDeps);
-  m_kernels.addGeometricalDependencies(testGeomDeps, trialGeomDeps);
-  m_integral.addGeometricalDependencies(testGeomDeps, trialGeomDeps);
-
-  typedef typename GeometryFactory::Geometry Geometry;
-
-  std::unique_ptr<Geometry> geometryA, geometryB;
-  const RawGridGeometry<CoordinateType> *rawGeometryA = 0, *rawGeometryB = 0;
-  if (callVariant == TEST_TRIAL) {
-    geometryA = m_testGeometryFactory.make();
-    geometryB = m_trialGeometryFactory.make();
-    rawGeometryA = &m_testRawGeometry;
-    rawGeometryB = &m_trialRawGeometry;
-  } else {
-    geometryA = m_trialGeometryFactory.make();
-    geometryB = m_testGeometryFactory.make();
-    rawGeometryA = &m_trialRawGeometry;
-    rawGeometryB = &m_testRawGeometry;
-  }
-
-  CollectionOf3dArrays<BasisFunctionType> testValues, trialValues;
-  CollectionOf3dArrays<KernelType> kernelValues;
-
-  for (size_t i = 0; i < result.size(); ++i) {
-    assert(result[i]);
-    result[i]->set_size(testDofCount, trialDofCount);
-  }
-
-  rawGeometryB->setupGeometry(elementIndexB, *geometryB);
-  if (callVariant == TEST_TRIAL) {
-    basisA.evaluate(testBasisDeps, m_localTestQuadPoints, ALL_DOFS,
-                    testBasisData);
-    basisB.evaluate(trialBasisDeps, m_localTrialQuadPoints, localDofIndexB,
-                    trialBasisData);
-    geometryB->getData(trialGeomDeps, m_localTrialQuadPoints, trialGeomData);
-    if (trialGeomDeps & DOMAIN_INDEX)
-      trialGeomData.domainIndex = rawGeometryB->domainIndex(elementIndexB);
-    m_trialTransformations.evaluate(trialBasisData, trialGeomData, trialValues);
-  } else {
-    basisA.evaluate(trialBasisDeps, m_localTrialQuadPoints, ALL_DOFS,
-                    trialBasisData);
-    basisB.evaluate(testBasisDeps, m_localTestQuadPoints, localDofIndexB,
-                    testBasisData);
-    geometryB->getData(testGeomDeps, m_localTestQuadPoints, testGeomData);
-    if (testGeomDeps & DOMAIN_INDEX)
-      testGeomData.domainIndex = rawGeometryB->domainIndex(elementIndexB);
-    m_testTransformations.evaluate(testBasisData, testGeomData, testValues);
-  }
-
-  // Iterate over the elements
-  for (int indexA = 0; indexA < elementACount; ++indexA) {
-    const int elementIndexA = elementIndicesA[indexA];
-    rawGeometryA->setupGeometry(elementIndexA, *geometryA);
-    if (callVariant == TEST_TRIAL) {
-      geometryA->getData(testGeomDeps, m_localTestQuadPoints, testGeomData);
-      if (testGeomDeps & DOMAIN_INDEX)
-        testGeomData.domainIndex = rawGeometryA->domainIndex(elementIndexA);
-      m_testTransformations.evaluate(testBasisData, testGeomData, testValues);
-    } else {
-      geometryA->getData(trialGeomDeps, m_localTrialQuadPoints, trialGeomData);
-      if (trialGeomDeps & DOMAIN_INDEX)
-        trialGeomData.domainIndex = rawGeometryA->domainIndex(elementIndexA);
-      m_trialTransformations.evaluate(trialBasisData, trialGeomData,
-                                      trialValues);
-    }
-
-    m_kernels.evaluateAtPointPairs(testGeomData, trialGeomData, kernelValues);
-    m_integral.evaluateWithNontensorQuadratureRule(
-        testGeomData, trialGeomData, testValues, trialValues, kernelValues,
-        m_quadWeights, *result[indexA]);
-  }
-}
 
   virtual void
   integrate(const std::vector<ElementIndexPair> &elementIndexPairs,

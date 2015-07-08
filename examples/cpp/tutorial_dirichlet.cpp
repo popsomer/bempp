@@ -1,3 +1,5 @@
+//gedit /opt/fb/bempp/lib/fiber/default_test_kernel_trial_integral.hpp
+
 // gedit /opt/fb/bempp/lib/assembly/dense_global_assembler.hpp
 // gedit /opt/fb/bempp/lib/assembly/general_elementary_singular_integral_operator.hpp
 // gedit /opt/fb/bempp/lib/fiber/default_local_assembler_for_integral_operators_on_surfaces.hpp
@@ -98,16 +100,16 @@ int main(int argc, char* argv[])
 	PiecewiseLinearContinuousScalarSpace<BFT> HplusHalfSpace(grid);
 	PiecewiseConstantScalarSpace<BFT> HminusHalfSpace(grid);
 	AssemblyOptions assemblyOptions;
-
+	assemblyOptions.enableSingularIntegralCaching(false);
 	std::cout << "iuyshbakjsndf" << std::endl;
-	assemblyOptions.setVerbosityLevel(VerbosityLevel::LOW); // Less junk
+//	assemblyOptions.setVerbosityLevel(VerbosityLevel::LOW); // Less junk
 	// No ACA at first
 	AccuracyOptions accuracyOptions;
 	accuracyOptions.doubleRegular.setRelativeQuadratureOrder(1);
 	NumericalQuadratureStrategy<BFT, RT> quadStrategy(accuracyOptions);
 	Context<BFT, RT> context(make_shared_from_ref(quadStrategy), assemblyOptions);
 
-	std::cout << "poasijdfoiajs" << std::endl;
+	std::cout << "asOptions.cache = " << assemblyOptions.isSingularIntegralCachingEnabled() << std::endl;
 	BoundaryOperator<BFT, RT> slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
 
 	boost::shared_ptr<const Bempp::AbstractBoundaryOperator<double, std::complex<double> > > asdf = slpOp.abstractOperator();

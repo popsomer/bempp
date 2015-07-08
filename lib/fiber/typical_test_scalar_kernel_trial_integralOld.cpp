@@ -253,7 +253,6 @@ void evaluateWithTensorQuadratureRuleImpl(
     const std::vector<typename ScalarTraits<ResultType>::RealType> &
         trialQuadWeights,
     arma::Mat<ResultType> &result) {
-	std::cout << " nr 1/7 asdf" << std::endl;
   typedef typename ScalarTraits<ResultType>::RealType CoordinateType;
   typedef typename Coercion<BasisFunctionType, ResultType>::Type
   IntermediateType;
@@ -391,8 +390,6 @@ void TypicalTestScalarKernelTrialIntegral<CoordinateType_,
         const std::vector<CoordinateType> &testQuadWeights,
         const std::vector<CoordinateType> &trialQuadWeights,
         arma::Mat<ResultType> &result) const {
-
-	std::cout << " nr 2en3/7 asdf" << std::endl;
   evaluateWithTensorQuadratureRuleImpl(
       testGeomData, trialGeomData, testValues, trialValues, kernelValues,
       testQuadWeights, trialQuadWeights, result);
@@ -511,8 +508,6 @@ void TypicalTestScalarKernelTrialIntegral<BasisFunctionType_,
         const std::vector<CoordinateType> &testQuadWeights,
         const std::vector<CoordinateType> &trialQuadWeights,
         arma::Mat<ResultType> &result) const {
-
-	std::cout << " nr 4 en 5/7 asdf" << std::endl;
   evaluateWithTensorQuadratureRuleImpl(
       testGeomData, trialGeomData, testValues, trialValues, kernelValues,
       testQuadWeights, trialQuadWeights, result);
@@ -555,7 +550,6 @@ void TypicalTestScalarKernelTrialIntegral<std::complex<CoordinateType>,
         const std::vector<CoordinateType> &testQuadWeights,
         const std::vector<CoordinateType> &trialQuadWeights,
         arma::Mat<ResultType> &result) const {
-	std::cout << " nr 6 en 7/7 asdf" << std::endl;
   m_standardIntegral.evaluateWithTensorQuadratureRule(
       testGeomData, trialGeomData, testValues, trialValues, kernelValues,
       testQuadWeights, trialQuadWeights, result);

@@ -177,17 +177,6 @@ public:
       const std::vector<CoordinateType> &trialQuadWeights,
       arma::Mat<ResultType> &result) const = 0;
 
-//Peter:
-  virtual void evaluateWithTensorQuadratureRulePeter(std::string str,
-      const GeometricalData<CoordinateType> &testGeomData,
-      const GeometricalData<CoordinateType> &trialGeomData,
-      const CollectionOf3dArrays<BasisFunctionType> &testTransformations,
-      const CollectionOf3dArrays<BasisFunctionType> &trialTransformations,
-      const CollectionOf4dArrays<KernelType> &kernels,
-      const std::vector<CoordinateType> &testQuadWeights,
-      const std::vector<CoordinateType> &trialQuadWeights,
-      arma::Mat<ResultType> &result) const = 0;
-
   /** \brief Evaluate the integral using a non-tensor-product quadrature rule.
    *
    *  This function should evaluate the integral using a quadrature rule of the
