@@ -118,7 +118,9 @@ int main(int argc, char* argv[])
 
 	std::cout << "aowisuehfoasdhf" << std::endl;
 	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weak = bla.weakFormPeter(" Passed From tutorial_dirichlet.cpp ",context);
+	arma::Mat<RT> wm = weak->asMatrix();
 	std::cerr << (weak->asMatrix())[0,0] << std::endl; // Should be(0.0022927,0.000174001)
+	std::cerr << wm[0,0] << wm[0,1] << wm[2,0] << wm[50,66] << std::endl; // Should be (0.0022927,0.000174001)(0.00110578,0.000196013)(0.0022927,0.000174001)(0.000275424,0.000255719)
 
 //	std::cerr << weak->asMatrix() << std::endl;
 
@@ -126,7 +128,8 @@ int main(int argc, char* argv[])
 
 
 	weak = slpOp.weakForm();
-	std::cerr << (weak->asMatrix())[0,0] << std::endl;
+	wm = weak->asMatrix();
+	std::cerr << "Real result = " << wm[0,0] << wm[0,1] << wm[2,0] << wm[50,66] << std::endl;
 	return 1;
 
 

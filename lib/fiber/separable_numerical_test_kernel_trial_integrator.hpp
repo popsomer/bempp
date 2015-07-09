@@ -235,6 +235,9 @@ public:
                              kernelValues);
 	if ((elementIndexB == 0) && (indexA == 0)) {
 		std::cout << "before evTenQuadRule = " << *result[indexA] << std::endl;
+//		std::cout << testValues << " = test, trial= " << trialValues << std::endl;
+		std::cout << testValues[0].extent(1) << " = testValExtent, trialValextent = " << trialValues[0].extent(1) << std::endl;
+		std::cout << m_testQuadWeights.size() << " = testQuadSize, trialQuadSize = " << m_trialQuadWeights.size() << std::endl;
 	}
 //    m_integral.evaluateWithTensorQuadratureRule(
 //        *constTestGeomData, *constTrialGeomData, testValues, trialValues,

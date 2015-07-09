@@ -23,6 +23,16 @@
 
 #include "test_kernel_trial_integral.hpp"
 
+//Peter:
+#include "../common/common.hpp"
+#include <cassert>
+#include "collection_of_3d_arrays.hpp"
+#include "geometrical_data.hpp"
+#include "conjugate.hpp"
+#include "scalar_traits.hpp"
+
+#include "collection_of_4d_arrays.hpp"
+
 namespace Fiber {
 
 /** \ingroup weak_form_elements
@@ -144,7 +154,7 @@ void evaluateWithTensorQuadratureRulePeter(std::string str,
         const std::vector<CoordinateType> &trialQuadWeights,
         arma::Mat<ResultType> &result) const {
   // Evaluate constants
-	std::cout << "evaluateWithTensorQuadratureRulePeter in default_test_kernel_trial_integral.hpp" << std::endl;
+//	std::cout << "evaluateWithTensorQuadratureRulePeter in default_test_kernel_trial_integral.hpp" << std::endl;
   const size_t testDofCount = testValues[0].extent(1);
   const size_t trialDofCount = trialValues[0].extent(1);
 
@@ -179,13 +189,67 @@ void evaluateWithTensorQuadratureRulePeter(std::string str,
           const CoordinateType testWeight =
               testGeomData.integrationElements(testPoint) *
               testQuadWeights[testPoint];
-          partialSum += m_functor.evaluate(
+//std::cout << "trialDof = " << trialDof << testDof << " =testDof, sum=" << sum << trialPoint << " = trialPoint, trialWeight = " << trialWeight << std::endl;
+//std::cout << testPoint << " = testPoint, testWeight = " << testWeight << testGeomData.integrationElements(testPoint) << " = test.i(tp), testValues.const_slice(testDof, testPoint) = " << testValues.const_slice(testDof, testPoint) <<std::endl;
+//std::cout << kernelValues.const_slice(testPoint, trialPoint) << "kernelValues.const_slice(testPoint, trialPoint), trialGeomData.const_slice(trialPoint) = " <<trialGeomData.const_slice(trialPoint)<<std::endl;
+if (std::abs(trialWeight-0.06) < 0.0005) {
+std::stringstream toPrint;
+//toPrint << trialDof << "= trialDof, testDof = " << testDof << sum << " = sum, trialPoint = " << trialPoint << " = trialPoint, trialWeight = " << trialWeight << testPoint << " = testPoint, testWeight = " << testWeight << testGeomData.integrationElements(testPoint) << " = test.i(tp), testGeoms.global = " << testGeomData.globals << " , " << testGeomData.integrationElements<< "=testGeo.iE, testGeo.nor = " << testGeomData.normals << std::endl;
+toPrint << "testGeoms.globals[0] = " << testGeomData.globals[0]<<std::cout;
+//<< testValues.integrationElement() << " = tesV.cS.iE, tesV.cS.nor= " << testValues.normal() << testValues.const_slice(testDof, testPoint)[0] << std::endl;
+// <<kernelValues.const_slice(testPoint, trialPoint) << "kernelValues.const_slice(testPoint, trialPoint), trialGeomData.const_slice(trialPoint) = " <<trialGeomData.const_slice(trialPoint) << std::endl;testValues.const_slice(testDof, testPoint).integrationElement()
+//std::cout << toPrint << std::endl;
+std::string poiu = toPrint.str();
+//std::cout << poiu;
+}
+//std::string toPrint = std::to_string(trialDof) + " = trialDof, testDof= " + testDof; // << " =testDof, sum=" << sum << trialPoint << " = trialPoint, trialWeight = " << trialWeight << std::endl;std::cout << testPoint << " = testPoint, testWeight = " << testWeight << testGeomData.integrationElements(testPoint) << " = test.i(tp), testValues.const_slice(testDof, testPoint) = " << testValues.const_slice(testDof, testPoint) <<kernelValues.const_slice(testPoint, trialPoint) << "kernelValues.const_slice(testPoint, trialPoint), trialGeomData.const_slice(trialPoint) = " <<trialGeomData.const_slice(trialPoint)<<std::endl
+
+//          partialSum += m_functor.evaluate(
+/*
+          partialSum += m_functor.evaluate(str,
                             testGeomData.const_slice(testPoint),
                             trialGeomData.const_slice(trialPoint),
                             testValues.const_slice(testDof, testPoint),
                             trialValues.const_slice(trialDof, trialPoint),
                             kernelValues.const_slice(testPoint, trialPoint)) *
-                        testWeight;
+                        testWeight;*/
+	const CollectionOf1dSlicesOfConst3dArrays<BasisFunctionType> &testValuesSl = testValues.const_slice(testDof, testPoint);
+	const CollectionOf1dSlicesOfConst3dArrays<BasisFunctionType> &trialValuesSl = trialValues.const_slice(trialDof, trialPoint);
+//	const CollectionOf2dSlicesOfConstNdArrays<KernelType> 
+	const CollectionOf2dSlicesOfConst4dArrays<KernelType> &kernelValuesSl = kernelValues.const_slice(testPoint, trialPoint);
+// From /opt/fb/bempp/lib/fiber/test_scalar_kernel_trial_integrand_functor.hpp:
+assert(kernelValuesSl.size() >= 1);
+    assert(kernelValuesSl[0].extent(0) == 1);
+    assert(kernelValuesSl[0].extent(1) == 1);
+
+    // Assert that there is at least one test and trial transformation
+    // and that their dimensions agree
+    assert(testValuesSl.size() >= 1);
+    assert(trialValuesSl.size() >= 1);
+    const size_t transCount = testValues.size();
+    assert(trialValuesSl.size() == transCount);
+    if (kernelValuesSl.size() > 1)
+      assert(kernelValuesSl.size() == transCount);
+
+    ResultType result = 0.;
+    for (size_t transIndex = 0; transIndex < transCount; ++transIndex) {
+      const size_t transDim = testValuesSl[transIndex].extent(0);
+      assert(trialValuesSl[transIndex].extent(0) == transDim);
+      BasisFunctionType dotProduct = 0.;
+      for (size_t dim = 0; dim < transDim; ++dim)
+        dotProduct += conjugate(testValuesSl[transIndex](dim)) *
+                      trialValuesSl[transIndex](dim);
+      if (transCount == 1)
+        result += dotProduct * kernelValuesSl[0](0, 0);
+      else
+        result += dotProduct * kernelValuesSl[transIndex](0, 0);
+    }
+//partialSum += result*testWeight;
+//partialSum += result*testWeight*1.5;
+partialSum += result*testWeight*static_cast<ResultType>(1.5);
+// :end of /opt/fb/bempp/lib/fiber/test_scalar_kernel_trial_integrand_functor.hpp.
+
+
         }
         sum += partialSum * trialWeight;
       }
