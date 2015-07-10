@@ -1,16 +1,16 @@
 //gedit /opt/fb/bempp/lib/fiber/default_test_kernel_trial_integral.hpp
 
+// gedit /opt/fb/bempp/lib/linalg/default_iterative_solver.cpp
 // gedit /opt/fb/bempp/lib/assembly/dense_global_assembler.hpp
 // gedit /opt/fb/bempp/lib/assembly/general_elementary_singular_integral_operator.hpp
 // gedit /opt/fb/bempp/lib/fiber/default_local_assembler_for_integral_operators_on_surfaces.hpp
 // gedit /opt/fb/bempp/lib/fiber/local_assembler_for_integral_operators.hpp
 
-
-//// pushd /opt/bemppNew/bempp/build; make -j6 2>~/Desktop/Doctoraat/GreenBempp/brol; popd
-// pushd ../..; make tutorial_dirichlet -j6 2>/opt/fb/bempp/build/examples/cpp/brol; popd
-
 // cd  /opt/fb/bempp/build/examples/cpp/
 // pushd ../..; make tutorial_dirichlet -j6; popd
+//// pushd /opt/bemppNew/bempp/build; make -j6 2>~/Desktop/Doctoraat/GreenBempp/brol; popd
+// pushd ../..; make tutorial_dirichlet -j6 2>/opt/fb/bempp/build/examples/cpp/brol; popd
+// ./tutorial_dirichlet 2> ~/Desktop/Doctoraat/GreenBempp/compr
 
 //// compilecommand werkt niet:
 //// g++ -I/opt/bemppNew/bempp/build/include -I/opt/bemppNew/bempp/build/include/bempp ~/Desktop/Doctoraat/GreenBempp/helmholtzRep.cpp -L/opt/bemppNew/bempp/build/lib -L/opt/bemppNew/bempp/build/external/lib -I/opt/bemppNew/bempp/build/external/include/ -I/opt/anaconda/inst/include/python2.7/ -I/opt/bemppNew/bempp/build/external/include/Trilinos -w -g -Wall -Werror -std=gnu++11 -lbempp -lteuchoscore -lpthread -Wl,-rpath,/opt/bemppNew/bempp/lib
@@ -119,20 +119,16 @@ int main(int argc, char* argv[])
 	std::cout << "aowisuehfoasdhf" << std::endl;
 	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weak = bla.weakFormPeter(" Passed From tutorial_dirichlet.cpp ",context);
 	arma::Mat<RT> wm = weak->asMatrix();
-	std::cerr << (weak->asMatrix())[0,0] << std::endl; // Should be(0.0022927,0.000174001)
-	std::cerr << wm[0,0] << wm[0,1] << wm[2,0] << wm[50,66] << std::endl; // Should be (0.0022927,0.000174001)(0.00110578,0.000196013)(0.0022927,0.000174001)(0.000275424,0.000255719)
+//	std::cerr << (weak->asMatrix())[0,0] << std::endl; // Should be(0.0022927,0.000174001)
+	std::cout << wm[0,0] << wm[0,1] << wm[2,0] << wm[50,66] << std::endl; // Should be (0.0022927,0.000174001)(0.00110578,0.000196013)(0.0022927,0.000174001)(0.000275424,0.000255719)
 
-//	std::cerr << weak->asMatrix() << std::endl;
+//	std::cerr << weak->asMatrix() << std::endl; // For comparisons and validation
 
-	return 1;
-
-
-	weak = slpOp.weakForm();
-	wm = weak->asMatrix();
-	std::cerr << "Real result = " << wm[0,0] << wm[0,1] << wm[2,0] << wm[50,66] << std::endl;
-	return 1;
-
-
+//	return 1;
+//	weak = slpOp.weakForm();
+//	wm = weak->asMatrix();
+//	std::cerr << "Real result = " << wm[0,0] << wm[0,1] << wm[2,0] << wm[50,66] << std::endl;
+//	return 1;
 	
 	std::cout << "Assemble rhs" << std::endl;
 	GridFunction<BFT, RT> rhs(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), // is this the right choice?
@@ -155,6 +151,8 @@ int main(int argc, char* argv[])
 	// Uncomment the block below if you are solving the problem on a sphere and
 	// you want to compare the numerical and analytical solution.
 	arma::Col<RT> solutionCoefficients = solFun.coefficients();
+//	std::cout << solutionCoefficients << std::endl;//Look whether the same as armaSolution from def_iter_solver.cpp: indeed
+
 	std::cout << "solCoef(1) = " << solutionCoefficients(1) << std::endl;
 	arma::Col<RT> deviation = solutionCoefficients - static_cast<RT>(-1.);
 	// % in Armadillo -> elementwise multiplication
@@ -163,8 +161,12 @@ int main(int argc, char* argv[])
 
 	Helmholtz3dSingleLayerPotentialOperator<BFT> slPot (waveNumber);
 	EvaluationOptions evalOptions = EvaluationOptions();
-	int pointCount = 6;
+	int nth = 5;
+	int nph = 4;
+	int pointCount = nth*nph;
+//	int pointCount = 6;
 	arma::Mat<CT> points(3,pointCount);
+/*
 	points(0,0) = 1.0;	points(1,0) = 0.0;	points(2,0) = 0.0;
 	points(0,1) = -1.0;	points(1,1) = 0.0;	points(2,1) = 0.0;
 
@@ -173,10 +175,22 @@ int main(int argc, char* argv[])
 
 	points(0,4) = 0.0;	points(1,4) = 0.0;	points(2,4) = 1.0;
 	points(0,5) = 0.0;	points(1,5) = 0.0;	points(2,5) = -1.0;
-
-	std::cout << "pts: " << points << std::endl;
+*/
+	// theta in [0,pi) en phi in [0, 2pi)
+	for (int thi =0; thi < nth; ++thi) {
+		CT theta = M_PI*2*thi/nth;
+		for(int pih =0; pih < nph; ++pih) {
+			CT phi = M_PI*2*pih/nph;
+			int idx = thi*nph+pih;
+			points(0,idx) = cos(phi)*sin(theta);
+			points(1,idx) = sin(phi)*sin(theta);
+			points(2,idx) = cos(theta);
+		}
+	}
+	
+//	std::cout << "pts: " << points << std::endl;
+	std::cout << "pts: " << points.t() << std::endl;//Transpose
 	arma::Mat<RT> potRes = slPot.evaluateAtPoints(solFun, points, quadStrategy, evalOptions);
-	std::cout << "pot: " << potRes << std::endl;
 
 	arma::Mat<RT> diri = potRes;
 	MyFunctor tmp = MyFunctor();
@@ -189,9 +203,12 @@ int main(int argc, char* argv[])
 		tmp.evaluate(pt,t);
 		diri(i) = t(0);
 	}
-	std::cout << diri << "=diri, potRes: " << potRes << std::endl;
+//	std::cout << diri << "=diri, potRes: " << potRes << std::endl;
 	arma::Mat<RT> errBC = potRes-diri;
 	std::cout << "errBC= " << errBC << std::endl;
+//errBC=     (-1.522e-02,+4.633e-02)    (-5.599e-02,-1.191e-01)    (+6.368e-02,-4.378e-02)    (+6.293e-02,-4.343e-02)    (+6.436e-02,-4.436e-02)    (+6.602e-02,-4.498e-02) if no compr
+//errBC=     (+5.403e-01,+8.415e-01)    (-5.702e-02,-1.183e-01)    (+6.487e-02,-6.107e-02)    (+6.355e-02,-6.238e-02)    (+6.567e-02,-6.163e-02)    (+6.654e-02,-6.501e-02) if -0.8 and cuto 0.1
+	std::cout << mean(mean(abs(errBC) )) << " = mean abs err BC, " << mean(abs(errBC) ) << std::endl;
 }
 
 

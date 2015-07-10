@@ -249,7 +249,6 @@ assert(kernelValuesSl.size() >= 1);
 partialSum += result*testWeight*static_cast<ResultType>(1.5);
 // :end of /opt/fb/bempp/lib/fiber/test_scalar_kernel_trial_integrand_functor.hpp.
 
-
         }
         sum += partialSum * trialWeight;
       }

@@ -74,10 +74,36 @@ public:
 
 //        DWFALBPeter(const DWFALBPeter&) = delete;
 
+
+
     void operator() (const tbb::blocked_range<size_t>& r) const {
         const int elementCount = m_testIndices.size();
         std::vector<arma::Mat<ResultType> > localResult;
+/*
+std::stringstream s;
+s << "testI = "; 
+for(int i = 0; i < m_testIndices.size(); ++i){
+	s << m_testIndices[i] << " ";
+}
+s << " = testIndx, size testGlobDofs = "<< m_testGlobalDofs.size()<< " and " << m_testGlobalDofs[0].size() << std::endl;
+for(int i = 0; i < m_testGlobalDofs.size(); ++i){
+	for(int j = 0; j < m_testGlobalDofs[i].size(); ++j){
+		s << m_testGlobalDofs[i][j] << " ";
+	}
+	s << " / ";
+}
+s << std::endl;
 
+s << "trialGlobalDofs = " << m_trialGlobalDofs.size()<< " and " << m_trialGlobalDofs[0].size() << std::endl;
+for(int i = 0; i < m_trialGlobalDofs.size(); ++i){
+	for(int j = 0; j < m_trialGlobalDofs[i].size(); ++j){
+		s << m_trialGlobalDofs[i][j] << " ";
+	}
+	s << " / ";
+}
+s << std::endl;
+std::cout << s.str();
+*/
 //	std::unique_ptr<Fiber::LocalAssemblerForIntegralOperators<ResultType> > p_asmblr = std::unique_ptr<Fiber::LocalAssemblerForIntegralOperators<ResultType> >(m_assembler);
 //	std::unique_ptr<Fiber::LocalAssemblerForIntegralOperators<ResultType> > p_asmblr = &m_assembler;
 
@@ -265,7 +291,6 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
         }
     }
 
-
 	std::cout << "Iasdflakjsnldkfjnn denseglobalassembler: "  << std::endl;
     arma::Mat<ResultType> result(testSpace.globalDofCount(), trialSpace.globalDofCount());
     result.fill(0.); // Create and fill the operator's matrix
@@ -282,6 +307,39 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
     }
 	std::cout << "asiodjfsapoijdfosaijf" << maxThreadCount << std::endl;
     tbb::task_scheduler_init scheduler(maxThreadCount);
+std::cout << "testI = "; // << std::copy(testIndices) 
+for(int i = 0; i < testIndices.size(); ++i){
+	std::cout << testIndices[i] << " ";
+}
+std::cout << " = testIndx, size testGlobDofs = "<<testGlobalDofs.size()<< " and " << testGlobalDofs[0].size() << std::endl;// << testGlobalDofs << " = testGlobDofs, trialGlobDofs = " << trialGlobalDofs << std::endl;
+
+for(int i = 0; i < testGlobalDofs.size(); ++i){
+//	std::cout << testGlobalDofs[i] << std::endl;
+	for(int j = 0; j < testGlobalDofs[i].size(); ++j){
+//		std::cout << i << "=i,j=" << j << " ";
+		std::cout << testGlobalDofs[i][j] << " ";
+	}
+//	std::cout << " for i=" << i << std::endl;
+//	std::cout << testGlobalDofs[i].size() << " ";
+//	std::cout << testGlobalDofs[i][0] << " ";
+	std::cout << " / ";
+//	std::cout << std::endl;
+}
+//std::cout << testGlobalDofs[30][1];
+std::cout << std::endl;
+
+std::cout << "trialGlobalDofs = " << trialGlobalDofs.size()<< " and " << trialGlobalDofs[0].size() << std::endl;
+for(int i = 0; i < trialGlobalDofs.size(); ++i){
+	for(int j = 0; j < trialGlobalDofs[i].size(); ++j){
+		std::cout << trialGlobalDofs[i][j] << " ";
+	}
+//	std::cout << testGlobalDofs[i].size() << " ";
+	std::cout << " / ";
+}
+std::cout << std::endl;
+
+
+std::cout << "apsojfd" << std::endl;
     {
         Fiber::SerialBlasRegion region;
         tbb::parallel_for(tbb::blocked_range<size_t>(0, trialElementCount), Body(str, testIndices, testGlobalDofs, trialGlobalDofs,testLocalDofWeights, trialLocalDofWeights, assembler, result, mutex));

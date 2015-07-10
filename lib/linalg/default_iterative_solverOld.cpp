@@ -268,10 +268,7 @@ DefaultIterativeSolver<BasisFunctionType, ResultType>::solveImplNonblocked(
     status = m_impl->solverWrapper->solve(Thyra::NOTRANS, *rhsVector,
                                           solutionVector.ptr());
   }
-//Peter:
-//std::cerr << rhs.projections(boundaryOp->dualToRange()) << "=rhs, sol =" << armaSolution << std::endl; // For comparisons and validation
-//std::cerr << *rhsVector << "=rhs, sol =" << armaSolution << std::endl;
-//std::cerr << projectionsVector << "=rhs, sol =" << solutionVector << std::endl; 
+
   // Construct grid function and return
   return Solution<BasisFunctionType, ResultType>(
       GridFunction<BasisFunctionType, ResultType>(

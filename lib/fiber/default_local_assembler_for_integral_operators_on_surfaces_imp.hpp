@@ -192,7 +192,7 @@ void DefaultLocalAssemblerForIntegralOperatorsOnSurfaces<
                            std::vector<arma::Mat<ResultType>> &result,
                            CoordinateType nominalDistance) {
 // Peter:
-	std::cout << "Using CallVariaqnnt" << std::endl;
+//	std::cout << "Using CallVariaqnnt" << std::endl;
   typedef Shapeset<BasisFunctionType> Shapeset;
 
   const int elementACount = elementIndicesA.size();
@@ -310,7 +310,7 @@ void DefaultLocalAssemblerForIntegralOperatorsOnSurfaces<
                            Fiber::_2dArray<arma::Mat<ResultType>> &result,
                            CoordinateType nominalDistance) {
 // Peter:
-	std::cout << "Using testTrielResultNominaldistance3" << std::endl;
+//	std::cout << "Using testTrielResultNominaldistance3" << std::endl;
   typedef Fiber::Shapeset<BasisFunctionType> Shapeset;
 
   const int testElementCount = testElementIndices.size();

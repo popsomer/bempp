@@ -78,33 +78,10 @@ public:
       sum += diff * diff;
     }
     CoordinateType distance = sqrt(sum);
-//Peter:
-	if (distance >= 2) {
-		std::cerr << "Error, 2 <= distance =" << distance <<  std::endl;
-	}
-	CoordinateType wind = static_cast<CoordinateType>(1.0);
-	CoordinateType cuto = static_cast<CoordinateType>(0.1);
-	CoordinateType cutoSP = static_cast<CoordinateType>(0.3);
-//if (testGeomData.global(0) < -7) { // for test without window
-//	if (testGeomData.global(0) > 0.8) { // WRONG
-	if (testGeomData.global(0) < -0.8) { // Hardcoded
-//	if (true) {
-		if (distance >= cuto*2) {
-			wind = static_cast<CoordinateType>(0.0);
-		}
-		else if (distance >= cuto) {
-			wind = exp(2*exp(-cuto/(distance-2*cuto) )/( (distance-2*cuto)/cuto-1) );
-//			std::cout << wind;
-		} 
-	}
-//throw std::logic_error("just for printing backtrace");
-//std::terminate();
-//	if(testGeomData.global(0) > 0
     result[0](0, 0) = static_cast<CoordinateType>(1.0 / (4.0 * M_PI)) /
-                      distance * exp(-m_waveNumber * distance)*wind;
-
-
+                      distance * exp(-m_waveNumber * distance);
   }
+
   CoordinateType estimateRelativeScale(CoordinateType distance) const {
     return exp(-realPart(m_waveNumber) * distance);
   }
