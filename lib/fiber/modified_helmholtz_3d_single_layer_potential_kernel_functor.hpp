@@ -87,8 +87,9 @@ public:
 	CoordinateType cutoSP = static_cast<CoordinateType>(0.3);
 //if (testGeomData.global(0) < -7) { // for test without window
 //	if (testGeomData.global(0) > 0.8) { // WRONG
-	if (testGeomData.global(0) < -0.8) { // Hardcoded
+//	if (testGeomData.global(0) < -0.8) { // Hardcoded
 //	if (true) {
+	if(false) {
 		if (distance >= cuto*2) {
 			wind = static_cast<CoordinateType>(0.0);
 		}
@@ -100,11 +101,42 @@ public:
 //throw std::logic_error("just for printing backtrace");
 //std::terminate();
 //	if(testGeomData.global(0) > 0
-    result[0](0, 0) = static_cast<CoordinateType>(1.0 / (4.0 * M_PI)) /
-                      distance * exp(-m_waveNumber * distance)*wind;
-
+    result[0](0, 0) = static_cast<CoordinateType>(1.0 / (4.0 * M_PI)) / distance * exp(-m_waveNumber * distance)*wind;
 
   }
+
+
+  template <template <typename T> class CollectionOf2dSlicesOfNdArrays>
+  void evaluatePeter(std::string str, const ConstGeometricalDataSlice<CoordinateType> &testGeomData, const ConstGeometricalDataSlice<CoordinateType> &trialGeomData, CollectionOf2dSlicesOfNdArrays<ValueType> &result) const {
+    const int coordCount = 3;
+
+    CoordinateType sum = 0;
+    for (int coordIndex = 0; coordIndex < coordCount; ++coordIndex) {
+      CoordinateType diff =
+          testGeomData.global(coordIndex) - trialGeomData.global(coordIndex);
+      sum += diff * diff;
+    }
+    CoordinateType distance = sqrt(sum);
+	if (distance >= 2) {
+		std::cerr << "Error, 2 <= distance =" << distance <<  std::endl;
+	}
+	CoordinateType wind = static_cast<CoordinateType>(1.0);
+	CoordinateType cuto = static_cast<CoordinateType>(0.1);
+	CoordinateType cutoSP = static_cast<CoordinateType>(0.3);
+	if (false) {
+		if (distance >= cuto*2) {
+			wind = static_cast<CoordinateType>(0.0);
+		}
+		else if (distance >= cuto) {
+			wind = exp(2*exp(-cuto/(distance-2*cuto) )/( (distance-2*cuto)/cuto-1) );
+		} 
+	}
+    result[0](0, 0) = static_cast<CoordinateType>(1.0 / (4.0 * M_PI)) / distance * exp(-m_waveNumber * distance)*wind;
+
+  }
+
+
+
   CoordinateType estimateRelativeScale(CoordinateType distance) const {
     return exp(-realPart(m_waveNumber) * distance);
   }

@@ -102,7 +102,8 @@ public:
 
 
 //Peter:
-shared_ptr<const DiscreteBoundaryOperator<ResultType> > weakFormPeter(std::string str, const Context<BasisFunctionType, ResultType> context) const
+//shared_ptr<const DiscreteBoundaryOperator<ResultType> > weakFormPeter(std::string str, const Context<BasisFunctionType, ResultType> context, std::unique_ptr<arma::Col<ResultType> > solV, std::unique_ptr<std::vector<ResultType> > rhsV, std::unique_ptr<arma::Mat<ResultType> > wm) const
+shared_ptr<const DiscreteBoundaryOperator<ResultType> > weakFormPeter(std::string str, const Context<BasisFunctionType, ResultType> context, arma::Col<ResultType> * solV, std::vector<ResultType> * rhsV, arma::Mat<ResultType> * wm) const
 {
 	std::cout << "saoidjfid" << std::endl;
 	typedef AbstractBoundaryOperator<BasisFunctionType, ResultType> Base;
@@ -115,7 +116,8 @@ shared_ptr<const DiscreteBoundaryOperator<ResultType> > weakFormPeter(std::strin
 		std::cout << "oiasujhdfid" << std::endl;
 //        return shared_ptr<DiscreteBoundaryOperator<ResultType> >( assembleWeakFormInDenseMode(assembler, context).release());
 //	return shared_ptr<DiscreteBoundaryOperator<ResultType> >(DenseGlobalAssembler<BasisFunctionType, ResultType>:: assembleDetachedWeakForm(*this->dualToRange(), *this->domain(), *assembler, context).release());
-		return shared_ptr<DiscreteBoundaryOperator<ResultType> >(DenseGlobalAssembler<BasisFunctionType, ResultType>:: assembleDetachedWeakFormPeter(str,*this->dualToRange(), *this->domain(), *assembler, context).release());
+		return shared_ptr<DiscreteBoundaryOperator<ResultType> >(DenseGlobalAssembler<BasisFunctionType, ResultType>:: assembleDetachedWeakFormPeter(str,*this->dualToRange(), *this->domain(), *assembler, context, solV, rhsV, wm).release());
+//		return shared_ptr<DiscreteBoundaryOperator<ResultType> >(DenseGlobalAssembler<BasisFunctionType, ResultType>:: assembleDetachedWeakFormPeter(str,*this->dualToRange(), *this->domain(), *assembler, context).release());
 //		return shared_ptr<DiscreteBoundaryOperator<ResultType> >(DenseGlobalAssembler<BasisFunctionType, ResultType>:: assembleDetachedWeakFormPeter(str,*this->dualToRange(), *this->domain(), assembler, context).release());
 	}
 	default:

@@ -69,16 +69,17 @@ class DWFALBPeter
 {
 public:
     typedef tbb::spin_mutex MutexType;
-    DWFALBPeter(std::string strIn, const std::vector<int>& testIndices, const std::vector<std::vector<GlobalDofIndex> >& testGlobalDofs, const std::vector<std::vector<GlobalDofIndex> >& trialGlobalDofs, const std::vector<std::vector<BasisFunctionType> >& testLocalDofWeights, const std::vector<std::vector<BasisFunctionType> >& trialLocalDofWeights, Fiber::LocalAssemblerForIntegralOperators<ResultType>& assembler, arma::Mat<ResultType>& result, MutexType& mutex) : //,std::unique_ptr<Fiber::LocalAssemblerForIntegralOperators<ResultType> > asmblr) :
-        str(strIn), m_testIndices(testIndices), m_testGlobalDofs(testGlobalDofs), m_trialGlobalDofs(trialGlobalDofs), m_testLocalDofWeights(testLocalDofWeights), m_trialLocalDofWeights(trialLocalDofWeights), m_assembler(assembler), m_result(result), m_mutex(mutex) { }  //, p_asmblr(asmblr) {    }
+    DWFALBPeter(std::string strIn, const std::vector<int>& testIndices, const std::vector<std::vector<GlobalDofIndex> >& testGlobalDofs, const std::vector<std::vector<GlobalDofIndex> >& trialGlobalDofs, const std::vector<std::vector<BasisFunctionType> >& testLocalDofWeights, const std::vector<std::vector<BasisFunctionType> >& trialLocalDofWeights, Fiber::LocalAssemblerForIntegralOperators<ResultType>& assembler, arma::Mat<ResultType>& result, MutexType& mutex, arma::Col<ResultType> * solV, std::vector<ResultType> * rhsV, arma::Mat<ResultType> * wm) : //,std::unique_ptr<Fiber::LocalAssemblerForIntegralOperators<ResultType> > asmblr) :
+        str(strIn), m_testIndices(testIndices), m_testGlobalDofs(testGlobalDofs), m_trialGlobalDofs(trialGlobalDofs), m_testLocalDofWeights(testLocalDofWeights), m_trialLocalDofWeights(trialLocalDofWeights), m_assembler(assembler), m_result(result), m_mutex(mutex), m_solV(solV), m_rhsV(rhsV), m_wm(wm) { }  //, p_asmblr(asmblr) {    }
 
 //        DWFALBPeter(const DWFALBPeter&) = delete;
-
 
 
     void operator() (const tbb::blocked_range<size_t>& r) const {
         const int elementCount = m_testIndices.size();
         std::vector<arma::Mat<ResultType> > localResult;
+	arma::Col<ResultType> solV = *m_solV;
+	arma::Mat<ResultType> wm = *m_wm;
 /*
 std::stringstream s;
 s << "testI = "; 
@@ -113,7 +114,7 @@ std::cout << s.str();
 //            m_assembler.evaluateLocalWeakForms(TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);
 //            m_assembler.evaluateLocalWeakFormsPeter(str,TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult); //Does not get overridden, use pointer
 //            p_asmblr->evaluateLocalWeakFormsPeter(str,TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);
-		(&m_assembler)->evaluateLocalWeakFormsPeter(str,TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);
+/////		(&m_assembler)->evaluateLocalWeakFormsPeter(str,TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);
 
 
 //	const GeneralElementarySingularIntegralOperator<BFT,RT,RT> bla = dynamic_cast<const GeneralElementarySingularIntegralOperator<BFT,RT,RT>& > (*asdf);
@@ -130,6 +131,10 @@ std::cout << s.str();
                 MutexType::scoped_lock lock(m_mutex);
                 // Loop over test indices
                 for (int testIndex = 0; testIndex < elementCount; ++testIndex) {
+//			m_result(testIndex, 0) += m_wm[testIndex,trialIndex]*m_solV[trialIndex];
+//			m_result(testIndex, 0) += m_wm(testIndex,trialIndex)*m_solV(trialIndex);
+			m_result(testIndex, 0) += wm(testIndex,trialIndex)*solV(trialIndex);
+/*
                     const int testDofCount = m_testGlobalDofs[testIndex].size();
 //		if ((r.begin() == 1) && (r.end() == 2) && (testIndex == 0) ) {
 		if ((trialIndex == 0) && (testIndex == 0) ) {
@@ -150,7 +155,7 @@ std::cout << s.str();
                             assert(std::abs(m_trialLocalDofWeights[trialIndex][trialDof]) > 0.);
                             m_result(testGlobalDof, trialGlobalDof) += conj(m_testLocalDofWeights[testIndex][testDof]) * m_trialLocalDofWeights[trialIndex][trialDof] *localResult[testIndex](testDof, trialDof);
                         }
-                    }
+                    }*/
                 }
             }
         }
@@ -170,6 +175,9 @@ private:
     arma::Mat<ResultType>& m_result;
     // mutex must be mutable because we need to lock and unlock it
     MutexType& m_mutex;
+	arma::Col<ResultType> * m_solV;
+	std::vector<ResultType> * m_rhsV;
+	arma::Mat<ResultType> * m_wm;
 };
 
 // Build a list of lists of global DOF indices corresponding to the local DOFs on each element of space.grid().
@@ -248,8 +256,10 @@ public:
 //	template <typename BasisFunctionType, typename ResultType>
 //static std::auto_ptr<DiscreteBoundaryOperator<ResultType> >
 //DenseGlobalAssembler<BasisFunctionType, ResultType>::
+//static std::unique_ptr<DiscreteBoundaryOperator<ResultType> > assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& testSpace, const Space<BasisFunctionType>& trialSpace, LocalAssemblerForIntegralOperators& assembler, const Context<BasisFunctionType, ResultType>& context)
+//static std::unique_ptr<DiscreteBoundaryOperator<ResultType> > assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& testSpace, const Space<BasisFunctionType>& trialSpace, LocalAssemblerForIntegralOperators& assembler, const Context<BasisFunctionType, ResultType>& context, std::unique_ptr<arma::Col<ResultType> > solV, std::unique_ptr<std::vector<ResultType> > rhsV, std::unique_ptr<arma::Mat<ResultType> > wm)
 static std::unique_ptr<DiscreteBoundaryOperator<ResultType> >
-assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& testSpace, const Space<BasisFunctionType>& trialSpace, LocalAssemblerForIntegralOperators& assembler, const Context<BasisFunctionType, ResultType>& context)
+assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& testSpace, const Space<BasisFunctionType>& trialSpace, LocalAssemblerForIntegralOperators& assembler, const Context<BasisFunctionType, ResultType>& context, arma::Col<ResultType> * solV, std::vector<ResultType> * rhsV, arma::Mat<ResultType> * wm)
 //static std::unique_ptr<DiscreteBoundaryOperator<ResultType> >
 //assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& testSpace, const Space<BasisFunctionType>& trialSpace, std::unique_ptr<LocalAssemblerForIntegralOperators> asmblr, const Context<BasisFunctionType, ResultType>& context)
 {
@@ -292,7 +302,8 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
     }
 
 	std::cout << "Iasdflakjsnldkfjnn denseglobalassembler: "  << std::endl;
-    arma::Mat<ResultType> result(testSpace.globalDofCount(), trialSpace.globalDofCount());
+//    arma::Mat<ResultType> result(testSpace.globalDofCount(), trialSpace.globalDofCount());
+    arma::Mat<ResultType> result(testSpace.globalDofCount(), 1);
     result.fill(0.); // Create and fill the operator's matrix
 
     typedef DWFALBPeter<BasisFunctionType, ResultType> Body;
@@ -307,6 +318,7 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
     }
 	std::cout << "asiodjfsapoijdfosaijf" << maxThreadCount << std::endl;
     tbb::task_scheduler_init scheduler(maxThreadCount);
+/*
 std::cout << "testI = "; // << std::copy(testIndices) 
 for(int i = 0; i < testIndices.size(); ++i){
 	std::cout << testIndices[i] << " ";
@@ -337,14 +349,31 @@ for(int i = 0; i < trialGlobalDofs.size(); ++i){
 	std::cout << " / ";
 }
 std::cout << std::endl;
+*/
 
 
 std::cout << "apsojfd" << std::endl;
     {
         Fiber::SerialBlasRegion region;
-        tbb::parallel_for(tbb::blocked_range<size_t>(0, trialElementCount), Body(str, testIndices, testGlobalDofs, trialGlobalDofs,testLocalDofWeights, trialLocalDofWeights, assembler, result, mutex));
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, trialElementCount), Body(str, testIndices, testGlobalDofs, trialGlobalDofs,testLocalDofWeights, trialLocalDofWeights, assembler, result, mutex, solV, rhsV, wm));
 //        tbb::parallel_for(tbb::blocked_range<size_t>(0, trialElementCount), Body(str, testIndices, testGlobalDofs, trialGlobalDofs,testLocalDofWeights, trialLocalDofWeights, assembler, result, mutex,asmblr));
     }
+	std::vector<ResultType> rhsVe = *rhsV;
+	ResultType tmpErr, re, rh;
+	ResultType globalNor = 0.0;
+	ResultType globalErr = 0.0;
+	std::cout << "tmpErrs = ";
+	for(int i=0; i < testSpace.globalDofCount(); ++i) {
+//		tmpErr = std::abs(result[i,0] -rhsV[i]);
+		re = result[i,0];
+//		rh = rhsV[i];
+		rh = rhsVe[i];
+		tmpErr = std::abs(re-rh);
+		std::cout << tmpErr << " ";
+		globalNor += std::abs(rh);
+		globalErr += tmpErr;
+	}
+	std::cout << std::endl << globalErr/globalNor << " = relErr, GlobalErr = " << globalErr << std::endl;
 //    return std::auto_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(result));
     return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(
                 new DiscreteDenseBoundaryOperator<ResultType>(result));

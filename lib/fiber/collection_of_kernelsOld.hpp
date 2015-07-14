@@ -109,9 +109,6 @@ public:
                        const GeometricalData<CoordinateType> &trialGeomData,
                        CollectionOf3dArrays<ValueType> &result) const = 0;
 
-//Peter:
-  virtual void evaluateAtPointPairsPeter(std::string str, const GeometricalData<CoordinateType> &testGeomData,     const GeometricalData<CoordinateType> &trialGeomData, CollectionOf3dArrays<ValueType> &result) const = 0;
-
   /** \brief Evaluate the kernels on a tensor grid of test and trial points.
    *
    *  \param[in] testGeomData
@@ -141,9 +138,6 @@ public:
   evaluateOnGrid(const GeometricalData<CoordinateType> &testGeomData,
                  const GeometricalData<CoordinateType> &trialGeomData,
                  CollectionOf4dArrays<ValueType> &result) const = 0;
-
-//Peter:
-  virtual void evaluateOnGridPeter(std::string str, const GeometricalData<CoordinateType> &testGeomData, const GeometricalData<CoordinateType> &trialGeomData, CollectionOf4dArrays<ValueType> &result) const = 0;
 
   /** \brief Currently unused. */
   virtual std::pair<const char *, int> evaluateClCode() const {

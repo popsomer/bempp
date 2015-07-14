@@ -231,8 +231,8 @@ public:
                                       trialValues);
     }
 
-    m_kernels.evaluateOnGrid(*constTestGeomData, *constTrialGeomData,
-                             kernelValues);
+//    m_kernels.evaluateOnGrid(*constTestGeomData, *constTrialGeomData,kernelValues);
+    m_kernels.evaluateOnGridPeter(str,*constTestGeomData, *constTrialGeomData,kernelValues);
 	if ((elementIndexB == 0) && (indexA == 0)) {
 		std::cout << "before evTenQuadRule = " << *result[indexA] << std::endl;
 //		std::cout << testValues << " = test, trial= " << trialValues << std::endl;

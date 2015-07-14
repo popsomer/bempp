@@ -1,5 +1,8 @@
+//gedit /opt/fb/bempp/lib/fiber/modified_helmholtz_3d_single_layer_potential_kernel_functor.hpp
+//gedit /opt/fb/bempp/lib/fiber/default_collection_of_kernels.hpp
 //gedit /opt/fb/bempp/lib/fiber/default_test_kernel_trial_integral.hpp
 
+//gedit /opt/fb/bempp/lib/fiber/separable_numerical_test_kernel_trial_integrator.hpp
 // gedit /opt/fb/bempp/lib/linalg/default_iterative_solver.cpp
 // gedit /opt/fb/bempp/lib/assembly/dense_global_assembler.hpp
 // gedit /opt/fb/bempp/lib/assembly/general_elementary_singular_integral_operator.hpp
@@ -71,6 +74,8 @@ typedef std::complex<double> RT; // result type (type used to represent discrete
 typedef double CT; // coordinate type
 
 RT waveNumber = 1;
+//RT waveNumber = 100;
+//RT waveNumber = 25;
 
 class MyFunctor
 {
@@ -96,6 +101,7 @@ int main(int argc, char* argv[])
 //	argv[1] = "/home/peter/Desktop/Doctoraat/Bol/sphere0.msh";
 //	shared_ptr<Grid> grid = loadTriangularMeshFromFile(argv[1]);
 	shared_ptr<Grid> grid = loadTriangularMeshFromFile("/home/peter/Desktop/Doctoraat/Bol/sphere0.msh");
+//      shared_ptr<Grid> grid = loadTriangularMeshFromFile("/home/peter/Desktop/Doctoraat/Bol/sphere3.msh");
 	std::cout << "palosidjfaoslidjnfs" << std::endl;
 	PiecewiseLinearContinuousScalarSpace<BFT> HplusHalfSpace(grid);
 	PiecewiseConstantScalarSpace<BFT> HminusHalfSpace(grid);
@@ -112,24 +118,11 @@ int main(int argc, char* argv[])
 	std::cout << "asOptions.cache = " << assemblyOptions.isSingularIntegralCachingEnabled() << std::endl;
 	BoundaryOperator<BFT, RT> slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
 
-	boost::shared_ptr<const Bempp::AbstractBoundaryOperator<double, std::complex<double> > > asdf = slpOp.abstractOperator();
-	std::cout << "iohussdifgoahs'sadf" << std::endl;
-	const GeneralElementarySingularIntegralOperator<BFT,RT,RT> bla = dynamic_cast<const GeneralElementarySingularIntegralOperator<BFT,RT,RT>& > (*asdf);
+//	DiscreteBoundaryOperator<RT> weak = slpOp.weakForm();
+//	arma::Mat<RT> wm = weak->asMatrix();
+	arma::Mat<RT> wm = slpOp.weakForm()->asMatrix();
+//	std::cerr << wm << std::endl;
 
-	std::cout << "aowisuehfoasdhf" << std::endl;
-	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weak = bla.weakFormPeter(" Passed From tutorial_dirichlet.cpp ",context);
-	arma::Mat<RT> wm = weak->asMatrix();
-//	std::cerr << (weak->asMatrix())[0,0] << std::endl; // Should be(0.0022927,0.000174001)
-	std::cout << wm[0,0] << wm[0,1] << wm[2,0] << wm[50,66] << std::endl; // Should be (0.0022927,0.000174001)(0.00110578,0.000196013)(0.0022927,0.000174001)(0.000275424,0.000255719)
-
-//	std::cerr << weak->asMatrix() << std::endl; // For comparisons and validation
-
-//	return 1;
-//	weak = slpOp.weakForm();
-//	wm = weak->asMatrix();
-//	std::cerr << "Real result = " << wm[0,0] << wm[0,1] << wm[2,0] << wm[50,66] << std::endl;
-//	return 1;
-	
 	std::cout << "Assemble rhs" << std::endl;
 	GridFunction<BFT, RT> rhs(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), // is this the right choice?
             surfaceNormalIndependentFunction(MyFunctor()));
@@ -153,6 +146,57 @@ int main(int argc, char* argv[])
 	arma::Col<RT> solutionCoefficients = solFun.coefficients();
 //	std::cout << solutionCoefficients << std::endl;//Look whether the same as armaSolution from def_iter_solver.cpp: indeed
 
+//	std::ifstream iStream("rhsV", std::ios::binary);
+        /*for( size_t i = 0; i < appointments.size(); i++ ) {            
+            appointments[i].read(iStream);
+        }*/
+	std::ifstream input("rhsV");
+//	arma::Col<RT> rhsVe{std::istream_iterator<RT>(input), std::istream_iterator<RT>() };
+	std::vector<RT> rhsVe{std::istream_iterator<RT>(input), std::istream_iterator<RT>() };
+        input.close();
+
+std::cerr << rhsVe[0]<< "= rhsV[0], rhsV[200] = " << rhsVe[200] << std::endl;
+
+
+// -------------- Compression -------------------------
+	BoundaryOperator<BFT, RT> slpOpCompr = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
+	boost::shared_ptr<const Bempp::AbstractBoundaryOperator<double, std::complex<double> > > asdf = slpOpCompr.abstractOperator();
+	std::cout << "iohussdifgoahs'sadf" << std::endl;
+	const GeneralElementarySingularIntegralOperator<BFT,RT,RT> bla = dynamic_cast<const GeneralElementarySingularIntegralOperator<BFT,RT,RT>& > (*asdf);
+
+	std::cout << "aowisuehfoasdhf" << std::endl;
+//	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weak = bla.weakFormPeter(" Passed From tutorial_dirichlet.cpp ",context);
+	std::stringstream sstream;
+	sstream <<waveNumber << " ";
+	std::string str = sstream.str();
+
+
+
+//arma::Col<RT> * rsa = &solutionCoefficients;
+//std::unique_ptr<arma::Col<RT>, void (*)(arma::Col<RT>*)> rsa(solutionCoefficients);
+//std::unique_ptr<arma::Col<RT>, void (*)(arma::Col<RT>*)> rsa(solutionCoefficients, ::arma::Col<RT>::free);
+//	std::unique_ptr<arma::Col<RT> > point {solutionCoefficients};
+//	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weakCompr = bla.weakFormPeter(str,context,std::auto_ptr<arma::Col<RT> > (solutionCoefficients), std::unique_ptr<std::vector<RT> > (rhsVe), std::unique_ptr<arma::Mat<RT> > (wm) );
+//	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weakCompr = bla.weakFormPeter(str,context,std::unique_ptr<arma::Col<RT> > (solutionCoefficients), std::unique_ptr<std::vector<RT> > (rhsVe), std::unique_ptr<arma::Mat<RT> > (wm) );
+//*solutionCoefficients, *rhsVe, std::unique_ptr<> (wm) );
+
+	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weakCompr = bla.weakFormPeter(str,context,&solutionCoefficients, &rhsVe, &wm);
+	arma::Mat<RT> wmC = weakCompr->asMatrix();
+//	std::cerr << (weak->asMatrix())[0,0] << std::endl; // Should be(0.0022927,0.000174001)
+//	std::cout << wm[0,0] << wm[0,1] << wm[2,0] << wm[50,66] << std::endl; // Should be (0.0022927,0.000174001)(0.00110578,0.000196013)(0.0022927,0.000174001)(0.000275424,0.000255719)
+	std::cout << wmC[0,0] << wmC[0,1] << wmC[2,0] << wmC[50,66] << std::endl;
+
+//	std::cerr << weak->asMatrix() << std::endl; // For comparisons and validation
+
+//	return 1;
+//	weak = slpOp.weakForm();
+//	wm = weak->asMatrix();
+//	std::cerr << "Real result = " << wm[0,0] << wm[0,1] << wm[2,0] << wm[50,66] << std::endl;
+//	return 1;
+
+
+
+// ----------------   Validation  ------------------------------------
 	std::cout << "solCoef(1) = " << solutionCoefficients(1) << std::endl;
 	arma::Col<RT> deviation = solutionCoefficients - static_cast<RT>(-1.);
 	// % in Armadillo -> elementwise multiplication
@@ -189,7 +233,7 @@ int main(int argc, char* argv[])
 	}
 	
 //	std::cout << "pts: " << points << std::endl;
-	std::cout << "pts: " << points.t() << std::endl;//Transpose
+	std::cout << waveNumber << " = waveNumber, pts: " << points.t() << std::endl;//Transpose
 	arma::Mat<RT> potRes = slPot.evaluateAtPoints(solFun, points, quadStrategy, evalOptions);
 
 	arma::Mat<RT> diri = potRes;

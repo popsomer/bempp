@@ -109,7 +109,7 @@ public:
 
 	//Peter
 	if (elementIndexB == 0) {
-		std::cout << "nonseparable_n_.._imp.hpp integrate(CallVariant)" << std::endl;
+//		std::cout << "nonseparable_n_.._imp.hpp integrate(CallVariant)" << std::endl;
 	}
 	else{
 //		std::cout << "nonsepar" << elementIndexB << ", ";
@@ -193,7 +193,8 @@ public:
                                       trialValues);
     }
 
-    m_kernels.evaluateAtPointPairs(testGeomData, trialGeomData, kernelValues);
+//    m_kernels.evaluateAtPointPairs(testGeomData, trialGeomData, kernelValues);
+    m_kernels.evaluateAtPointPairsPeter(str,testGeomData, trialGeomData, kernelValues);
     m_integral.evaluateWithNontensorQuadratureRule(
         testGeomData, trialGeomData, testValues, trialValues, kernelValues,
         m_quadWeights, *result[indexA]);

@@ -269,6 +269,9 @@ DefaultIterativeSolver<BasisFunctionType, ResultType>::solveImplNonblocked(
                                           solutionVector.ptr());
   }
 //Peter:
+std::fstream myStream;
+myStream.open("rhsV",std::ios::out);
+myStream << rhs.projections(boundaryOp->dualToRange());
 //std::cerr << rhs.projections(boundaryOp->dualToRange()) << "=rhs, sol =" << armaSolution << std::endl; // For comparisons and validation
 //std::cerr << *rhsVector << "=rhs, sol =" << armaSolution << std::endl;
 //std::cerr << projectionsVector << "=rhs, sol =" << solutionVector << std::endl; 
