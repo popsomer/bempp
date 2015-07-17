@@ -133,7 +133,11 @@ std::cout << s.str();
                 for (int testIndex = 0; testIndex < elementCount; ++testIndex) {
 //			m_result(testIndex, 0) += m_wm[testIndex,trialIndex]*m_solV[trialIndex];
 //			m_result(testIndex, 0) += m_wm(testIndex,trialIndex)*m_solV(trialIndex);
-			m_result(testIndex, 0) += wm(testIndex,trialIndex)*solV(trialIndex);
+//			m_result(testIndex, 0) += wm(testIndex,trialIndex)*solV(trialIndex);
+			m_result(trialIndex, 0) += wm(testIndex,trialIndex)*solV(testIndex);
+//if (trialIndex == 1) {
+//	std::cout << wm(testIndex,trialIndex) << solV(trialIndex) << testIndex << solV(testIndex) << std::endl;
+//}
 /*
                     const int testDofCount = m_testGlobalDofs[testIndex].size();
 //		if ((r.begin() == 1) && (r.end() == 2) && (testIndex == 0) ) {
@@ -263,7 +267,7 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
 //static std::unique_ptr<DiscreteBoundaryOperator<ResultType> >
 //assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& testSpace, const Space<BasisFunctionType>& trialSpace, std::unique_ptr<LocalAssemblerForIntegralOperators> asmblr, const Context<BasisFunctionType, ResultType>& context)
 {
-	std::cout << "In denseglobalassembler: " << str << std::endl;
+//	std::cout << "In denseglobalassembler: " << str << std::endl;
 //	LocalAssemblerForIntegralOperators& assembler = *asmblr;
 /*   
     // Make a vector of all element indices
@@ -301,7 +305,7 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
         }
     }
 
-	std::cout << "Iasdflakjsnldkfjnn denseglobalassembler: "  << std::endl;
+//	std::cout << "Iasdflakjsnldkfjnn denseglobalassembler: "  << std::endl;
 //    arma::Mat<ResultType> result(testSpace.globalDofCount(), trialSpace.globalDofCount());
     arma::Mat<ResultType> result(testSpace.globalDofCount(), 1);
     result.fill(0.); // Create and fill the operator's matrix
@@ -316,7 +320,7 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
         else
             maxThreadCount = parallelOptions.maxThreadCount();
     }
-	std::cout << "asiodjfsapoijdfosaijf" << maxThreadCount << std::endl;
+//	std::cout << "asiodjfsapoijdfosaijf" << maxThreadCount << std::endl;
     tbb::task_scheduler_init scheduler(maxThreadCount);
 /*
 std::cout << "testI = "; // << std::copy(testIndices) 
@@ -352,28 +356,58 @@ std::cout << std::endl;
 */
 
 
-std::cout << "apsojfd" << std::endl;
+//std::cout << "apsojfd" << std::endl;
     {
         Fiber::SerialBlasRegion region;
         tbb::parallel_for(tbb::blocked_range<size_t>(0, trialElementCount), Body(str, testIndices, testGlobalDofs, trialGlobalDofs,testLocalDofWeights, trialLocalDofWeights, assembler, result, mutex, solV, rhsV, wm));
 //        tbb::parallel_for(tbb::blocked_range<size_t>(0, trialElementCount), Body(str, testIndices, testGlobalDofs, trialGlobalDofs,testLocalDofWeights, trialLocalDofWeights, assembler, result, mutex,asmblr));
     }
+
 	std::vector<ResultType> rhsVe = *rhsV;
 	ResultType tmpErr, re, rh;
 	ResultType globalNor = 0.0;
+	ResultType globalNorRers = 0.0;
 	ResultType globalErr = 0.0;
-	std::cout << "tmpErrs = ";
-	for(int i=0; i < testSpace.globalDofCount(); ++i) {
-//		tmpErr = std::abs(result[i,0] -rhsV[i]);
-		re = result[i,0];
-//		rh = rhsV[i];
+//std::cout << result << " = result, testp.globdofcoutn = " << testSpace.globalDofCount() << std::endl; //rhsVe << std::endl;
+
+	for (int i=0; i < testSpace.globalDofCount(); ++i) {;
+//		std::cout << i << " " << rhsV[i] << " "; // << result[i,0] << " " << std::endl;
 		rh = rhsVe[i];
+//		re = result[i];
+//		re = result[i,0];
+		re = result[0,i];
+//		std::cout << i << " " << rh << " " << re << " " << std::endl;
 		tmpErr = std::abs(re-rh);
-		std::cout << tmpErr << " ";
 		globalNor += std::abs(rh);
+/*
+		tmpErr = std::pow(std::abs(re-rh),2);
+		globalNor += std::pow(std::abs(rh),2);*/
+		globalNorRers += std::abs(re);
 		globalErr += tmpErr;
 	}
-	std::cout << std::endl << globalErr/globalNor << " = relErr, GlobalErr = " << globalErr << std::endl;
+/*
+//	std::cout << "tmpErrs = ";
+//	for(int i=0; i < testSpace.globalDofCount(); ++i) {
+	for (int idx = 0; idx < testSpace.globalDofCount(); ++idx ) {
+//		tmpErr = std::abs(result[i,0] -rhsV[i]);
+std::cout << "apsoijfdpsaoijfd ";
+std::cout << idx << " ";
+		re = result[idx,0];
+//		re = result[i,0];
+//		rh = rhsV[i];
+//		rh = rhsVe[i];
+		rh = rhsVe[idx];
+//		tmpErr = std::abs(re-rh)^2;
+		tmpErr = std::pow(std::abs(re-rh),2);
+//		std::cout << tmpErr << " ";
+		globalNor += std::pow(std::abs(rh),2);
+//		globalNor += std::abs(rh)^2;
+		globalNorRers += std::abs(re);
+		globalErr += tmpErr;
+	}*/
+
+//	std::cout << std::endl << std::sqrt(globalErr)/std::sqrt(globalNor) <<
+	std::cout << std::endl << globalErr/globalNor << " = relErr, GlobalErr = " << globalErr << " , " << globalNor << " = globalNor, globalNorRers = " << globalNorRers << std::endl;
 //    return std::auto_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(result));
     return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(
                 new DiscreteDenseBoundaryOperator<ResultType>(result));

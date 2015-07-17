@@ -1,9 +1,13 @@
+//gedit /opt/fb/bempp/build/external/include/Trilinos/Thyra_BelosLinearOpWithSolve_def.hpp
+//gedit /opt/fb/bempp/build/external/src/Trilinos/packages/stratimikos/adapters/belos/src/Thyra_BelosLinearOpWithSolve_def.hpp
+
 //gedit /opt/fb/bempp/lib/fiber/modified_helmholtz_3d_single_layer_potential_kernel_functor.hpp
 //gedit /opt/fb/bempp/lib/fiber/default_collection_of_kernels.hpp
 //gedit /opt/fb/bempp/lib/fiber/default_test_kernel_trial_integral.hpp
 
 //gedit /opt/fb/bempp/lib/fiber/separable_numerical_test_kernel_trial_integrator.hpp
 // gedit /opt/fb/bempp/lib/linalg/default_iterative_solver.cpp
+
 // gedit /opt/fb/bempp/lib/assembly/dense_global_assembler.hpp
 // gedit /opt/fb/bempp/lib/assembly/general_elementary_singular_integral_operator.hpp
 // gedit /opt/fb/bempp/lib/fiber/default_local_assembler_for_integral_operators_on_surfaces.hpp
@@ -97,17 +101,17 @@ public:
 
 int main(int argc, char* argv[])
 {
-	std::cout << "iosauhdfiosaujhdfs" << std::endl;
+//	std::cout << "iosauhdfiosaujhdfs" << std::endl;
 //	argv[1] = "/home/peter/Desktop/Doctoraat/Bol/sphere0.msh";
 //	shared_ptr<Grid> grid = loadTriangularMeshFromFile(argv[1]);
 	shared_ptr<Grid> grid = loadTriangularMeshFromFile("/home/peter/Desktop/Doctoraat/Bol/sphere0.msh");
 //      shared_ptr<Grid> grid = loadTriangularMeshFromFile("/home/peter/Desktop/Doctoraat/Bol/sphere3.msh");
-	std::cout << "palosidjfaoslidjnfs" << std::endl;
+//	std::cout << "palosidjfaoslidjnfs" << std::endl;
 	PiecewiseLinearContinuousScalarSpace<BFT> HplusHalfSpace(grid);
 	PiecewiseConstantScalarSpace<BFT> HminusHalfSpace(grid);
 	AssemblyOptions assemblyOptions;
 	assemblyOptions.enableSingularIntegralCaching(false);
-	std::cout << "iuyshbakjsndf" << std::endl;
+//	std::cout << "iuyshbakjsndf" << std::endl;
 //	assemblyOptions.setVerbosityLevel(VerbosityLevel::LOW); // Less junk
 	// No ACA at first
 	AccuracyOptions accuracyOptions;
@@ -115,14 +119,18 @@ int main(int argc, char* argv[])
 	NumericalQuadratureStrategy<BFT, RT> quadStrategy(accuracyOptions);
 	Context<BFT, RT> context(make_shared_from_ref(quadStrategy), assemblyOptions);
 
-	std::cout << "asOptions.cache = " << assemblyOptions.isSingularIntegralCachingEnabled() << std::endl;
+//	std::cout << "asOptions.cache = " << assemblyOptions.isSingularIntegralCachingEnabled() << std::endl;
 	BoundaryOperator<BFT, RT> slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
 
 //	DiscreteBoundaryOperator<RT> weak = slpOp.weakForm();
 //	arma::Mat<RT> wm = weak->asMatrix();
 	arma::Mat<RT> wm = slpOp.weakForm()->asMatrix();
 //	std::cerr << wm << std::endl;
+	std::fstream myStream;
+	myStream.open("/home/peter/Desktop/Doctoraat/GreenBempp/simpsonRes/A",std::ios::out);
+	myStream << wm;
 
+//	std::cout << "Assemble rhs" << std::endl;
 	std::cout << "Assemble rhs" << std::endl;
 	GridFunction<BFT, RT> rhs(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), // is this the right choice?
             surfaceNormalIndependentFunction(MyFunctor()));
@@ -155,16 +163,16 @@ int main(int argc, char* argv[])
 	std::vector<RT> rhsVe{std::istream_iterator<RT>(input), std::istream_iterator<RT>() };
         input.close();
 
-std::cerr << rhsVe[0]<< "= rhsV[0], rhsV[200] = " << rhsVe[200] << std::endl;
+//std::cerr << rhsVe[0]<< "= rhsV[0], rhsV[200] = " << rhsVe[200] << std::endl;
 
 
 // -------------- Compression -------------------------
 	BoundaryOperator<BFT, RT> slpOpCompr = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
 	boost::shared_ptr<const Bempp::AbstractBoundaryOperator<double, std::complex<double> > > asdf = slpOpCompr.abstractOperator();
-	std::cout << "iohussdifgoahs'sadf" << std::endl;
+//	std::cout << "iohussdifgoahs'sadf" << std::endl;
 	const GeneralElementarySingularIntegralOperator<BFT,RT,RT> bla = dynamic_cast<const GeneralElementarySingularIntegralOperator<BFT,RT,RT>& > (*asdf);
 
-	std::cout << "aowisuehfoasdhf" << std::endl;
+//	std::cout << "aowisuehfoasdhf" << std::endl;
 //	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weak = bla.weakFormPeter(" Passed From tutorial_dirichlet.cpp ",context);
 	std::stringstream sstream;
 	sstream <<waveNumber << " ";
@@ -184,7 +192,7 @@ std::cerr << rhsVe[0]<< "= rhsV[0], rhsV[200] = " << rhsVe[200] << std::endl;
 	arma::Mat<RT> wmC = weakCompr->asMatrix();
 //	std::cerr << (weak->asMatrix())[0,0] << std::endl; // Should be(0.0022927,0.000174001)
 //	std::cout << wm[0,0] << wm[0,1] << wm[2,0] << wm[50,66] << std::endl; // Should be (0.0022927,0.000174001)(0.00110578,0.000196013)(0.0022927,0.000174001)(0.000275424,0.000255719)
-	std::cout << wmC[0,0] << wmC[0,1] << wmC[2,0] << wmC[50,66] << std::endl;
+///////	std::cout << wmC[0,0] << wmC[0,1] << wmC[2,0] << wmC[50,66] << std::endl;
 
 //	std::cerr << weak->asMatrix() << std::endl; // For comparisons and validation
 
@@ -197,11 +205,11 @@ std::cerr << rhsVe[0]<< "= rhsV[0], rhsV[200] = " << rhsVe[200] << std::endl;
 
 
 // ----------------   Validation  ------------------------------------
-	std::cout << "solCoef(1) = " << solutionCoefficients(1) << std::endl;
+//	std::cout << "solCoef(1) = " << solutionCoefficients(1) << std::endl;
 	arma::Col<RT> deviation = solutionCoefficients - static_cast<RT>(-1.);
 	// % in Armadillo -> elementwise multiplication
 	RT stdDev = sqrt(arma::accu(deviation % deviation)/static_cast<RT>(solutionCoefficients.n_rows));
-	std::cout << "Standard deviation = " << stdDev << std::endl;
+//	std::cout << "Standard deviation = " << stdDev << std::endl;
 
 	Helmholtz3dSingleLayerPotentialOperator<BFT> slPot (waveNumber);
 	EvaluationOptions evalOptions = EvaluationOptions();
@@ -233,7 +241,7 @@ std::cerr << rhsVe[0]<< "= rhsV[0], rhsV[200] = " << rhsVe[200] << std::endl;
 	}
 	
 //	std::cout << "pts: " << points << std::endl;
-	std::cout << waveNumber << " = waveNumber, pts: " << points.t() << std::endl;//Transpose
+//	std::cout << waveNumber << " = waveNumber, pts: " << points.t() << std::endl;//Transpose
 	arma::Mat<RT> potRes = slPot.evaluateAtPoints(solFun, points, quadStrategy, evalOptions);
 
 	arma::Mat<RT> diri = potRes;
@@ -249,10 +257,10 @@ std::cerr << rhsVe[0]<< "= rhsV[0], rhsV[200] = " << rhsVe[200] << std::endl;
 	}
 //	std::cout << diri << "=diri, potRes: " << potRes << std::endl;
 	arma::Mat<RT> errBC = potRes-diri;
-	std::cout << "errBC= " << errBC << std::endl;
+//	std::cout << "errBC= " << errBC << std::endl;
 //errBC=     (-1.522e-02,+4.633e-02)    (-5.599e-02,-1.191e-01)    (+6.368e-02,-4.378e-02)    (+6.293e-02,-4.343e-02)    (+6.436e-02,-4.436e-02)    (+6.602e-02,-4.498e-02) if no compr
 //errBC=     (+5.403e-01,+8.415e-01)    (-5.702e-02,-1.183e-01)    (+6.487e-02,-6.107e-02)    (+6.355e-02,-6.238e-02)    (+6.567e-02,-6.163e-02)    (+6.654e-02,-6.501e-02) if -0.8 and cuto 0.1
-	std::cout << mean(mean(abs(errBC) )) << " = mean abs err BC, " << mean(abs(errBC) ) << std::endl;
+	std::cout << mean(mean(abs(errBC) )) << " = mean abs err BC, " << std::endl; //<< mean(abs(errBC) ) << std::endl;
 }
 
 
