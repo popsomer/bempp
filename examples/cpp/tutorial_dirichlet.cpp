@@ -15,6 +15,7 @@
 
 // cd  /opt/fb/bempp/build/examples/cpp/
 // pushd ../..; make tutorial_dirichlet -j6; popd
+// ./tutorial_dirichlet >res 2>testgeom
 //// pushd /opt/bemppNew/bempp/build; make -j6 2>~/Desktop/Doctoraat/GreenBempp/brol; popd
 // pushd ../..; make tutorial_dirichlet -j6 2>/opt/fb/bempp/build/examples/cpp/brol; popd
 // ./tutorial_dirichlet 2> ~/Desktop/Doctoraat/GreenBempp/compr
@@ -77,10 +78,12 @@ typedef double BFT; // basis function type
 typedef std::complex<double> RT; // result type (type used to represent discrete operators)
 typedef double CT; // coordinate type
 
-RT waveNumber = 1;
+//RT waveNumber = 10;
+//RT waveNumber = 5;
+//RT waveNumber = 1;
 //RT waveNumber = 100;
 //RT waveNumber = 25;
-
+RT waveNumber = 40
 class MyFunctor
 {
 public:
@@ -104,7 +107,11 @@ int main(int argc, char* argv[])
 //	std::cout << "iosauhdfiosaujhdfs" << std::endl;
 //	argv[1] = "/home/peter/Desktop/Doctoraat/Bol/sphere0.msh";
 //	shared_ptr<Grid> grid = loadTriangularMeshFromFile(argv[1]);
-	shared_ptr<Grid> grid = loadTriangularMeshFromFile("/home/peter/Desktop/Doctoraat/Bol/sphere0.msh");
+//	shared_ptr<Grid> grid = loadTriangularMeshFromFile("/home/peter/Desktop/Doctoraat/Bol/sphere0.msh");
+//	shared_ptr<Grid> grid = loadTriangularMeshFromFile("/home/peter/Desktop/Doctoraat/Bol/sphere1.msh");
+//	shared_ptr<Grid> grid = loadTriangularMeshFromFile("/home/peter/Desktop/Doctoraat/Man/manBetter.msh");
+//	shared_ptr<Grid> grid = loadTriangularMeshFromFile("/home/peter/Desktop/Doctoraat/Tweebollen/tweebollen1.msh");
+	shared_ptr<Grid> grid = loadTriangularMeshFromFile("/home/peter/Desktop/Doctoraat/Bol/sphere2.msh");
 //      shared_ptr<Grid> grid = loadTriangularMeshFromFile("/home/peter/Desktop/Doctoraat/Bol/sphere3.msh");
 //	std::cout << "palosidjfaoslidjnfs" << std::endl;
 	PiecewiseLinearContinuousScalarSpace<BFT> HplusHalfSpace(grid);
@@ -113,6 +120,7 @@ int main(int argc, char* argv[])
 	assemblyOptions.enableSingularIntegralCaching(false);
 //	std::cout << "iuyshbakjsndf" << std::endl;
 //	assemblyOptions.setVerbosityLevel(VerbosityLevel::LOW); // Less junk
+	assemblyOptions.setVerbosityLevel(VerbosityLevel::HIGH); // More info (progress % matrix)
 	// No ACA at first
 	AccuracyOptions accuracyOptions;
 	accuracyOptions.doubleRegular.setRelativeQuadratureOrder(1);
@@ -126,18 +134,19 @@ int main(int argc, char* argv[])
 //	arma::Mat<RT> wm = weak->asMatrix();
 	arma::Mat<RT> wm = slpOp.weakForm()->asMatrix();
 //	std::cerr << wm << std::endl;
+/*
 	std::fstream myStream;
+	std::cout << " Writing out matrix in tut_dir" << std::endl;
 	myStream.open("/home/peter/Desktop/Doctoraat/GreenBempp/simpsonRes/A",std::ios::out);
-	myStream << wm;
+	myStream << wm;*/
 
 //	std::cout << "Assemble rhs" << std::endl;
-	std::cout << "Assemble rhs" << std::endl;
 	GridFunction<BFT, RT> rhs(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), // is this the right choice?
             surfaceNormalIndependentFunction(MyFunctor()));
 
 	// Initialize the solver
 #ifdef WITH_TRILINOS
-	std::cout << "Initialize solver TRILINOS" << std::endl;
+//	std::cout << "Initialize solver TRILINOS" << std::endl;
 	DefaultIterativeSolver<BFT, RT> solver(slpOp,ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
 	solver.initializeSolver(defaultGmresParameterList(1e-5));
 	Solution<BFT, RT> solution = solver.solve(rhs);
@@ -147,18 +156,20 @@ int main(int argc, char* argv[])
 	solver.solve();
 #endif
 
-	const GridFunction<BFT, RT>& solFun = solution.gridFunction();
+/////	const GridFunction<BFT, RT>& solFun = solution.gridFunction();
+	const GridFunction<BFT, RT>& solFunOr = solution.gridFunction();
 
 	// Uncomment the block below if you are solving the problem on a sphere and
 	// you want to compare the numerical and analytical solution.
-	arma::Col<RT> solutionCoefficients = solFun.coefficients();
+/////	arma::Col<RT> solutionCoefficients = solFun.coefficients();
+	arma::Col<RT> solutionCoefficientsOr = solFunOr.coefficients();
 //	std::cout << solutionCoefficients << std::endl;//Look whether the same as armaSolution from def_iter_solver.cpp: indeed
 
 //	std::ifstream iStream("rhsV", std::ios::binary);
         /*for( size_t i = 0; i < appointments.size(); i++ ) {            
             appointments[i].read(iStream);
         }*/
-	std::ifstream input("rhsV");
+	std::ifstream input("/home/peter/Desktop/Doctoraat/GreenBempp/simpsonRes/rhsV");
 //	arma::Col<RT> rhsVe{std::istream_iterator<RT>(input), std::istream_iterator<RT>() };
 	std::vector<RT> rhsVe{std::istream_iterator<RT>(input), std::istream_iterator<RT>() };
         input.close();
@@ -175,9 +186,8 @@ int main(int argc, char* argv[])
 //	std::cout << "aowisuehfoasdhf" << std::endl;
 //	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weak = bla.weakFormPeter(" Passed From tutorial_dirichlet.cpp ",context);
 	std::stringstream sstream;
-	sstream <<waveNumber << " ";
+	sstream <<waveNumber << " =k " << std::endl;
 	std::string str = sstream.str();
-
 
 
 //arma::Col<RT> * rsa = &solutionCoefficients;
@@ -188,13 +198,18 @@ int main(int argc, char* argv[])
 //	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weakCompr = bla.weakFormPeter(str,context,std::unique_ptr<arma::Col<RT> > (solutionCoefficients), std::unique_ptr<std::vector<RT> > (rhsVe), std::unique_ptr<arma::Mat<RT> > (wm) );
 //*solutionCoefficients, *rhsVe, std::unique_ptr<> (wm) );
 
-	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weakCompr = bla.weakFormPeter(str,context,&solutionCoefficients, &rhsVe, &wm);
-	arma::Mat<RT> wmC = weakCompr->asMatrix();
+	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weakCompr = bla.weakFormPeter(str,context,&solutionCoefficientsOr, &rhsVe, &wm);
+//	arma::Mat<RT> wmC = slpOpCompr.weakFormPeter()->asMatrix();
+// Computing weak form should be done in (defit)solver, only here for printing matrix here-> wrong, need info rhsVe etc
+//	arma::Mat<RT> wmC = weakCompr->asMatrix();
+
+//	std::cerr << weak->asMatrix() << std::endl; // For comparisons and validation
+//	std::cerr << wmC << std::endl; // For comparisons and validation
+
 //	std::cerr << (weak->asMatrix())[0,0] << std::endl; // Should be(0.0022927,0.000174001)
 //	std::cout << wm[0,0] << wm[0,1] << wm[2,0] << wm[50,66] << std::endl; // Should be (0.0022927,0.000174001)(0.00110578,0.000196013)(0.0022927,0.000174001)(0.000275424,0.000255719)
 ///////	std::cout << wmC[0,0] << wmC[0,1] << wmC[2,0] << wmC[50,66] << std::endl;
 
-//	std::cerr << weak->asMatrix() << std::endl; // For comparisons and validation
 
 //	return 1;
 //	weak = slpOp.weakForm();
@@ -203,12 +218,20 @@ int main(int argc, char* argv[])
 //	return 1;
 
 
+	DefaultIterativeSolver<BFT, RT> solverCompr(weakCompr, str, slpOpCompr, ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
+	solverCompr.initializeSolver(defaultGmresParameterList(1e-5));
+	Solution<BFT, RT> solutionCompr = solverCompr.solve(rhs);
+
+	const GridFunction<BFT, RT>& solFunCompr = solutionCompr.gridFunction();
+	arma::Col<RT> solutionCoefficientsCompr = solFunCompr.coefficients();
+	
+	std::cout << "rel err sol coeffs = " << arma::norm(solutionCoefficientsCompr -solutionCoefficientsOr)/arma::norm(solutionCoefficientsOr) << std::endl;
 
 // ----------------   Validation  ------------------------------------
 //	std::cout << "solCoef(1) = " << solutionCoefficients(1) << std::endl;
-	arma::Col<RT> deviation = solutionCoefficients - static_cast<RT>(-1.);
+//	arma::Col<RT> deviation = solutionCoefficients - static_cast<RT>(-1.);
 	// % in Armadillo -> elementwise multiplication
-	RT stdDev = sqrt(arma::accu(deviation % deviation)/static_cast<RT>(solutionCoefficients.n_rows));
+//	RT stdDev = sqrt(arma::accu(deviation % deviation)/static_cast<RT>(solutionCoefficients.n_rows));
 //	std::cout << "Standard deviation = " << stdDev << std::endl;
 
 	Helmholtz3dSingleLayerPotentialOperator<BFT> slPot (waveNumber);
@@ -242,9 +265,11 @@ int main(int argc, char* argv[])
 	
 //	std::cout << "pts: " << points << std::endl;
 //	std::cout << waveNumber << " = waveNumber, pts: " << points.t() << std::endl;//Transpose
-	arma::Mat<RT> potRes = slPot.evaluateAtPoints(solFun, points, quadStrategy, evalOptions);
+//	arma::Mat<RT> potRes = slPot.evaluateAtPoints(solFun, points, quadStrategy, evalOptions);
+	arma::Mat<RT> potResOr = slPot.evaluateAtPoints(solFunOr, points, quadStrategy, evalOptions);
+	arma::Mat<RT> potResCompr = slPot.evaluateAtPoints(solFunCompr, points, quadStrategy, evalOptions);
 
-	arma::Mat<RT> diri = potRes;
+	arma::Mat<RT> diri = potResOr;
 	MyFunctor tmp = MyFunctor();
 	for (int i = 0; i < pointCount; ++i) {
 		arma::Col<CT> pt(3);
@@ -256,11 +281,13 @@ int main(int argc, char* argv[])
 		diri(i) = t(0);
 	}
 //	std::cout << diri << "=diri, potRes: " << potRes << std::endl;
-	arma::Mat<RT> errBC = potRes-diri;
+	arma::Mat<RT> errBCOr = potResOr - diri;
+	arma::Mat<RT> errBCCompr = potResCompr - diri;
 //	std::cout << "errBC= " << errBC << std::endl;
 //errBC=     (-1.522e-02,+4.633e-02)    (-5.599e-02,-1.191e-01)    (+6.368e-02,-4.378e-02)    (+6.293e-02,-4.343e-02)    (+6.436e-02,-4.436e-02)    (+6.602e-02,-4.498e-02) if no compr
 //errBC=     (+5.403e-01,+8.415e-01)    (-5.702e-02,-1.183e-01)    (+6.487e-02,-6.107e-02)    (+6.355e-02,-6.238e-02)    (+6.567e-02,-6.163e-02)    (+6.654e-02,-6.501e-02) if -0.8 and cuto 0.1
-	std::cout << mean(mean(abs(errBC) )) << " = mean abs err BC, " << std::endl; //<< mean(abs(errBC) ) << std::endl;
+//	std::cout << mean(mean(abs(errBC) )) << " = mean abs err BC, " << std::endl; //<< mean(abs(errBC) ) << std::endl;
+	std::cout << mean(mean(abs(errBCOr) )) << " = Original mean abs err BC, Compr err BC = " << mean(mean(abs(errBCCompr) )) << std::endl;
 }
 
 

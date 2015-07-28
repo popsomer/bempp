@@ -71,7 +71,8 @@ template <typename BasisFunctionType, typename ResultType>
 struct DefaultIterativeSolver<BasisFunctionType, ResultType>::Impl {
 
   // Constructor for non-blocked operators
-  Impl(const BoundaryOperator<BasisFunctionType, ResultType> &op_,
+//  Impl(const BoundaryOperator<BasisFunctionType, ResultType> &op_,
+  Impl(boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<ResultType> > weakOp, std::string str, const BoundaryOperator<BasisFunctionType, ResultType> &op_,
        ConvergenceTestMode::Mode mode_)
       : op(op_), mode(mode_) {
 //kijk of dit compileert
@@ -87,11 +88,21 @@ struct DefaultIterativeSolver<BasisFunctionType, ResultType>::Impl {
           boundaryOp.dualToRange()->globalDofCount())
         throw std::invalid_argument("DefaultIterativeSolver::Impl::Impl(): "
                                     "non-square system provided");
-std::cout << "defItSolv:Impl have  TEST_CONNV_IN_DUSL_TO+RLAGE" << std::endl;
+if (str.empty() ) {
+//std::cout << "defItSolv:Impl have  TEST_CONNV_IN_DUSL_TO+RLAGE" << std::endl;
       solverWrapper.reset(new BelosSolverWrapper<ResultType>(
           Teuchos::rcp<const Thyra::LinearOpBase<ResultType>>(
               boundaryOp.weakForm())));
-std::cout << "defItSolv:Impl after weakForm" << std::endl;
+}
+else{
+//std::cout << "defItSolv:Impl doing weakFormPeter" << std::endl;
+
+//boost::shared_ptr<const Bempp::AbstractBoundaryOperator<double, std::complex<double> > > asdf = slpOpCompr.abstractOperator();
+//	const GeneralElementarySingularIntegralOperator<BFT,RT,RT> bla = dynamic_cast<const GeneralElementarySingularIntegralOperator<BFT,RT,RT>& > (*asdf);
+//      solverWrapper.reset(new BelosSolverWrapper<ResultType>(Teuchos::rcp<const Thyra::LinearOpBase<ResultType>>(*weakOp)));
+      solverWrapper.reset(new BelosSolverWrapper<ResultType>(Teuchos::rcp<const Thyra::LinearOpBase<ResultType>>(weakOp)));
+}
+//std::cout << "defItSolv:Impl after weakForm, str = " << str << std::endl;
     } else if (mode == ConvergenceTestMode::TEST_CONVERGENCE_IN_RANGE) {
       if (boundaryOp.domain()->globalDofCount() !=
           boundaryOp.range()->globalDofCount())
@@ -189,8 +200,16 @@ template <typename BasisFunctionType, typename ResultType>
 DefaultIterativeSolver<BasisFunctionType, ResultType>::DefaultIterativeSolver(
     const BoundaryOperator<BasisFunctionType, ResultType> &boundaryOp,
     ConvergenceTestMode::Mode mode)
-    : m_impl(new Impl(boundaryOp, mode)) {
-std::cout << "hello world" << std::endl;
+    : m_impl(new Impl(NULL, "",boundaryOp, mode)) {
+//    : m_impl(new Impl(boundaryOp, mode)) {
+//std::cout << "hello world" << std::endl;
+}
+template <typename BasisFunctionType, typename ResultType>
+DefaultIterativeSolver<BasisFunctionType, ResultType>::DefaultIterativeSolver(boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<ResultType> > weakOp, std::string str,
+    const BoundaryOperator<BasisFunctionType, ResultType> &boundaryOp,
+    ConvergenceTestMode::Mode mode)
+    : m_impl(new Impl(weakOp, str,boundaryOp, mode)) {
+std::cout << "impl met string " << str << std::endl;
 }
 
 template <typename BasisFunctionType, typename ResultType>
@@ -213,7 +232,7 @@ template <typename BasisFunctionType, typename ResultType>
 void DefaultIterativeSolver<BasisFunctionType, ResultType>::initializeSolver(
     const Teuchos::RCP<Teuchos::ParameterList> &paramList) {
   m_impl->solverWrapper->initializeSolver(paramList);
-std::cout << "defItSolv:initsolv" << std::endl;
+//std::cout << "defItSolv:initsolv" << std::endl;
 }
 
 template <typename BasisFunctionType, typename ResultType>
@@ -232,7 +251,7 @@ DefaultIterativeSolver<BasisFunctionType, ResultType>::solveImplNonblocked(
   typedef BoundaryOperator<BasisFunctionType, ResultType> BoundaryOp;
   typedef typename ScalarTraits<ResultType>::RealType MagnitudeType;
   typedef Thyra::MultiVectorBase<ResultType> TrilinosVector;
-
+//std::cout << "defitsolv solveImplnonblocked" << std::endl;
   const BoundaryOp *boundaryOp = boost::get<BoundaryOp>(&m_impl->op);
   if (!boundaryOp)
     throw std::logic_error(
@@ -282,14 +301,16 @@ DefaultIterativeSolver<BasisFunctionType, ResultType>::solveImplNonblocked(
                                           solutionVector.ptr());
   }
 //Peter:
+/*
 std::fstream myStream;
 myStream.open("/home/peter/Desktop/Doctoraat/GreenBempp/simpsonRes/rhsV",std::ios::out);
 myStream << rhs.projections(boundaryOp->dualToRange());
 myStream.close();
+std:: cout << " Wrote out vectors in defItSolver.cpp" << std::endl;
 myStream.open("/home/peter/Desktop/Doctoraat/GreenBempp/simpsonRes/armaSol",std::ios::out);
-myStream << armaSolution;
+myStream << armaSolution;*/
 
-std::cout << "DefitSolv::solveNonblo finished Thyra solve, tot dim =" << rhsVector->domain()->dim() << std::endl;
+//std::cout << "DefitSolv::solveNonblo finished Thyra solve, tot dim =" << rhsVector->domain()->dim() << std::endl;
 //Thyra::MultiVectorBase<ResultType> rhsVect = *rhsVector;
 //for( int j = 0; j < rhsVect.domain()->dim(); ++j ) {
 for( int j = 0; j < rhsVector->domain()->dim(); ++j ) {

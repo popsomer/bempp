@@ -70,6 +70,7 @@ public:
                 const ConstGeometricalDataSlice<CoordinateType> &trialGeomData,
                 CollectionOf2dSlicesOfNdArrays<ValueType> &result) const {
     const int coordCount = 3;
+//std::cout << testGeomData.global(0) << " = test, trial = " << trialGeomData.global(0) << std::endl;
 
     CoordinateType sum = 0;
     for (int coordIndex = 0; coordIndex < coordCount; ++coordIndex) {
@@ -80,7 +81,7 @@ public:
     CoordinateType distance = sqrt(sum);
 //Peter:
 	if (distance >= 2) {
-		std::cerr << "Error, 2 <= distance =" << distance <<  std::endl;
+//		std::cerr << "Error, 2 <= distance =" << distance <<  std::endl;
 	}
 	CoordinateType wind = static_cast<CoordinateType>(1.0);
 	CoordinateType cuto = static_cast<CoordinateType>(0.1);
@@ -105,7 +106,7 @@ public:
 
   }
 
-
+/*
   template <template <typename T> class CollectionOf2dSlicesOfNdArrays>
   void evaluatePeter(std::string str, const ConstGeometricalDataSlice<CoordinateType> &testGeomData, const ConstGeometricalDataSlice<CoordinateType> &trialGeomData, CollectionOf2dSlicesOfNdArrays<ValueType> &result) const {
     const int coordCount = 3;
@@ -133,7 +134,7 @@ public:
 	}
     result[0](0, 0) = static_cast<CoordinateType>(1.0 / (4.0 * M_PI)) / distance * exp(-m_waveNumber * distance)*wind;
 
-  }
+  }*/
 
 
 

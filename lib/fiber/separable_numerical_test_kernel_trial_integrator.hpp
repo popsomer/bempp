@@ -250,8 +250,13 @@ public:
 	}
   }
 }
-
-
+/*
+GeometricalData<CoordinateType> getTestGeomData() {
+	return &m_testGeomData.local();
+}
+GeometricalData<CoordinateType> getTrialGeomData() {
+	return &m_trialGeomData.local();
+}*/
 
   virtual void
   integrate(const std::vector<ElementIndexPair> &elementIndexPairs,

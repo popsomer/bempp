@@ -293,6 +293,14 @@ public:
 
   virtual CoordinateType estimateRelativeScale(CoordinateType minDist) const;
 
+/*
+GeometricalData<CoordinateType> getTestGeomData() {
+	return m_integral->getTestGeomData();
+}
+GeometricalData<CoordinateType> getTrialGeomData() {
+	return m_integral->getTrialGeomData();
+}*/
+
 private:
   /** \cond PRIVATE */
   typedef TestKernelTrialIntegrator<BasisFunctionType, KernelType, ResultType>

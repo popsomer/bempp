@@ -207,6 +207,14 @@ public:
             const Shapeset<BasisFunctionType> &trialShapeset,
             const std::vector<arma::Mat<ResultType> *> &result) const;
 
+/*
+GeometricalData<CoordinateType> getTestGeomData() {
+	return &m_testGeomData.local();
+}
+GeometricalData<CoordinateType> getTrialGeomData() {
+	return &m_trialGeomData.local();
+}*/
+
 private:
   enum ElementType {
     TEST,

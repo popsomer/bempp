@@ -76,9 +76,6 @@ public:
       ConvergenceTestMode::Mode mode =
           ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
 
-//Peter:
-  DefaultIterativeSolver(boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<ResultType> > weakOp, std::string str, const BoundaryOperator<BasisFunctionType, ResultType> &boundaryOp, ConvergenceTestMode::Mode mode = ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
-
   /** \brief Constructor of the <tt>DefaultIterativeSolver</tt> class.
     *
     * \param[in] boundaryOp

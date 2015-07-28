@@ -29,6 +29,9 @@
 
 #include <vector>
 
+//Peter:
+#include "geometrical_data.hpp"
+
 namespace Fiber {
 
 /** \brief Abstract interface of a local assembler for integral operators.
@@ -90,6 +93,10 @@ public:
                          CoordinateType nominalDistance = -1.)  { 
 		throw 20;//Should be overwritten by default_local...
 };*/
+
+
+//virtual GeometricalData<CoordinateType> getTestGeomData() = 0;
+//virtual GeometricalData<CoordinateType> getTrialGeomData() = 0;
 
   /** \brief Assemble local weak forms.
 
