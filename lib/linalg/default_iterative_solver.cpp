@@ -184,6 +184,7 @@ std::cout << "defItSolv:Impl BlockedBOundaryOpeorean" << std::endl;
       throw std::invalid_argument(
           "DefaultIterativeSolver::DefaultIterativeSolver(): "
           "invalid convergence test mode");
+	std::cout << "type of blockecboundop = " << typeid(boundaryOp).name() << "type of bootst.sget.blockecboundop = " << typeid(op).name() << "type of weakop = " << typeid(boundaryOp.weakForm()).name() <<std::endl;
   }
 
   boost::variant<BoundaryOperator<BasisFunctionType, ResultType>,
@@ -209,7 +210,7 @@ DefaultIterativeSolver<BasisFunctionType, ResultType>::DefaultIterativeSolver(bo
     const BoundaryOperator<BasisFunctionType, ResultType> &boundaryOp,
     ConvergenceTestMode::Mode mode)
     : m_impl(new Impl(weakOp, str,boundaryOp, mode)) {
-std::cout << "impl met string " << str << std::endl;
+//std::cout << "impl met string " << str << std::endl;
 }
 
 template <typename BasisFunctionType, typename ResultType>
@@ -322,7 +323,7 @@ for( int j = 0; j < rhsVector->domain()->dim(); ++j ) {
 //	std::cout << Thyra::VectorBase<ResultType>::get_ele<ResultType>(rhsVector->col(j),0);
 	int dim = rhsVector->col(j)->domain()->dim();
 //	std::cout << rhsVector->row(j)->domain()->dim() << get_ele(*rhsVector->col(j),0) << " = first, dim = " << dim<<  get_ele(*rhsVector->col(j),dim-1);
-	std::cout << get_ele(*rhsVector->col(j),0) << " = first, dim = " << dim<<  get_ele(*rhsVector->col(j),2)<<  get_ele(*rhsVector->col(j),221) << std::endl;
+// //	std::cout << get_ele(*rhsVector->col(j),0) << " = first, dim = " << dim<<  get_ele(*rhsVector->col(j),2)<<  get_ele(*rhsVector->col(j),221) << std::endl;
 //	std::cerr << *rhsVector->col(j) << std::endl;
 //	arma::Col<ResultType> arh = *rhsVector->col(j)->asArmadilloVector();
 //	std::cerr << arh << std::endl;

@@ -134,7 +134,7 @@ reallySolve(const Thyra::LinearOpWithSolveBase<
             const Thyra::MultiVectorBase<ValueType> &rhs,
             const Teuchos::Ptr<Thyra::MultiVectorBase<ValueType>> &sol) {
 //Peter:
-std::cout << "belossolverwrapper: realValuetype" << std::endl;
+//std::cout << "belossolverwrapper: realValuetype" << std::endl;
 //  return op.solve("ospijfd", trans, rhs, sol);
   return op.solve(trans, rhs, sol);
 }
@@ -150,7 +150,7 @@ reallySolve(const Thyra::LinearOpWithSolveBase<
             const Thyra::MultiVectorBase<ValueType> &rhs,
             const Teuchos::Ptr<Thyra::MultiVectorBase<ValueType>> &sol) {
   typedef typename ScalarTraits<ValueType>::RealType MagnitudeType;
-std::cout << "belossolverwrapper: complex Valuetype" << std::endl;
+//std::cout << "belossolverwrapper: complex Valuetype" << std::endl;
 
   // Wrap the right-hand-side data in a real multivector of twice as many rows
 
