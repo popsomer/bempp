@@ -89,10 +89,11 @@ struct DefaultIterativeSolver<BasisFunctionType, ResultType>::Impl {
         throw std::invalid_argument("DefaultIterativeSolver::Impl::Impl(): "
                                     "non-square system provided");
 if (str.empty() ) {
-//std::cout << "defItSolv:Impl have  TEST_CONNV_IN_DUSL_TO+RLAGE" << std::endl;
+std::cout << "defItSolv:Impl have  TEST_CONNV_IN_DUSL_TO+RLAGE" << std::endl;
       solverWrapper.reset(new BelosSolverWrapper<ResultType>(
           Teuchos::rcp<const Thyra::LinearOpBase<ResultType>>(
               boundaryOp.weakForm())));
+std::cout << "apsodifj\n";
 }
 else{
 //std::cout << "defItSolv:Impl doing weakFormPeter" << std::endl;

@@ -15,6 +15,7 @@
 
 // cd  /opt/fb/bempp/build/examples/cpp/
 // pushd ../..; make tutorial_dirichlet -j6; popd
+// ulimit -v 6000000
 // ./tutorial_dirichlet >res 2>testgeom
 //// pushd /opt/bemppNew/bempp/build; make -j6 2>~/Desktop/Doctoraat/GreenBempp/brol; popd
 // pushd ../..; make tutorial_dirichlet -j6 2>/opt/fb/bempp/build/examples/cpp/brol; popd
@@ -24,10 +25,17 @@
 //// g++ -I/opt/bemppNew/bempp/build/include -I/opt/bemppNew/bempp/build/include/bempp ~/Desktop/Doctoraat/GreenBempp/helmholtzRep.cpp -L/opt/bemppNew/bempp/build/lib -L/opt/bemppNew/bempp/build/external/lib -I/opt/bemppNew/bempp/build/external/include/ -I/opt/anaconda/inst/include/python2.7/ -I/opt/bemppNew/bempp/build/external/include/Trilinos -w -g -Wall -Werror -std=gnu++11 -lbempp -lteuchoscore -lpthread -Wl,-rpath,/opt/bemppNew/bempp/lib
 
 //// opt/fb/bempp/build/examples/cpp/make
+// cd build
+// cmake -DCMAKE_BUILD_TYPE=Release -DWITH_FENICS=ON .. -DCMAKE_CXX_FLAGS:STRING=-lpthread
+
 
 //Simpson:
-// cd /export/home1/NoCsBack/nines/fb/bempp/build/examples/cpp
-// vim /export/home1/NoCsBack/nines/fb/bempp/examples/cpp/tutorial_dirichlet.cpp
+// cd /export/home1/NoCsBack/nines/fb/bempp/build/examples/cpp/
+// vim ../../../examples/cpp/tutorial_dirichlet.cpp 
+// pushd ../..; make tutorial_dirichlet -j14; popd
+//// cd /export/home1/NoCsBack/nines/fb/bempp/build/examples/cpp
+//// vim /export/home1/NoCsBack/nines/fb/bempp/examples/cpp/tutorial_dirichlet.cpp
+
 //  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND                                   
 // 27994 peter     20   0 8702728 5.035g  27548 R  2339  8.0  68:58.30 tutorial_dirich  
 
@@ -122,7 +130,9 @@ int main(int argc, char* argv[])
 arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,4,2));
 const int kl = ks.size();
 
-arma::Mat<BFT> Ts = arma::linspace<arma::Mat<BFT>>(0.6,0.8,2);
+//arma::Mat<BFT> Ts = arma::linspace<arma::Mat<BFT>>(0.6,0.8,2);
+arma::Mat<BFT> Ts = arma::linspace<arma::Mat<BFT>>(0.03,2.0,10);
+
 const int Tl = Ts.size();
 //std::cout << ks(1) << "=ks1, length=" << kl << Ts << std::endl;
 
@@ -158,10 +168,12 @@ for(int ki = 0; ki < ks.size(); ki++) {
 
 	waveNumber = ks(ki);
 //	std::string mfs = "/home/peter/Desktop/Doctoraat/Bol/sphere" + std::to_string(ki+1) + ".msh";
-	std::string mfs = "../../../meshes/sphere" + std::to_string(ki) + ".msh";
-//	std::string mfs = "../../../meshes/sphere" + std::to_string(ki+1) + ".msh";
+//	std::string mfs = "../../../meshes/sphere" + std::to_string(ki) + ".msh";
+	std::string mfs = "../../../meshes/sphere" + std::to_string(ki+1) + ".msh";
+//	std::string mfs = "../../../meshes/sphere1.msh"; // Others take too much memory on standard weakForm() without ACA etc
 //std::cout << "meshString = " << mfs << std::endl;
 	shared_ptr<Grid> grid = loadTriangularMeshFromFile(mfs.c_str());	
+std::cout << "Loaded mesh\n";
 //	std::cout << "iosauhdfiosaujhdfs" << std::endl;
 //	argv[1] = "/home/peter/Desktop/Doctoraat/Bol/sphere0.msh";
 //	shared_ptr<Grid> grid = loadTriangularMeshFromFile(argv[1]);
@@ -176,13 +188,14 @@ for(int ki = 0; ki < ks.size(); ki++) {
 	PiecewiseConstantScalarSpace<BFT> HminusHalfSpace(grid);
 	AssemblyOptions assemblyOptions;
 //	assemblyOptions.enableSingularIntegralCaching(false);
-//	std::cout << "iuyshbakjsndf" << std::endl;
+	std::cout << "iuyshbakjsndf" << std::endl;
 	assemblyOptions.setVerbosityLevel(VerbosityLevel::LOW); // Less junk
 //	assemblyOptions.setVerbosityLevel(VerbosityLevel::HIGH); // More info (progress % matrix)
 	// No ACA at first
 //	AcaOptions acaOptions; // Default parameters for ACA
 //	acaOptions.eps = 1e-5;
 //	assemblyOptions.switchToAcaMode(acaOptions); // But now do ACA to compute corr using H-m
+
 
 	AccuracyOptions accuracyOptions;
 	accuracyOptions.doubleRegular.setRelativeQuadratureOrder(1);
@@ -194,7 +207,7 @@ for(int ki = 0; ki < ks.size(); ki++) {
 
 //	DiscreteBoundaryOperator<RT> weak = slpOp.weakForm();
 //	arma::Mat<RT> wm = weak->asMatrix();
-	arma::Mat<RT> wm = slpOp.weakForm()->asMatrix();
+/////	arma::Mat<RT> wm = slpOp.weakForm()->asMatrix();
 //	std::cerr << wm << std::endl;
 /*
 	std::fstream myStream;
@@ -202,15 +215,23 @@ for(int ki = 0; ki < ks.size(); ki++) {
 	myStream.open("/home/peter/Desktop/Doctoraat/GreenBempp/simpsonRes/A",std::ios::out);
 	myStream << wm;*/
 
-//	std::cout << "Assemble rhs" << std::endl;
+std::cout << "Making weakForm() \n";
+boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weakTestMem = slpOp.weakForm();
+
+	std::cout << "Assemble rhs" << std::endl;
 	GridFunction<BFT, RT> rhs(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), // is this the right choice?
             surfaceNormalIndependentFunction(MyFunctor()));
 
+
+
 	// Initialize the solver
 #ifdef WITH_TRILINOS
-//	std::cout << "Initialize solver TRILINOS" << std::endl;
+	std::cout << "Initialize solver TRILINOS" << std::endl;
 	DefaultIterativeSolver<BFT, RT> solver(slpOp,ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
+	std::cout << " solver TRILINOS" << std::endl;
 	solver.initializeSolver(defaultGmresParameterList(1e-5));
+
+	std::cout << "TRILINOS" << std::endl;
 	Solution<BFT, RT> solution = solver.solve(rhs);
 #else
 	std::cout << "Initialize solver without trilinos" << std::endl;
@@ -218,10 +239,12 @@ for(int ki = 0; ki < ks.size(); ki++) {
 	solver.solve();
 #endif
 
+	std::cout << "TRILINOS done" << std::endl;
 	tbb::tick_count end = tbb::tick_count::now();
         times(ki,0) = (end - start).seconds();
 
-/////////////	conds(ki,0) = arma::cond(wm);
+std::cout << "ended std calc\n";
+//	conds(ki,0) = arma::cond(wm);
 
 /////	const GridFunction<BFT, RT>& solFun = solution.gridFunction();
 	const GridFunction<BFT, RT>& solFunOr = solution.gridFunction();
@@ -238,12 +261,15 @@ for(int ki = 0; ki < ks.size(); ki++) {
         }*/
 
 
-	std::ifstream input("/home/peter/Desktop/Doctoraat/GreenBempp/simpsonRes/rhsV");
+//	std::ifstream input("/home/peter/Desktop/Doctoraat/GreenBempp/simpsonRes/rhsV");
 //	arma::Col<RT> rhsVe{std::istream_iterator<RT>(input), std::istream_iterator<RT>() };
-	std::vector<RT> rhsVe{std::istream_iterator<RT>(input), std::istream_iterator<RT>() };
-        input.close();
+////	std::vector<RT> rhsVe{std::istream_iterator<RT>(input), std::istream_iterator<RT>() };
+//        input.close();
 
 //std::cerr << rhsVe[0]<< "= rhsV[0], rhsV[200] = " << rhsVe[200] << std::endl;
+
+
+std::cout << "Got solution vector \n";
 
 	Helmholtz3dSingleLayerPotentialOperator<BFT> slPot (waveNumber);
 	EvaluationOptions evalOptions = EvaluationOptions();
@@ -251,6 +277,8 @@ for(int ki = 0; ki < ks.size(); ki++) {
 	arma::Mat<RT> potResOr = slPot.evaluateAtPoints(solFunOr, points, quadStrategy, evalOptions);
 //	arma::Mat<RT> potResCompr = slPot.evaluateAtPoints(solFunCompr, points, quadStrategy, evalOptions);
 
+
+std::cout << "Rearranging potResOr\n";
 	arma::Mat<RT> diri = potResOr;
 	MyFunctor tmp = MyFunctor();
 //	for (int i = 0; i < pointCount; ++i) {
@@ -267,8 +295,11 @@ for(int ki = 0; ki < ks.size(); ki++) {
 	arma::Mat<RT> errBCOr = potResOr - diri;
 	errBCavm(ki,0) = mean(mean(abs(errBCOr) ));
 
+
+
 // -------------- Compression -----------------------------------------
    for(int ti = 0; ti < Ts.size(); ti ++) {
+//   for(int ti = 0; ti < 0; ti ++) {
 
 	std::cerr << ki << " = ki, ti = " << ti << ", perc = " << (0.0+ki*Ts.size() + ti)/(0.0+Ts.size()*ks.size()) <<std::endl;
 
@@ -294,7 +325,11 @@ for(int ki = 0; ki < ks.size(); ki++) {
 //	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weakCompr = bla.weakFormPeter(str,context,std::unique_ptr<arma::Col<RT> > (solutionCoefficients), std::unique_ptr<std::vector<RT> > (rhsVe), std::unique_ptr<arma::Mat<RT> > (wm) );
 //*solutionCoefficients, *rhsVe, std::unique_ptr<> (wm) );
 
-	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weakCompr = bla.weakFormPeter(str,context,&solutionCoefficientsOr, &rhsVe, &wm);
+//	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weakCompr = bla.weakFormPeter(str,context,&solutionCoefficientsOr, &rhsVe, &wm);
+	arma::Mat<RT> wmDummy(3,3);
+	wmDummy.fill(0.);
+	std::vector<RT> rhsVeDummy;
+	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weakCompr = bla.weakFormPeter(str,context,&solutionCoefficientsOr, &rhsVeDummy, &wmDummy);
 //	arma::Mat<RT> wmC = slpOpCompr.weakFormPeter()->asMatrix();
 // Computing weak form should be done in (defit)solver, only here for printing matrix here-> wrong, need info rhsVe etc
 //	arma::Mat<RT> wmC = weakCompr->asMatrix();
@@ -327,13 +362,13 @@ for(int ki = 0; ki < ks.size(); ki++) {
 
 
 
-	arma::Mat<RT> wmC = weakCompr->asMatrix();
+//////	arma::Mat<RT> wmC = weakCompr->asMatrix();
 ////////////////	conds(ki,1+ti) = arma::cond(wmC);
 //	percs(ki,ti) = (arma::nonzeros(wmC)).size()/(0.0+wmC.size());
 //	arma::Col<RT> nz = arma::nonzeros(wmC);
 //	percs(ki,ti) = (nz.size())/(0.0+wmC.size());
 //	percs(ki,ti) = arma::accu(wmC != 0)/(0.0+wmC.size());
-	percs(ki,ti) = arma::accu(wmC != 0)/(0.0+wmC.n_elem);
+/////	percs(ki,ti) = arma::accu(wmC != 0)/(0.0+wmC.n_elem);
 //	std::cout << wmC.n_elem << "=nelem, acum = " << arma::accu(wmC != 0) << std::endl;
 
 	

@@ -260,10 +260,13 @@ static std::unique_ptr<DiscreteBoundaryOperator<ResultType> >
 assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& testSpace, const Space<BasisFunctionType>& trialSpace, LocalAssemblerForIntegralOperators& assembler, const Context<BasisFunctionType, ResultType>& context, arma::Col<ResultType> * solV, std::vector<ResultType> * rhsV, arma::Mat<ResultType> * wm)
 {
 
+std::cout << "entered wakFormPeter.\n";
+
 	std::vector< Point3D<CoordinateType> > testPos;
 	testSpace.getGlobalDofPositions(testPos);
 	std::vector< Point3D<CoordinateType> > trialPos;
 	trialSpace.getGlobalDofPositions(trialPos);
+std::cout << "got pos.\n";
 	std::stringstream s;
 	for(int i =0; i < 2; ++i) { 
 //		std::cerr << i  << " : " << testPos[i].x << ", " << testPos[i].y << ", " << testPos[i].z << std::endl;
@@ -273,7 +276,9 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
     std::vector<std::vector<GlobalDofIndex> > testGlobalDofs, trialGlobalDofs;
     std::vector<std::vector<BasisFunctionType> > testLocalDofWeights,
         trialLocalDofWeights;
+std::cout << "starting ggs.\n";
     ggdsPeter(testSpace, testGlobalDofs, testLocalDofWeights);
+std::cout << "ended ggs.\n";
     if (&testSpace == &trialSpace) {
         trialGlobalDofs = testGlobalDofs;
         trialLocalDofWeights = testLocalDofWeights;
@@ -296,12 +301,24 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
         }
     }
 
+std::cout << "making operator matrix.\n";
     arma::Mat<ResultType> result(testSpace.globalDofCount(), trialSpace.globalDofCount());
     result.fill(0.); // Create and fill the operator's matrix
-    
-	arma::Mat<ResultType> rois(testSpace.globalDofCount(), trialSpace.globalDofCount());
-	rois.fill(0.);
+std::cout << "created  operator matrix.\n";
 
+//arma::Mat<ResultType> rois(testSpace.globalDofCount(), trialSpace.globalDofCount());
+//    arma::Mat<ResultType> rois;
+    int roisSiz = 2;
+    if (str.at(0) == 'c') {
+	roisSiz = testSpace.globalDofCount();
+//	rois(testSpace.globalDofCount(), trialSpace.globalDofCount());
+    } else {
+//	rois(2,2);
+   }
+   arma::Mat<ResultType> rois(roisSiz,roisSiz);
+   rois.fill(0.);
+
+std::cout << "created rois.\n";
     typedef DWFALBPeter<BasisFunctionType, ResultType> Body;
     typename Body::MutexType mutex;
     const ParallelizationOptions& parallelOptions = options.parallelizationOptions();
@@ -328,7 +345,7 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
 	arma::Col<float> locmaxs(testSpace.globalDofCount());
 	locmaxs.fill(-1.0);
 	std::stringstream m;
-//std::cout << testSpace.globalDofCount() << " " << result.size() << " " << trialSpace.globalDofCount() << std::endl;
+std::cout << testSpace.globalDofCount() << " " << result.size() << " " << trialSpace.globalDofCount() << std::endl;
 	for (int i=0; i < testSpace.globalDofCount(); ++i) {
 		tmpErr = std::abs(result[0,i]);
 		if (std::abs(tmpErr) > std::abs(globalErr)) {
