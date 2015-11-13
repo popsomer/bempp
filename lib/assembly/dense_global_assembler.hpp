@@ -79,7 +79,8 @@ public:
 
         for (size_t trialIndex = r.begin(); trialIndex != r.end(); ++trialIndex) {
             // Evaluate integrals over pairs of the current trial element and all the test elements
-            m_assembler.evaluateLocalWeakForms(TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);	
+//            m_assembler.evaluateLocalWeakForms(TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);	
+            m_assembler.evaluateLocalWeakFormsPeter(str,TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);	
             const int trialDofCount = m_trialGlobalDofs[trialIndex].size();
             // Global assembly
             {

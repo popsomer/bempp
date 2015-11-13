@@ -106,11 +106,11 @@ public:
 
   }
 
-/*
+
   template <template <typename T> class CollectionOf2dSlicesOfNdArrays>
   void evaluatePeter(std::string str, const ConstGeometricalDataSlice<CoordinateType> &testGeomData, const ConstGeometricalDataSlice<CoordinateType> &trialGeomData, CollectionOf2dSlicesOfNdArrays<ValueType> &result) const {
     const int coordCount = 3;
-
+std::cout << "Entered evaluatePeter, str=" << str << std::endl;
     CoordinateType sum = 0;
     for (int coordIndex = 0; coordIndex < coordCount; ++coordIndex) {
       CoordinateType diff =
@@ -134,7 +134,7 @@ public:
 	}
     result[0](0, 0) = static_cast<CoordinateType>(1.0 / (4.0 * M_PI)) / distance * exp(-m_waveNumber * distance)*wind;
 
-  }*/
+  }
 
 
 

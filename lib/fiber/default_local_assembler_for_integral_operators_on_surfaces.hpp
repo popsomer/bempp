@@ -188,7 +188,7 @@ public:
           break;
         }
     }
-
+/*
     if (cachedLocalWeakForm) { // Matrix found in cache
       quadVariants[i] = CACHED;
       if (localDofIndexB == ALL_DOFS) {
@@ -212,8 +212,10 @@ public:
 	}
       }
     } else {
+*/
 	if ((elementIndexB == 0) && (i==0)){
-		std::cout << "No matrix found in cache" << std::endl;
+//		std::cout << "No matrix found in cache" << std::endl;
+		std::cout << "Forced recomputation of cached matrix by commenting if(cache..)" << std::endl;
 	}
       const Integrator *integrator =
           callVariant == TEST_TRIAL
@@ -222,7 +224,7 @@ public:
               : &selectIntegrator(elementIndexB, elementIndicesA[i],
                                   nominalDistance);
       quadVariants[i] = QuadVariant(integrator, basesA[i]);
-    }
+//    }
   }
 
 

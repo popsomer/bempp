@@ -202,8 +202,8 @@ void evaluateOnGridPeter(std::string str, const GeometricalData<CoordinateType> 
 #pragma ivdep
   for (size_t trialIndex = 0; trialIndex < trialPointCount; ++trialIndex)
     for (size_t testIndex = 0; testIndex < testPointCount; ++testIndex)
-      m_functor.evaluate(testGeomData.const_slice(testIndex), trialGeomData.const_slice(trialIndex), result.slice(testIndex, trialIndex).self());
-//      m_functor.evaluatePeter(str,testGeomData.const_slice(testIndex), trialGeomData.const_slice(trialIndex), result.slice(testIndex, trialIndex).self());
+//      m_functor.evaluate(testGeomData.const_slice(testIndex), trialGeomData.const_slice(trialIndex), result.slice(testIndex, trialIndex).self());
+      m_functor.evaluatePeter(str,testGeomData.const_slice(testIndex), trialGeomData.const_slice(trialIndex), result.slice(testIndex, trialIndex).self());
 }
 
 
