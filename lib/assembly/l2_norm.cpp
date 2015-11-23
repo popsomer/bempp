@@ -81,6 +81,29 @@ public:
         result[0](i, j) = resultMatrix(i, j);
   }
 
+  template <template <typename T> class CollectionOf2dSlicesOfNdArrays>
+  void evaluatePeter(
+      std::string str,
+      const Fiber::ConstGeometricalDataSlice<CoordinateType> &testGeomData,
+      const Fiber::ConstGeometricalDataSlice<CoordinateType> &trialGeomData,
+      CollectionOf2dSlicesOfNdArrays<ValueType> &result) const {
+    Fiber::GeometricalData<CoordinateType> geomData =
+        trialGeomData.asGeometricalData();
+    arma::Mat<ValueType> resultMatrix;
+    m_function.evaluate(geomData, resultMatrix);
+    assert(resultMatrix.n_rows == result[0].extent(0));
+    assert(resultMatrix.n_cols == result[0].extent(1));
+    for (size_t j = 0; j < resultMatrix.n_cols; ++j)
+      for (size_t i = 0; i < resultMatrix.n_rows; ++i)
+        result[0](i, j) = resultMatrix(i, j);
+  }
+
+
+/*  template <template <typename T> class CollectionOf2dSlicesOfNdArrays>
+  void evaluatePeter(std::string str, const ConstGeometricalDataSlice<CoordinateType> &testGeomData, const ConstGeometricalDataSlice<CoordinateType> &trialGeomData, CollectionOf2dSlicesOfNdArrays<ValueType> &result) const {
+	std::cout << "Error: only use modH3dslpkf.hpp, not ...\n";
+}*/
+
 private:
   const Fiber::Function<ValueType> &m_function;
 };

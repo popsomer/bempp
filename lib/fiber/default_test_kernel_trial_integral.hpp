@@ -189,6 +189,7 @@ void evaluateWithTensorQuadratureRulePeter(std::string str,
           const CoordinateType testWeight =
               testGeomData.integrationElements(testPoint) *
               testQuadWeights[testPoint];
+
 //std::cout << "trialDof = " << trialDof << testDof << " =testDof, sum=" << sum << trialPoint << " = trialPoint, trialWeight = " << trialWeight << std::endl;
 //std::cout << testPoint << " = testPoint, testWeight = " << testWeight << testGeomData.integrationElements(testPoint) << " = test.i(tp), testValues.const_slice(testDof, testPoint) = " << testValues.const_slice(testDof, testPoint) <<std::endl;
 //std::cout << kernelValues.const_slice(testPoint, trialPoint) << "kernelValues.const_slice(testPoint, trialPoint), trialGeomData.const_slice(trialPoint) = " <<trialGeomData.const_slice(trialPoint)<<std::endl;
@@ -213,6 +214,9 @@ std::string poiu = toPrint.str();
                             trialValues.const_slice(trialDof, trialPoint),
                             kernelValues.const_slice(testPoint, trialPoint)) *
                         testWeight;*/
+//		partialSum += m_functor.evaluatePeter(str, testGeomData.const_slice(testPoint), trialGeomData.const_slice(trialPoint), testValues.const_slice(testDof, testPoint), trialValues.const_slice(trialDof, trialPoint), kernelValues.const_slice(testPoint, trialPoint)) * testWeight;
+		partialSum += m_functor.evaluate(testGeomData.const_slice(testPoint), trialGeomData.const_slice(trialPoint), testValues.const_slice(testDof, testPoint), trialValues.const_slice(trialDof, trialPoint), kernelValues.const_slice(testPoint, trialPoint)) * testWeight;
+/*
 	const CollectionOf1dSlicesOfConst3dArrays<BasisFunctionType> &testValuesSl = testValues.const_slice(testDof, testPoint);
 	const CollectionOf1dSlicesOfConst3dArrays<BasisFunctionType> &trialValuesSl = trialValues.const_slice(trialDof, trialPoint);
 //	const CollectionOf2dSlicesOfConstNdArrays<KernelType> 
@@ -248,7 +252,7 @@ assert(kernelValuesSl.size() >= 1);
 //partialSum += result*testWeight*1.5;
 partialSum += result*testWeight*static_cast<ResultType>(1.5);
 // :end of /opt/fb/bempp/lib/fiber/test_scalar_kernel_trial_integrand_functor.hpp.
-
+*/
         }
         sum += partialSum * trialWeight;
       }

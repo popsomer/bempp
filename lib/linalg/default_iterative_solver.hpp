@@ -131,6 +131,9 @@ public:
   void initializeSolver(const Teuchos::RCP<Teuchos::ParameterList> &paramList,
                         const Preconditioner<ResultType> &preconditioner);
 
+
+  void saveProjections(const GridFunction<BasisFunctionType, ResultType> &rhs, std::string path) const; //Peter
+
 private:
   virtual Solution<BasisFunctionType, ResultType> solveImplNonblocked(
       const GridFunction<BasisFunctionType, ResultType> &rhs) const;

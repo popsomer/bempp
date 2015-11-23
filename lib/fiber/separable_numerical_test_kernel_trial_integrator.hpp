@@ -239,16 +239,16 @@ public:
 		std::cout << testValues[0].extent(1) << " = testValExtent, trialValextent = " << trialValues[0].extent(1) << std::endl;
 		std::cout << m_testQuadWeights.size() << " = testQuadSize, trialQuadSize = " << m_trialQuadWeights.size() << std::endl;
 	}
-//    m_integral.evaluateWithTensorQuadratureRule(
-//        *constTestGeomData, *constTrialGeomData, testValues, trialValues,
-//        kernelValues, m_testQuadWeights, m_trialQuadWeights, *result[indexA]);
-    m_integral.evaluateWithTensorQuadratureRulePeter(str,
+    m_integral.evaluateWithTensorQuadratureRule(
         *constTestGeomData, *constTrialGeomData, testValues, trialValues,
         kernelValues, m_testQuadWeights, m_trialQuadWeights, *result[indexA]);
+//    m_integral.evaluateWithTensorQuadratureRulePeter(str, *constTestGeomData, *constTrialGeomData, testValues, trialValues, kernelValues, m_testQuadWeights, m_trialQuadWeights, *result[indexA]);
 	if ((elementIndexB == 0) && (indexA == 0)) {
 		std::cout << "after evTenQuadRule = " << *result[indexA] << std::endl;
 	}
   }
+
+//std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!  integratePeter maybe not ready for separable_... \n";
 }
 /*
 GeometricalData<CoordinateType> getTestGeomData() {

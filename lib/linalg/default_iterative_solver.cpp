@@ -246,6 +246,22 @@ void DefaultIterativeSolver<BasisFunctionType, ResultType>::initializeSolver(
 std::cout << "defItSolv:initsolv2" << std::endl;
 }
 
+
+
+template <typename BasisFunctionType, typename ResultType> void DefaultIterativeSolver<BasisFunctionType, ResultType>::saveProjections(
+    const GridFunction<BasisFunctionType, ResultType> &projSol, std::string path) const {
+	typedef BoundaryOperator<BasisFunctionType, ResultType> BoundaryOp;
+	const BoundaryOp *boundaryOp = boost::get<BoundaryOp>(&m_impl->op);
+
+	Vector<ResultType> projVect(projSol.projections(boundaryOp->dualToRange()));
+	std::fstream myStream;
+//	myStream.open("projSol",std::ios::out);
+	myStream.open(path,std::ios::out);
+	myStream << projSol.projections(boundaryOp->dualToRange());
+	myStream.close();
+}
+
+
 template <typename BasisFunctionType, typename ResultType>
 Solution<BasisFunctionType, ResultType>
 DefaultIterativeSolver<BasisFunctionType, ResultType>::solveImplNonblocked(

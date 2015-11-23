@@ -128,6 +128,8 @@ public:
                          std::vector<arma::Mat<ResultType>> &result,
                          CoordinateType nominalDistance = -1.);
 
+
+
 //Peter, in local_as...:
 /*  void evaluateLocalWeakFormsPeter(std::string str, CallVariant callVariant,
                          const std::vector<int> &elementIndicesA,

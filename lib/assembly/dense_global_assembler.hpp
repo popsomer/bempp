@@ -76,7 +76,10 @@ public:
         std::vector<arma::Mat<ResultType> > localResult;
 	arma::Col<ResultType> solV = *m_solV;
 	arma::Mat<ResultType> wm = *m_wm;
-
+std::stringstream toPrint;
+toPrint << str << " aposdjf " << r.begin() << " asf " << r.end() << "\n";
+//std::cout << toPrint.str();
+//std::cout << str << " aposdjf " << r.begin() << " asf " << r.end() << "\n";
         for (size_t trialIndex = r.begin(); trialIndex != r.end(); ++trialIndex) {
             // Evaluate integrals over pairs of the current trial element and all the test elements
 //            m_assembler.evaluateLocalWeakForms(TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);	
@@ -126,6 +129,9 @@ if ( ( (trialIndex == 0) & (testIndex == 1) ) | ( (trialIndex == 1) & (testIndex
 	if (str.at(0) == 'n') {
 		wind = 1.0;
 	}
+	else if (str.at(0) == 't') {
+		wind = 1.0;
+	}
 	else if (str.at(0) == 'f') {
 //		a = 0.6;
 //		b = 1.1;
@@ -150,6 +156,7 @@ if ( ( (trialIndex == 0) & (testIndex == 1) ) | ( (trialIndex == 1) & (testIndex
 		else if (dist <= b) {
 			wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
 		}
+		wind = 1.0; // Multiply by window in kernel
 //	}
 	}
 	else if (str.at(0) == 'c') {
@@ -302,10 +309,10 @@ std::cout << "ended ggs.\n";
         }
     }
 
-std::cout << "making operator matrix.\n";
-    arma::Mat<ResultType> result(testSpace.globalDofCount(), trialSpace.globalDofCount());
-    result.fill(0.); // Create and fill the operator's matrix
-std::cout << "created  operator matrix.\n";
+//std::cout << "making operator matrix.\n";
+    arma::Mat<ResultType> result;//(testSpace.globalDofCount(), trialSpace.globalDofCount());
+//    result.fill(0.); // Create and fill the operator's matrix
+//std::cout << "created  operator matrix.\n";
 
 //arma::Mat<ResultType> rois(testSpace.globalDofCount(), trialSpace.globalDofCount());
 //    arma::Mat<ResultType> rois;
@@ -330,11 +337,62 @@ std::cout << "created rois.\n";
         else
             maxThreadCount = parallelOptions.maxThreadCount();
     }
+	
+if (str.at(0) == 't') {
+arma::Mat<ResultType> oneRow(testSpace.globalDofCount(), 1);
+oneRow.fill(0.);
+std::vector<arma::Mat<ResultType> > localResult;
+
+std::string::size_type sz;
+size_t trialIndex = std::stof(str.substr(2),&sz);	
+const int elementCount = testIndices.size();
+
+assembler.evaluateLocalWeakFormsPeter(str,TEST_TRIAL, testIndices, trialIndex, ALL_DOFS, localResult);
+const int trialDofCount = trialGlobalDofs[trialIndex].size();
+
+for (int testIndex = 0; testIndex < elementCount; ++testIndex) {
+	const int testDofCount = testGlobalDofs[testIndex].size();
+	for (int trialDof = 0; trialDof < trialDofCount; ++trialDof) {
+		int trialGlobalDof = trialGlobalDofs[trialIndex][trialDof];
+		if (trialGlobalDof < 0)
+			continue;
+		for (int testDof = 0; testDof < testDofCount; ++testDof) {
+			int testGlobalDof = testGlobalDofs[testIndex][testDof];
+			if (testGlobalDof < 0)
+				continue;
+//		oneRow(testGlobalDof, trialGlobalDof) += conj(testLocalDofWeights[testIndex][testDof]) * trialLocalDofWeights[trialIndex][trialDof] *localResult[testIndex](testDof, trialDof);
+			oneRow(testGlobalDof, 0) += conj(testLocalDofWeights[testIndex][testDof]) * trialLocalDofWeights[trialIndex][trialDof] *localResult[testIndex](testDof, trialDof);
+		}
+	}
+}
+
+return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(oneRow));
+/*
+arma::Mat<ResultType> result(testSpace.globalDofCount(), 1);
+result.fill(0.);
+
+	tbb::task_scheduler_init scheduler(maxThreadCount);
+   {
+        Fiber::SerialBlasRegion region;
+        tbb::parallel_for(tbb::blocked_range<size_t>(testRow,testRow), Body("n ", testIndices, testGlobalDofs, trialGlobalDofs,testLocalDofWeights, trialLocalDofWeights, assembler, result, mutex, solV, rhsV, wm, testPos, trialPos, rois));
+    }
+//std::cout << "resRow" << oneRow << " asdf\n";
+//   return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(oneRow));
+   return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(result));
+*/
+}
+else {
+
+    arma::Mat<ResultType> result(testSpace.globalDofCount(), trialSpace.globalDofCount());
+    result.fill(0.);
+
     tbb::task_scheduler_init scheduler(maxThreadCount);
     {
         Fiber::SerialBlasRegion region;
         tbb::parallel_for(tbb::blocked_range<size_t>(0, trialElementCount), Body(str, testIndices, testGlobalDofs, trialGlobalDofs,testLocalDofWeights, trialLocalDofWeights, assembler, result, mutex, solV, rhsV, wm, testPos, trialPos, rois));
-    }
+   }
+   return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(result));
+}
 
 	std::vector<ResultType> rhsVe = *rhsV;
 	ResultType tmpErr, re, rh;
@@ -346,14 +404,20 @@ std::cout << "created rois.\n";
 	arma::Col<float> locmaxs(testSpace.globalDofCount());
 	locmaxs.fill(-1.0);
 	std::stringstream m;
+/*
 std::cout << testSpace.globalDofCount() << " " << result.size() << " " << trialSpace.globalDofCount() << std::endl;
 	for (int i=0; i < testSpace.globalDofCount(); ++i) {
-		tmpErr = std::abs(result[0,i]);
-		if (std::abs(tmpErr) > std::abs(globalErr)) {
-			globalErr = tmpErr;
-			locmax = i;
-		}
+		tmpErr += std::pow(std::abs(result[i,testRow]-oneRow[i,0]),2.0);
+		globalNor += std::pow(std::abs(result[i,testRow]),2.0);
+std::cout << result[i,testRow] << " =matr, row= " << oneRow[i,0] << " asdf " <<i << " oi " << std::abs(result[i,testRow]) << " asdf " << globalNor << " =gn, term= " << std::pow(std::abs(result[i,testRow]),2.0) << " rowtrans= " << oneRow[0,i] << " rowidx " << oneRow[i,testRow] << " rowtraidx " << oneRow[testRow,i] << "\n";
+//		tmpErr = std::abs(result[0,i]);
+//		if (std::abs(tmpErr) > std::abs(globalErr)) {
+//			globalErr = tmpErr;
+//			locmax = i;
+//		}
 	}
+std::cout << std::sqrt(tmpErr) << " =err first row, nor= "  << std::sqrt(globalNor) <<" , testRow= " << testRow << " aspojfd "<<testSpace.globalDofCount()<<"\n";
+*/
 /*
 	int nnz = 0;
 
@@ -394,8 +458,8 @@ std::cout << testSpace.globalDofCount() << " " << result.size() << " " << trialS
 	std::cout << nnz << " = nnz, nbElem = " << testSpace.globalDofCount()*trialSpace.globalDofCount() << ", percentage = " << nnz/(0.0+testSpace.globalDofCount()*trialSpace.globalDofCount()) << std::endl;
 */
 //	std::cout << " are corrs of testidx=0, idxmax = " << locmax << " " << globalErr << std::endl;
-    return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(
-                new DiscreteDenseBoundaryOperator<ResultType>(result));
+//    return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(
+//                new DiscreteDenseBoundaryOperator<ResultType>(result));
 }
 
 };

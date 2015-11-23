@@ -74,6 +74,14 @@ public:
     result[0](0, 0) = -numeratorSum / (static_cast<CoordinateType>(4. * M_PI) *
                                        distance * distanceSq);
   }
+
+
+  template <template <typename T> class CollectionOf2dSlicesOfNdArrays>
+  void evaluatePeter(std::string str, const ConstGeometricalDataSlice<CoordinateType> &testGeomData, const ConstGeometricalDataSlice<CoordinateType> &trialGeomData, CollectionOf2dSlicesOfNdArrays<ValueType> &result) const {
+	std::cout << "Error: only use modH3dslpkf.hpp, not ...\n";
+}
+
+
 };
 
 } // namespace Fiber

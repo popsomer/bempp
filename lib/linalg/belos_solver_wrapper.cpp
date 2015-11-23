@@ -30,6 +30,7 @@
 
 #include <Teuchos_ArrayRCP.hpp>
 #include <Thyra_BelosLinearOpWithSolveFactory_decl.hpp>
+#include <Thyra_BelosLinearOpWithSolve_def.hpp> //Peter
 #include <Thyra_DefaultLinearOpSource.hpp>
 #include <Thyra_DetachedMultiVectorView.hpp>
 #include <Thyra_LinearOpSourceBase.hpp>
@@ -106,10 +107,14 @@ makeOperatorWithSolve(
       new RealWrapperOfComplexThyraLinearOperator<RealType>(linOp));
 
   Teuchos::RCP<Thyra::LinearOpWithSolveBase<RealType>> result;
-  if (preconditioner.is_null())
+  if (preconditioner.is_null()) {
     // No preconditioner
+std::cout << "belossolverwrap.cpp no precond in makeOpWithSolve\n"; // Peter
     result = Thyra::linearOpWithSolve(invertibleOpFactory, realLinOp);
+std::cout << typeid(*result).name() << "=type\n";
+}//Peter
   else {
+std::cout << "belossolverwrap.cpp have precond in makeOpWithSolve\n";//Peter
     // Preconditioner defined
     result = invertibleOpFactory.createOp();
     Teuchos::RCP<const Thyra::LinearOpSourceBase<RealType>> realLinOpSourcePtr(
@@ -134,7 +139,7 @@ reallySolve(const Thyra::LinearOpWithSolveBase<
             const Thyra::MultiVectorBase<ValueType> &rhs,
             const Teuchos::Ptr<Thyra::MultiVectorBase<ValueType>> &sol) {
 //Peter:
-//std::cout << "belossolverwrapper: realValuetype" << std::endl;
+std::cout << "belossolverwrapper: realValuetype" << std::endl;
 //  return op.solve("ospijfd", trans, rhs, sol);
   return op.solve(trans, rhs, sol);
 }
@@ -150,7 +155,7 @@ reallySolve(const Thyra::LinearOpWithSolveBase<
             const Thyra::MultiVectorBase<ValueType> &rhs,
             const Teuchos::Ptr<Thyra::MultiVectorBase<ValueType>> &sol) {
   typedef typename ScalarTraits<ValueType>::RealType MagnitudeType;
-//std::cout << "belossolverwrapper: complex Valuetype" << std::endl;
+std::cout << "belossolverwrapper: complex Valuetype" << std::endl;
 
   // Wrap the right-hand-side data in a real multivector of twice as many rows
 

@@ -110,7 +110,7 @@ public:
   template <template <typename T> class CollectionOf2dSlicesOfNdArrays>
   void evaluatePeter(std::string str, const ConstGeometricalDataSlice<CoordinateType> &testGeomData, const ConstGeometricalDataSlice<CoordinateType> &trialGeomData, CollectionOf2dSlicesOfNdArrays<ValueType> &result) const {
     const int coordCount = 3;
-std::cout << "Entered evaluatePeter, str=" << str << std::endl;
+//std::cout << "Entered evaluatePeter, str=" << str << std::endl;
     CoordinateType sum = 0;
     for (int coordIndex = 0; coordIndex < coordCount; ++coordIndex) {
       CoordinateType diff =
@@ -124,6 +124,28 @@ std::cout << "Entered evaluatePeter, str=" << str << std::endl;
 	CoordinateType wind = static_cast<CoordinateType>(1.0);
 	CoordinateType cuto = static_cast<CoordinateType>(0.1);
 	CoordinateType cutoSP = static_cast<CoordinateType>(0.3);
+
+	if (true) {
+		CoordinateType percDecay = static_cast<CoordinateType>(0.8);
+		std::string::size_type sz;   
+		CoordinateType b = std::stof(str.substr(2),&sz);		
+		CoordinateType a = (1-percDecay)*b;
+		CoordinateType dist = std::sqrt( std::pow(testGeomData.global(1) - trialGeomData.global(1), 2.0) + std::pow(testGeomData.global(1) - trialGeomData.global(1), 2.0) );
+
+//std::cout << dist << " = dist, b= " << b << "\n";
+		// Distance without x to include stationary points (but also shadow when coll in illuminated...)
+//	if ((m_testPos[testIndex].x < 0) || (m_trialPos[trialIndex].x > 0)) {
+		if (dist <= a) {
+			wind = static_cast<CoordinateType>(1.0);
+//			std::cout << "Window 1 for fixedWindows with x=" << m_testPos[testIndex].x << std::endl;
+		}
+		else if (dist <= b) {
+			wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
+		}
+		else { 
+			wind = static_cast<CoordinateType>(0.0); 
+		}
+	}
 	if (false) {
 		if (distance >= cuto*2) {
 			wind = static_cast<CoordinateType>(0.0);
@@ -132,10 +154,8 @@ std::cout << "Entered evaluatePeter, str=" << str << std::endl;
 			wind = exp(2*exp(-cuto/(distance-2*cuto) )/( (distance-2*cuto)/cuto-1) );
 		} 
 	}
-    result[0](0, 0) = static_cast<CoordinateType>(1.0 / (4.0 * M_PI)) / distance * exp(-m_waveNumber * distance)*wind;
-
-  }
-
+	result[0](0, 0) = static_cast<CoordinateType>(1.0 / (4.0 * M_PI)) / distance * exp(-m_waveNumber * distance)*wind;
+}
 
 
   CoordinateType estimateRelativeScale(CoordinateType distance) const {

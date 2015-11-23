@@ -126,7 +126,7 @@ void evaluateAtPointPairsPeter(std::string str, const GeometricalData<Coordinate
   const size_t pointCount = testGeomData.pointCount();
   const size_t kernelCount = m_functor.kernelCount();
   result.set_size(kernelCount);
-
+//std::cout << "evalAtPointPairsPeter\n";
 //  CoordinateType m_waveNumber = m_functor.waveNumber();
 //  ValueType m_waveNumber = m_functor.waveNumber();
 //	std::string::size_type sz;     // alias of size_t
@@ -154,9 +154,13 @@ void evaluateAtPointPairsPeter(std::string str, const GeometricalData<Coordinate
 //	const ModifiedHelmholtz3dSingleLayerPotentialKernelFunctor<ValueType>& tmp = dynamic_cast<const ModifiedHelmholtz3dSingleLayerPotentialKernelFunctor<ValueType>& >(m_functor);
 //	ModifiedHelmholtz3dSingleLayerPotentialKernelFunctor<ValueType> tmp = static_cast<ModifiedHelmholtz3dSingleLayerPotentialKernelFunctor<ValueType> >(m_functor);
 //		static_cast<ModifiedHelmholtz3dSingleLayerPotentialKernelFunctor<ValueType> >(m_functor).evaluatePeter(str, testGeomData.const_slice(p), trialGeomData.const_slice(p), result.slice(p).self());
-//		m_functor.evaluatePeter(str, testGeomData.const_slice(p), trialGeomData.const_slice(p), result.slice(p).self());
-    m_functor.evaluate(testGeomData.const_slice(p),
-                       trialGeomData.const_slice(p), result.slice(p).self());
+		m_functor.evaluatePeter(str, testGeomData.const_slice(p), trialGeomData.const_slice(p), result.slice(p).self());
+
+//	const ModifiedHelmholtz3dSingleLayerPotentialKernelFunctor<ValueType> bla = dynamic_cast<const ModifiedHelmholtz3dSingleLayerPotentialKernelFunctor<ValueType>& > (m_functor);
+//	bla.evaluatePeter(str, testGeomData.const_slice(p), trialGeomData.const_slice(p), result.slice(p).self());
+
+////    m_functor.evaluate(testGeomData.const_slice(p),
+////                      trialGeomData.const_slice(p), result.slice(p).self());
 /*
 	const ConstGeometricalDataSlice<CoordinateType> &testGeomDataSl = testGeomData.const_slice(p);
 	const ConstGeometricalDataSlice<CoordinateType> &trialGeomDataSl = trialGeomData.const_slice(p);

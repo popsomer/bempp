@@ -78,6 +78,12 @@ public:
     result[0](0, 0) *= m_slpKernel.waveNumber();
   }
 
+
+  template <template <typename T> class CollectionOf2dSlicesOfNdArrays>
+  void evaluatePeter(std::string str, const ConstGeometricalDataSlice<CoordinateType> &testGeomData, const ConstGeometricalDataSlice<CoordinateType> &trialGeomData, CollectionOf2dSlicesOfNdArrays<ValueType> &result) const {
+	std::cout << "Error: only use modH3dslpkf.hpp, not ...\n";
+}
+
   CoordinateType estimateRelativeScale(CoordinateType distance) const {
     return m_slpKernel.estimateRelativeScale(distance);
   }

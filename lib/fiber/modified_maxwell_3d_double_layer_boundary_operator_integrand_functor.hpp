@@ -81,6 +81,12 @@ public:
            kernelValues[0](2, 0) * (conjugate(testValues(0)) * trialValues(1) -
                                     conjugate(testValues(1)) * trialValues(0));
   }
+
+/*  template <template <typename T> class CollectionOf2dSlicesOfNdArrays>
+  void evaluatePeter(std::string str, const ConstGeometricalDataSlice<CoordinateType> &testGeomData, const ConstGeometricalDataSlice<CoordinateType> &trialGeomData, CollectionOf2dSlicesOfNdArrays<ValueType> &result) const {
+	std::cout << "Error: only use modH3dslpkf.hpp, not modMax3Ddouble...\n";
+}*/
+
 };
 
 } // namespace Fiber

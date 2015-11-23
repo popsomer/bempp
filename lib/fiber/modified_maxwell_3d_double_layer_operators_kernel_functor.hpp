@@ -97,6 +97,12 @@ public:
     return exp(-realPart(m_waveNumber) * distance);
   }
 
+
+  template <template <typename T> class CollectionOf2dSlicesOfNdArrays>
+  void evaluatePeter(std::string str, const ConstGeometricalDataSlice<CoordinateType> &testGeomData, const ConstGeometricalDataSlice<CoordinateType> &trialGeomData, CollectionOf2dSlicesOfNdArrays<ValueType> &result) const {
+	std::cout << "Error: only use modH3dslpkf.hpp, not modMax3Ddoulbe...\n";
+}
+
 private:
   /** \cond PRIVATE */
   ValueType m_waveNumber;

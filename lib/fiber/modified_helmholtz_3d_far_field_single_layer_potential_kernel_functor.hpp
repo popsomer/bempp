@@ -76,6 +76,12 @@ public:
         static_cast<ValueType>(1.0 / (4.0 * M_PI)) * exp(m_waveNumber * x_y);
   }
 
+
+  template <template <typename T> class CollectionOf2dSlicesOfNdArrays>
+  void evaluatePeter(std::string str, const ConstGeometricalDataSlice<CoordinateType> &testGeomData, const ConstGeometricalDataSlice<CoordinateType> &trialGeomData, CollectionOf2dSlicesOfNdArrays<ValueType> &result) const {
+	std::cout << "Error: only use modH3dslpkf.hpp, not ...\n";
+}
+
 private:
   ValueType m_waveNumber;
 };
