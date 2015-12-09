@@ -109,12 +109,12 @@ makeOperatorWithSolve(
   Teuchos::RCP<Thyra::LinearOpWithSolveBase<RealType>> result;
   if (preconditioner.is_null()) {
     // No preconditioner
-std::cout << "belossolverwrap.cpp no precond in makeOpWithSolve\n"; // Peter
+//std::cout << "belossolverwrap.cpp no precond in makeOpWithSolve\n"; // Peter
     result = Thyra::linearOpWithSolve(invertibleOpFactory, realLinOp);
-std::cout << typeid(*result).name() << "=type\n";
+std::cout << "belossolverwrap.cpp no precond and " << typeid(*result).name() << "=type\n";
 }//Peter
   else {
-std::cout << "belossolverwrap.cpp have precond in makeOpWithSolve\n";//Peter
+//std::cout << "belossolverwrap.cpp have precond in makeOpWithSolve\n";//Peter
     // Preconditioner defined
     result = invertibleOpFactory.createOp();
     Teuchos::RCP<const Thyra::LinearOpSourceBase<RealType>> realLinOpSourcePtr(
@@ -155,7 +155,7 @@ reallySolve(const Thyra::LinearOpWithSolveBase<
             const Thyra::MultiVectorBase<ValueType> &rhs,
             const Teuchos::Ptr<Thyra::MultiVectorBase<ValueType>> &sol) {
   typedef typename ScalarTraits<ValueType>::RealType MagnitudeType;
-std::cout << "belossolverwrapper: complex Valuetype" << std::endl;
+//std::cout << "belossolverwrapper: complex Valuetype" << std::endl;
 
   // Wrap the right-hand-side data in a real multivector of twice as many rows
 

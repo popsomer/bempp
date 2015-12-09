@@ -268,13 +268,13 @@ static std::unique_ptr<DiscreteBoundaryOperator<ResultType> >
 assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& testSpace, const Space<BasisFunctionType>& trialSpace, LocalAssemblerForIntegralOperators& assembler, const Context<BasisFunctionType, ResultType>& context, arma::Col<ResultType> * solV, std::vector<ResultType> * rhsV, arma::Mat<ResultType> * wm)
 {
 
-std::cout << "entered wakFormPeter.\n";
+//std::cout << "entered wakFormPeter.\n";
 
 	std::vector< Point3D<CoordinateType> > testPos;
 	testSpace.getGlobalDofPositions(testPos);
 	std::vector< Point3D<CoordinateType> > trialPos;
 	trialSpace.getGlobalDofPositions(trialPos);
-std::cout << "got pos.\n";
+//std::cout << "got pos.\n";
 	std::stringstream s;
 	for(int i =0; i < 2; ++i) { 
 //		std::cerr << i  << " : " << testPos[i].x << ", " << testPos[i].y << ", " << testPos[i].z << std::endl;
@@ -284,9 +284,9 @@ std::cout << "got pos.\n";
     std::vector<std::vector<GlobalDofIndex> > testGlobalDofs, trialGlobalDofs;
     std::vector<std::vector<BasisFunctionType> > testLocalDofWeights,
         trialLocalDofWeights;
-std::cout << "starting ggs.\n";
+//std::cout << "starting ggs.\n";
     ggdsPeter(testSpace, testGlobalDofs, testLocalDofWeights);
-std::cout << "ended ggs.\n";
+//std::cout << "ended ggs.\n";
     if (&testSpace == &trialSpace) {
         trialGlobalDofs = testGlobalDofs;
         trialLocalDofWeights = testLocalDofWeights;
@@ -326,7 +326,7 @@ std::cout << "ended ggs.\n";
    arma::Mat<ResultType> rois(roisSiz,roisSiz);
    rois.fill(0.);
 
-std::cout << "created rois.\n";
+//std::cout << "created rois.\n";
     typedef DWFALBPeter<BasisFunctionType, ResultType> Body;
     typename Body::MutexType mutex;
     const ParallelizationOptions& parallelOptions = options.parallelizationOptions();

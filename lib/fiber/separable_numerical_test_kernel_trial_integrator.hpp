@@ -93,13 +93,13 @@ public:
                  const std::vector<arma::Mat<ResultType> *> &result) const {
 //	if (! m_openClHandler.UseOpenCl() ) {
 	if (m_openClHandler.UseOpenCl() ) {
-		std::cerr << "ERRORpeter: separable_num...: integrateCl all commented out (in the CallVariant case)..." << std::endl;
-		throw "sfd";
+//		std::cerr << "ERRORpeter: separable_num...: integrateCl all commented out (in the CallVariant case)..." << std::endl;
+//		throw "sfd";
 //		throw "separable_num...: integrateCpu all commented out...";
 	}
 
 	if (elementIndexB == 0) {
-		std::cout << "separable_num..grator.hpp integrate(CallVariant) with integrateCpu iso integrateCl" << std::endl;
+//		std::cout << "separable_num..grator.hpp integrate(CallVariant) with integrateCpu iso integrateCl" << std::endl;
 	}
 	else{
 //		std::cout << "separ" << elementIndexB << ", ";
@@ -163,11 +163,11 @@ public:
   for (size_t i = 0; i < result.size(); ++i) {
     assert(result[i]);
 	if ((elementIndexB == 0) && (i == 0)) {
-		std::cout << "before setsize : resi = " << *result[i] << std::endl;
+//		std::cout << "before setsize : resi = " << *result[i] << std::endl;
 	}
     result[i]->set_size(testDofCount, trialDofCount);
 	if ((elementIndexB == 0) && (i == 0)) {
-		std::cout << "after setsize: resi = " << *result[i] << std::endl;
+//		std::cout << "after setsize: resi = " << *result[i] << std::endl;
 	}
   }
 
@@ -234,17 +234,17 @@ public:
 //    m_kernels.evaluateOnGrid(*constTestGeomData, *constTrialGeomData,kernelValues);
     m_kernels.evaluateOnGridPeter(str,*constTestGeomData, *constTrialGeomData,kernelValues);
 	if ((elementIndexB == 0) && (indexA == 0)) {
-		std::cout << "before evTenQuadRule = " << *result[indexA] << std::endl;
+//		std::cout << "before evTenQuadRule = " << *result[indexA] << std::endl;
 //		std::cout << testValues << " = test, trial= " << trialValues << std::endl;
-		std::cout << testValues[0].extent(1) << " = testValExtent, trialValextent = " << trialValues[0].extent(1) << std::endl;
-		std::cout << m_testQuadWeights.size() << " = testQuadSize, trialQuadSize = " << m_trialQuadWeights.size() << std::endl;
+//		std::cout << testValues[0].extent(1) << " = testValExtent, trialValextent = " << trialValues[0].extent(1) << std::endl;
+//		std::cout << m_testQuadWeights.size() << " = testQuadSize, trialQuadSize = " << m_trialQuadWeights.size() << std::endl;
 	}
     m_integral.evaluateWithTensorQuadratureRule(
         *constTestGeomData, *constTrialGeomData, testValues, trialValues,
         kernelValues, m_testQuadWeights, m_trialQuadWeights, *result[indexA]);
 //    m_integral.evaluateWithTensorQuadratureRulePeter(str, *constTestGeomData, *constTrialGeomData, testValues, trialValues, kernelValues, m_testQuadWeights, m_trialQuadWeights, *result[indexA]);
 	if ((elementIndexB == 0) && (indexA == 0)) {
-		std::cout << "after evTenQuadRule = " << *result[indexA] << std::endl;
+//		std::cout << "after evTenQuadRule = " << *result[indexA] << std::endl;
 	}
   }
 

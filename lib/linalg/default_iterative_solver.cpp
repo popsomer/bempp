@@ -89,11 +89,11 @@ struct DefaultIterativeSolver<BasisFunctionType, ResultType>::Impl {
         throw std::invalid_argument("DefaultIterativeSolver::Impl::Impl(): "
                                     "non-square system provided");
 if (str.empty() ) {
-std::cout << "defItSolv:Impl have  TEST_CONNV_IN_DUSL_TO+RLAGE" << std::endl;
+//std::cout << "defItSolv:Impl have  TEST_CONNV_IN_DUSL_TO+RLAGE" << std::endl;
       solverWrapper.reset(new BelosSolverWrapper<ResultType>(
           Teuchos::rcp<const Thyra::LinearOpBase<ResultType>>(
               boundaryOp.weakForm())));
-std::cout << "apsodifj\n";
+//std::cout << "apsodifj\n";
 }
 else{
 //std::cout << "defItSolv:Impl doing weakFormPeter" << std::endl;
@@ -110,7 +110,7 @@ else{
         throw std::invalid_argument("DefaultIterativeSolver::Impl::Impl(): "
                                     "non-square system provided");
 
-std::cout << "defItSolv:Impl have TEST_CONNV_IN_RANGE" << std::endl;
+//std::cout << "defItSolv:Impl have TEST_CONNV_IN_RANGE" << std::endl;
       BoundaryOp id =
           identityOperator(boundaryOp.context(), boundaryOp.range(),
                            boundaryOp.range(), boundaryOp.dualToRange());
@@ -119,7 +119,7 @@ std::cout << "defItSolv:Impl have TEST_CONNV_IN_RANGE" << std::endl;
       shared_ptr<DiscreteBoundaryOperator<ResultType>> totalBoundaryOp =
           boost::make_shared<DiscreteBoundaryOperatorComposition<ResultType>>(
               boost::get<BoundaryOp>(pinvId).weakForm(), boundaryOp.weakForm());
-std::cout << "defItSolv:Impl after weakForm and before totalBoundOp" << std::endl;
+//std::cout << "defItSolv:Impl after weakForm and before totalBoundOp" << std::endl;
       solverWrapper.reset(new BelosSolverWrapper<ResultType>(
           Teuchos::rcp<const Thyra::LinearOpBase<ResultType>>(
               totalBoundaryOp)));
@@ -137,7 +137,7 @@ std::cout << "defItSolv:Impl after weakForm and before totalBoundOp" << std::end
     typedef Solver<BasisFunctionType, ResultType> Solver_;
     const BoundaryOp &boundaryOp = boost::get<BoundaryOp>(op);
 
-std::cout << "defItSolv:Impl BlockedBOundaryOpeorean" << std::endl;
+//std::cout << "defItSolv:Impl BlockedBOundaryOpeorean" << std::endl;
     if (mode == ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE) {
       if (boundaryOp.totalGlobalDofCountInDomains() !=
           boundaryOp.totalGlobalDofCountInDualsToRanges())
@@ -185,7 +185,7 @@ std::cout << "defItSolv:Impl BlockedBOundaryOpeorean" << std::endl;
       throw std::invalid_argument(
           "DefaultIterativeSolver::DefaultIterativeSolver(): "
           "invalid convergence test mode");
-	std::cout << "type of blockecboundop = " << typeid(boundaryOp).name() << "type of bootst.sget.blockecboundop = " << typeid(op).name() << "type of weakop = " << typeid(boundaryOp.weakForm()).name() <<std::endl;
+//	std::cout << "type of blockecboundop = " << typeid(boundaryOp).name() << "type of bootst.sget.blockecboundop = " << typeid(op).name() << "type of weakop = " << typeid(boundaryOp.weakForm()).name() <<std::endl;
   }
 
   boost::variant<BoundaryOperator<BasisFunctionType, ResultType>,
@@ -218,7 +218,9 @@ template <typename BasisFunctionType, typename ResultType>
 DefaultIterativeSolver<BasisFunctionType, ResultType>::DefaultIterativeSolver(
     const BlockedBoundaryOperator<BasisFunctionType, ResultType> &boundaryOp,
     ConvergenceTestMode::Mode mode)
-    : m_impl(new Impl(boundaryOp, mode)) {std::cout << "hellosaasdfsadfd" << std::endl;}
+    : m_impl(new Impl(boundaryOp, mode)) {
+//std::cout << "hellosaasdfsadfd" << std::endl;
+}
 
 template <typename BasisFunctionType, typename ResultType>
 DefaultIterativeSolver<BasisFunctionType,
@@ -243,7 +245,7 @@ void DefaultIterativeSolver<BasisFunctionType, ResultType>::initializeSolver(
     const Preconditioner<ResultType> &preconditioner) {
   m_impl->solverWrapper->setPreconditioner(preconditioner.get());
   m_impl->solverWrapper->initializeSolver(paramList);
-std::cout << "defItSolv:initsolv2" << std::endl;
+//std::cout << "defItSolv:initsolv2" << std::endl;
 }
 
 

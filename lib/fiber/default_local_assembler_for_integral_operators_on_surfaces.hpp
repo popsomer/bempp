@@ -143,7 +143,7 @@ public:
                            std::vector<arma::Mat<ResultType>> &result,
                            CoordinateType nominalDistance) {
 	if (elementIndexB == 0) {
-		std::cout << "djfoij " << str << std::endl;
+//		std::cout << "djfoij " << str << std::endl;
 	}
 	typedef Shapeset<BasisFunctionType> Shapeset;
 
@@ -169,7 +169,7 @@ public:
     const arma::Mat<ResultType> *cachedLocalWeakForm = 0;
     if (callVariant == TEST_TRIAL) {
 	if ((elementIndexB == 0) && (i==0)){
-		std::cout << "TestTrial" << &m_cache << std::endl;
+//		std::cout << "TestTrial" << &m_cache << std::endl;
 	}
       const int testElementIndex = elementIndicesA[i];
       const int trialElementIndex = elementIndexB;
@@ -180,7 +180,7 @@ public:
         }
     } else {
 	if ((elementIndexB == 0) && (i==0)){
-		std::cout << "No TestTrial" << std::endl;
+//		std::cout << "No TestTrial" << std::endl;
 	}
       const int testElementIndex = elementIndexB;
       const int trialElementIndex = elementIndicesA[i];
@@ -217,7 +217,7 @@ public:
 */
 	if ((elementIndexB == 0) && (i==0)){
 //		std::cout << "No matrix found in cache" << std::endl;
-		std::cout << "Forced recomputation of cached matrix by commenting if(cache..)" << std::endl;
+//		std::cout << "Forced recomputation of cached matrix by commenting if(cache..)" << std::endl;
 	}
       const Integrator *integrator =
           callVariant == TEST_TRIAL
@@ -252,7 +252,7 @@ public:
     const Integrator &activeIntegrator = *it->first;
 
 	if ((elementIndexB == 0) && (it == uniqueQuadVariants.begin()) ) {
-		std::cout << "type actInt = " << typeid(activeIntegrator).name() << std::endl;
+//		std::cout << "type actInt = " << typeid(activeIntegrator).name() << std::endl;
 //		const NonseparableNumericalTestKernelTrialIntegrator<BasisFunctionType, KernelType, ResultType, GeometryFactory> bla = dynamic_cast<const NonseparableNumericalTestKernelTrialIntegrator<BasisFunctionType, KernelType, ResultType, GeometryFactory> & > (activeIntegrator);
 	}
     const Shapeset &activeBasisA = *it->second;
@@ -268,7 +268,7 @@ public:
       }
 
 	if ((elementIndexB == 0) && (it==uniqueQuadVariants.begin() )){
-		std::cout << "not activeQuadvariant=cached, actLocRes = "<< *activeLocalResults[0] << std::endl;
+//		std::cout << "not activeQuadvariant=cached, actLocRes = "<< *activeLocalResults[0] << std::endl;
 	}
     // Integrate!
 //    activeIntegrator.integrate(callVariant, activeElementIndicesA,
@@ -277,7 +277,7 @@ public:
     activeIntegrator.integratePeter(str,callVariant, activeElementIndicesA, elementIndexB, activeBasisA, basisB, localDofIndexB, activeLocalResults);
 
 	if ((elementIndexB == 0) && (it==uniqueQuadVariants.begin() )){
-		std::cout << "result actLocRes = "<< *activeLocalResults[0] << std::endl;
+//		std::cout << "result actLocRes = "<< *activeLocalResults[0] << std::endl;
 	}
     // // Distribute the just calculated integrals into the result array
     // // that will be returned to caller

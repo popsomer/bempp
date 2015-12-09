@@ -4,7 +4,7 @@
 // gedit /opt/fb/bempp/lib/assembly/dense_global_assembler.hpp
 // gedit /opt/fb/bempp/build/external/include/Trilinos/Thyra_BelosLinearOpWithSolve_def.hpp
 
-// cd  /opt/fb/bempp/build/examples/cpp/
+// cd /opt/fb/bempp/build/examples/cpp/
 // pushd ../..; make tutorial_dirichlet -j6; popd
 // ulimit -v 6000000
 // ./tutorial_dirichlet >res 2>testgeom
@@ -63,6 +63,7 @@
 
 
 #include <math.h> //Peter
+#include "../../build/external/include/Trilinos/Thyra_BelosLinearOpWithSolve_def.hpp"//Peter
 
 using namespace Bempp;
 
@@ -160,10 +161,16 @@ arma::Mat<BFT> percs = arma::zeros(kl,Tl);
 
 arma::Mat<BFT> errBCavm = arma::zeros(kl,1+Tl);
 arma::Mat<BFT> errSol = arma::zeros(kl,Tl);
-
 arma::Mat<BFT> times = arma::zeros(kl,1+Tl);
 
+arma::Mat<RT> wm;
+BoundaryOperator<BFT, RT> slpOp;
+//DefaultIterativeSolver<BFT, RT> solver;
+Solution<BFT, RT> solution;
+//GridFunction<BFT, RT>& solFun;
+
 for(int ki = 0; ki < kl; ki++) {
+//for(int ki = 0; ki < 1; ki++) {
 
 	tbb::tick_count start = tbb::tick_count::now();
 
@@ -184,26 +191,26 @@ for(int ki = 0; ki < kl; ki++) {
 	NumericalQuadratureStrategy<BFT, RT> quadStrategy(accuracyOptions);
 	Context<BFT, RT> context(make_shared_from_ref(quadStrategy), assemblyOptions);
 
-	BoundaryOperator<BFT, RT> slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
+	slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
 
-	arma::Mat<RT> wm = slpOp.weakForm()->asMatrix();
+	wm = slpOp.weakForm()->asMatrix();
 
-	std::cout << "Assemble rhs" << std::endl;
+//	std::cout << "Assemble rhs" << std::endl;
 	GridFunction<BFT, RT> rhs(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), // is this the right choice?
             surfaceNormalIndependentFunction(MyFunctor()));
 
 	// Initialize the solver
 #ifdef WITH_TRILINOS
-	std::cout << "Initialize solver TRILINOS" << std::endl;
-	DefaultIterativeSolver<BFT, RT> solver(slpOp,ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
-	solver.initializeSolver(defaultGmresParameterList(1e-5));
+//	std::cout << "Initialize solver TRILINOS" << std::endl;
+	DefaultIterativeSolver<BFT, RT>* solver = new DefaultIterativeSolver<BFT, RT>(slpOp,ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
+	solver->initializeSolver(defaultGmresParameterList(1e-5));
 
 	std::cout << "TRILINOS" << std::endl;
-	Solution<BFT, RT> solution = solver.solve(rhs);
+	solution = solver->solve(rhs);
 #else
-	std::cout << "Initialize solver without trilinos" << std::endl;
-	DefaultDirectSolver<BFT, RT> solver(slp, rhs);
-	solver.solve();
+//	std::cout << "Initialize solver without trilinos" << std::endl;
+//	DefaultDirectSolver<BFT, RT> solver(slp, rhs);
+//	solver.solve();
 #endif
 	tbb::tick_count end = tbb::tick_count::now();
         times(ki,0) = (end - start).seconds();
@@ -211,8 +218,9 @@ for(int ki = 0; ki < kl; ki++) {
 std::cout << "ended std calc\n";
 	conds(ki,0) = arma::cond(wm);
 
-	const GridFunction<BFT, RT>& solFunOr = solution.gridFunction();
-	arma::Col<RT> solutionCoefficientsOr = solFunOr.coefficients(); // Same as armaSolution from def_iter_solver.cpp
+//	const GridFunction<BFT, RT>& solFunOr = solution.gridFunction();
+	GridFunction<BFT, RT> solFun = solution.gridFunction();
+	arma::Col<RT> solutionCoefficientsOr = solFun.coefficients(); // Same as armaSolution from def_iter_solver.cpp
 
 //	std::ifstream input("/home/peter/Desktop/Doctoraat/GreenBempp/simpsonRes/rhsV");
 //	arma::Col<RT> rhsVe{std::istream_iterator<RT>(input), std::istream_iterator<RT>() };
@@ -221,7 +229,7 @@ std::cout << "ended std calc\n";
 
 	Helmholtz3dSingleLayerPotentialOperator<BFT> slPot (waveNumber);
 	EvaluationOptions evalOptions = EvaluationOptions();
-	arma::Mat<RT> potResOr = slPot.evaluateAtPoints(solFunOr, points, quadStrategy, evalOptions);
+	arma::Mat<RT> potResOr = slPot.evaluateAtPoints(solFun, points, quadStrategy, evalOptions);
 	arma::Mat<RT> diri = potResOr;
 	MyFunctor tmp = MyFunctor();
 	for (int i = 0; i < avm*avm; ++i) {
@@ -238,15 +246,17 @@ std::cout << "ended std calc\n";
 
 
 // -------------- Compression -----------------------------------------
-   for(int ti = 0; ti < Ts.size(); ti ++) {
+   for(int ti = 0; ti < Tl; ti ++) {
+	time_t now = time(0);
+	std::cerr << "-----------------------------------\n" << ki << " = ki, ti = " << ti << ", perc = " << (0.0+ki*Tl + ti)/(0.0+Tl*kl) << " " << asctime(localtime(&now) ); // << "\n ----------------------------- \n";
 
-	std::cerr << "-----------------------------------\n" << ki << " = ki, ti = " << ti << ", perc = " << (0.0+ki*Ts.size() + ti)/(0.0+Ts.size()*ks.size()) << " " << system_clock::now() << "\n ----------------------------- \n";
+//	std::cerr << "-----------------------------------\n" << ki << " = ki, ti = " << ti << ", perc = " << (0.0+ki*Ts.size() + ti)/(0.0+Ts.size()*ks.size()) << " " << asctime(localtime(&now) ) << "\n ----------------------------- \n";
 
 	std::string str = "f " + std::to_string(Ts(ti));
 	start = tbb::tick_count::now();
 
-	BoundaryOperator<BFT, RT> slpOpCompr = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
-	boost::shared_ptr<const Bempp::AbstractBoundaryOperator<double, std::complex<double> > > asdf = slpOpCompr.abstractOperator();
+	slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
+	boost::shared_ptr<const Bempp::AbstractBoundaryOperator<double, std::complex<double> > > asdf = slpOp.abstractOperator();
 	const GeneralElementarySingularIntegralOperator<BFT,RT,RT> bla = dynamic_cast<const GeneralElementarySingularIntegralOperator<BFT,RT,RT>& > (*asdf);
 
 	arma::Mat<RT> wmDummy(3,3);
@@ -254,23 +264,25 @@ std::cout << "ended std calc\n";
 	std::vector<RT> rhsVeDummy;
 	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weakCompr = bla.weakFormPeter(str,context,&solutionCoefficientsOr, &rhsVeDummy, &wmDummy);
 	
-	DefaultIterativeSolver<BFT, RT> solverCompr(weakCompr, str, slpOpCompr, ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
-	solverCompr.initializeSolver(defaultGmresParameterList(1e-5));
-	Solution<BFT, RT> solutionCompr = solverCompr.solve(rhs);
+//	solver.~DefaultIterativeSolver<BFT, RT>(weakCompr, str, slpOp, ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE)();
+//	new (solver) DefaultIterativeSolver<BFT, RT>(weakCompr, str, slpOp, ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
+	solver = new DefaultIterativeSolver<BFT, RT>(weakCompr, str, slpOp, ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
+	solver->initializeSolver(defaultGmresParameterList(1e-5));
+	solution = solver->solve(rhs);
 
-	const GridFunction<BFT, RT>& solFunCompr = solutionCompr.gridFunction();
-	arma::Col<RT> solutionCoefficientsCompr = solFunCompr.coefficients();
+	solFun = solution.gridFunction();
+	arma::Col<RT> solutionCoefficientsCompr = solFun.coefficients();
 
 	end = tbb::tick_count::now();
         times(ki,1+ti) = (end - start).seconds();
 
 // ----------------   Validation of compressed  ------------------------------------
 
-	arma::Mat<RT> wmC = weakCompr->asMatrix();
-	conds(ki,1+ti) = arma::cond(wmC);
-	percs(ki,ti) = arma::accu(wmC != 0)/(0.0+wmC.n_elem);
+	wm = weakCompr->asMatrix();
+	conds(ki,1+ti) = arma::cond(wm);
+	percs(ki,ti) = arma::accu(wm != 0)/(0.0+wm.n_elem);
 	errSol(ki,ti) = arma::norm(solutionCoefficientsCompr -solutionCoefficientsOr)/arma::norm(solutionCoefficientsOr);
-	arma::Mat<RT> potResCompr = slPot.evaluateAtPoints(solFunCompr, points, quadStrategy, evalOptions);
+	arma::Mat<RT> potResCompr = slPot.evaluateAtPoints(solFun, points, quadStrategy, evalOptions);
 	arma::Mat<RT> errBCCompr = potResCompr - diri;
 	errBCavm(ki,1+ti) = mean(mean(abs(errBCCompr) ));
    }
@@ -288,8 +300,9 @@ std::cout << real(ks) << " = ks, Ts = " << Ts << std::endl;
 std::cout << percs << " = perc, conds = " << conds << std::endl;
 std::cout << times << " = times, " << errBCavm << " = errBCavm, errSol = " << errSol << std::endl;
 
-
 }
+
+
 int main(int argc, char* argv[])
 {
 fixedWindows();
@@ -377,11 +390,32 @@ for(int sim = 0; sim < 1; sim++) {
 
 	std::cout << "ended std calc\n";
 
+
+
+
 // ------------------------ Validation of original -----------------------
 //	conds(sim,0) = arma::cond(wm);
 
 	const GridFunction<BFT, RT>& solFunOr = solution.gridFunction();
 	arma::Col<RT> solutionCoefficientsOr = solFunOr.coefficients(); // Same as armaSolution from def_iter_solver.cpp
+
+
+	std::ifstream inputt("rhs");
+	std::vector<RT> rhsVee{std::istream_iterator<RT>(inputt), std::istream_iterator<RT>() };
+        inputt.close();
+CT bnorr = 0.0;
+CT berrr = 0.0;
+for (int i=0; i < rhsVee.size(); ++i) {
+	RT err = -rhsVee[i];
+	for (int j=0; j < rhsVee.size(); ++j) {
+		err += wm[i,j]*solutionCoefficientsOr[j];
+	}
+	bnorr += std::pow(std::abs(rhsVee[i]),2.0);
+	berrr += std::pow(std::abs(err),2.0);
+}
+std::cout << "\n\n" << std::sqrt(berrr) << " =err,L2 nor= " << std::sqrt(bnorr) << "\n";
+
+
 
 	Helmholtz3dSingleLayerPotentialOperator<BFT> slPot (waveNumber);
 	EvaluationOptions evalOptions = EvaluationOptions();
@@ -433,6 +467,7 @@ GridFunction<BFT, RT> projSol(make_shared_from_ref(context), make_shared_from_re
 	norV = std::sqrt(norV);
 std::cout << projVe[0] << "asdf" << solutionCoefficientsOr[0] << "oiuh" << rhsVe[0] << "asdf" << projVe.size() << "\n";
 	std::cout << errBCavm(sim,0) << "stopping" << diff << "apsoijfd" << nor << " , norV = " << norV << "\n";
+return 0;
 //break;
 //continue;
 
@@ -478,8 +513,9 @@ for (int i=0; i < oneRow.size(); ++i) {
 //	RT err = rhsVe[i];
 	RT err = -rhsVe[i];
 	for (int j=0; j < oneRow.size(); ++j) {
-		err += wm[i,j]*projVe[j];
+//		err += wm[i,j]*projVe[j];
 //		err += wm[j,i]*solutionCoefficientsOr[j];
+		err += wm[i,j]*solutionCoefficientsOr[j];
 //		err += wm[j,i]*projVe[j];
 	}
 //	std::cout << " " << err;
@@ -522,8 +558,8 @@ myfile.close();
 std::cout << real(ks) << " = ks " << std::endl;
 std::cout << percs << " = perc, conds = " << conds << std::endl;
 std::cout << times << " = times, " << errBCavm << " = errBCavm, errSol = " << errSol << std::endl;
-//correlations();
 */
+//correlations();
 }
 //void correlations() {
 // add correlation code here later
