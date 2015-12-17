@@ -60,121 +60,90 @@ namespace Bempp
 namespace
 {
 
-// Body of parallel loop
+// Body of parallel loop for matrix (without rois)
 template <typename BasisFunctionType, typename ResultType>
 class DWFALBPeter
 {
 public:
     typedef tbb::spin_mutex MutexType;
 	typedef typename ScalarTraits<ResultType>::RealType CoordinateType;
-    DWFALBPeter(std::string strIn, const std::vector<int>& testIndices, const std::vector<std::vector<GlobalDofIndex> >& testGlobalDofs, const std::vector<std::vector<GlobalDofIndex> >& trialGlobalDofs, const std::vector<std::vector<BasisFunctionType> >& testLocalDofWeights, const std::vector<std::vector<BasisFunctionType> >& trialLocalDofWeights, Fiber::LocalAssemblerForIntegralOperators<ResultType>& assembler, arma::Mat<ResultType>& result, MutexType& mutex, arma::Col<ResultType> * solV, std::vector<ResultType> * rhsV, arma::Mat<ResultType> * wm, std::vector< Point3D<CoordinateType> > testPos, std::vector< Point3D<CoordinateType> > trialPos, arma::Mat<ResultType>& rois ) : 
-        str(strIn), m_testIndices(testIndices), m_testGlobalDofs(testGlobalDofs), m_trialGlobalDofs(trialGlobalDofs), m_testLocalDofWeights(testLocalDofWeights), m_trialLocalDofWeights(trialLocalDofWeights), m_assembler(assembler), m_result(result), m_mutex(mutex), m_solV(solV), m_rhsV(rhsV), m_wm(wm), m_testPos(testPos), m_trialPos(trialPos), m_rois(rois) { }  
+    DWFALBPeter(std::string strIn, const std::vector<int>& testIndices, const std::vector<std::vector<GlobalDofIndex> >& testGlobalDofs, const std::vector<std::vector<GlobalDofIndex> >& trialGlobalDofs, const std::vector<std::vector<BasisFunctionType> >& testLocalDofWeights, const std::vector<std::vector<BasisFunctionType> >& trialLocalDofWeights, Fiber::LocalAssemblerForIntegralOperators<ResultType>& assembler, arma::Mat<ResultType>& result, MutexType& mutex, std::vector< Point3D<CoordinateType> > testPos, std::vector< Point3D<CoordinateType> > trialPos, arma::Mat<ResultType>& rois, ResultType globMax, arma::Mat<ResultType>& rowMax) : 
+        str(strIn), m_testIndices(testIndices), m_testGlobalDofs(testGlobalDofs), m_trialGlobalDofs(trialGlobalDofs), m_testLocalDofWeights(testLocalDofWeights), m_trialLocalDofWeights(trialLocalDofWeights), m_assembler(assembler), m_result(result), m_mutex(mutex), m_testPos(testPos), m_trialPos(trialPos), m_rois(rois), m_globMax(globMax), m_rowMax(rowMax) { }  
 
 
     void operator() (const tbb::blocked_range<size_t>& r) const {
-        const int elementCount = m_testIndices.size();
-        std::vector<arma::Mat<ResultType> > localResult;
-	arma::Col<ResultType> solV = *m_solV;
-	arma::Mat<ResultType> wm = *m_wm;
-std::stringstream toPrint;
-toPrint << str << " aposdjf " << r.begin() << " asf " << r.end() << "\n";
-//std::cout << toPrint.str();
-//std::cout << str << " aposdjf " << r.begin() << " asf " << r.end() << "\n";
-        for (size_t trialIndex = r.begin(); trialIndex != r.end(); ++trialIndex) {
-            // Evaluate integrals over pairs of the current trial element and all the test elements
-//            m_assembler.evaluateLocalWeakForms(TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);	
+	const int elementCount = m_testIndices.size();
+	std::vector<arma::Mat<ResultType> > localResult;
+	CoordinateType percDecay = 0.8;
+	CoordinateType thrp = 0.1; //0.04;
+	for (size_t trialIndex = r.begin(); trialIndex != r.end(); ++trialIndex) {
+	    // Evaluate integrals over pairs of the current trial element and all the test elements	
             m_assembler.evaluateLocalWeakFormsPeter(str,TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);	
             const int trialDofCount = m_trialGlobalDofs[trialIndex].size();
+	    CoordinateType maxNow = std::abs(thrp*m_globMax);
+	    if(str.at(2) == 'l') {
+		maxNow = std::abs(thrp*m_rowMax(trialIndex,0));
+	    }
             // Global assembly
-            {
+	    {
                 MutexType::scoped_lock lock(m_mutex);
-		CoordinateType a = 0.1;
-		CoordinateType b = 0.3;
-		CoordinateType percDecay = 0.8;
-		ResultType maxi = 0.0;
-		int idxMax = -1;	
-//	int method = 1; // 1=fixedWindows, 4 = correlations, ...
-	if (str.at(0) == 'c') {
-                // Loop over test indices
-                for (int testIndex = 0; testIndex < elementCount; ++testIndex) {
-// Correlations:
-			for(int windIdx=0; windIdx < elementCount; ++windIdx) {
-				CoordinateType dist = std::sqrt(std::pow(m_testPos[testIndex].x-m_trialPos[windIdx].x, 2.0) + std::pow(m_testPos[testIndex].y-m_trialPos[windIdx].y, 2.0) + std::pow(m_testPos[testIndex].z-m_trialPos[windIdx].z, 2.0) );
-				ResultType wind = 0;
-				if(dist < a) {
-					wind = 1;
-				}
-				else if (dist < b) {
-					wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
-				}
-				m_rois(testIndex, trialIndex) += wm(windIdx, trialIndex)*solV(windIdx)*wind;
-
-if ( ( (trialIndex == 0) & (testIndex == 1) ) | ( (trialIndex == 1) & (testIndex == 1) )| ( (trialIndex == 1) & (testIndex == 0) ) ) {
-	std::stringstream s;
-	s << trialIndex+testIndex << " " << wind << " " << windIdx << " " << dist << " / " << m_result(testIndex, trialIndex) << std::endl;
-}
-			} // end comput corr
-			if (std::abs(m_rois(testIndex,trialIndex)) > std::abs(maxi) ) {
-				maxi = m_rois(testIndex,trialIndex);
-				idxMax = testIndex;
+		for (int testIndex = 0; testIndex < elementCount; ++testIndex) {
+//		    ResultType wind = 0.0;
+		    CoordinateType wind = 0.0;
+		    if( (str.at(0) == 'n') | (str.at(0) == 't') | (str.at(0) == 'k') ) {
+			wind = 1.0;
+		    } else if (str.at(0) == 'f') {
+			std::string::size_type sz; // alias of size_t
+			CoordinateType b = std::stof(str.substr(4),&sz);		
+			CoordinateType a = (1-percDecay)*b;
+			CoordinateType dist = std::sqrt( std::pow(m_testPos[testIndex].y-m_trialPos[trialIndex].y, 2.0) + std::pow(m_testPos[testIndex].z-m_trialPos[trialIndex].z, 2.0) ); // Distance without x to include stationary points (but also shadow when coll in illuminated...)
+			if (dist <= a) {
+			   wind = 1;
 			}
-                } // All correlations computed in rois, make result
-	}
-	ResultType thrp = 0.04;
-	maxi = maxi*thrp;
-	for (int testIndex = 0; testIndex < elementCount; ++testIndex) {
-		// Find nearest
-		CoordinateType minDist = 1e9;
-		ResultType wind = 0.0;
-	if (str.at(0) == 'n') {
-		wind = 1.0;
-	}
-	else if (str.at(0) == 't') {
-		wind = 1.0;
-	}
-	else if (str.at(0) == 'f') {
-//		a = 0.6;
-//		b = 1.1;
-//		a = 0.3;
-//		b = 0.5;
-		percDecay = 0.8;
-		std::string::size_type sz;     // alias of size_t
-//		b = std::stof(str,&sz);		
-//std::cout << str.substr(2) << std::endl;
-		b = std::stof(str.substr(2),&sz);		
-		a = (1-percDecay)*b;
-//		if ((trialIndex == 0) && (testIndex == 0)) {
-//			std::cout << b << "=b, a=" << a << "sadf" << std::stof("-1.9",&sz) << std::endl;
-//		}
-		CoordinateType dist = std::sqrt( std::pow(m_testPos[testIndex].y-m_trialPos[trialIndex].y, 2.0) + std::pow(m_testPos[testIndex].z-m_trialPos[trialIndex].z, 2.0) );
-		// Distance without x to include stationary points (but also shadow when coll in illuminated...)
-//	if ((m_testPos[testIndex].x < 0) || (m_trialPos[trialIndex].x > 0)) {
-		if (dist <= a) {
-			wind = 1;
-//			std::cout << "Window 1 for fixedWindows with x=" << m_testPos[testIndex].x << std::endl;
-		}
-		else if (dist <= b) {
-			wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
-		}
-		wind = 1.0; // Multiply by window in kernel
-//	}
-	}
-	else if (str.at(0) == 'c') {
-		for (int nei = 0; nei < elementCount; ++nei) {
-			CoordinateType dist = std::sqrt(std::pow(m_testPos[testIndex].x-m_trialPos[nei].x, 2.0) + std::pow(m_testPos[testIndex].y-m_trialPos[nei].y, 2.0) + std::pow(m_testPos[testIndex].z-m_trialPos[nei].z, 2.0) );
-			if ((std::abs(m_rois(nei,trialIndex)) >= std::abs(maxi) ) && (dist < minDist) ) {
+			else if (dist <= b) {
+			    wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
+			}
+//		wind = 1.0; // Multiply by window in kernel-> str.at(1) == 'k'
+		    } else if (str.at(0) == 'd') { // Correlations through physical distance
+			std::string::size_type sz; // alias of size_t
+			CoordinateType b = std::stof(str.substr(4),&sz);
+			if( (trialIndex == 0) && (testIndex == 0) ) {
+			    std::cout << maxNow << "=maxNow, globMax = " << m_globMax << ", rowMax = " << m_rowMax(trialIndex,0) << ", b=" << b << "\n";
+			}
+			CoordinateType minDist = 1e9; // Find nearest
+			//CoordinateType b = 0.01; // and a = 0
+			for (int nei = 0; nei < elementCount; ++nei) {
+			    CoordinateType dist = std::sqrt(std::pow(m_testPos[testIndex].x-m_trialPos[nei].x, 2.0) + std::pow(m_testPos[testIndex].y-m_trialPos[nei].y, 2.0) + std::pow(m_testPos[testIndex].z-m_trialPos[nei].z, 2.0) );
+			    if ((std::abs(m_rois(nei,trialIndex)) >= std::abs(maxNow) ) && (dist < minDist) ) {
 				minDist = dist;
-				if (dist <= a) {
-					wind = 1;
+				if (dist < 10.0^(-13) ) {
+					wind = 1; // testIndex is itself above threshold
 				}
 				else if (dist <= b) {
-					wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
+					wind = exp(2.0*exp(-b/dist)/(dist/b -1.0));
 				}
+			    }
 			}
-		}
-	}
-		const int testDofCount = m_testGlobalDofs[testIndex].size();
-		for (int trialDof = 0; trialDof < trialDofCount; ++trialDof) {
+			CoordinateType dist = std::sqrt(std::pow(m_testPos[testIndex].x-m_trialPos[trialIndex].x, 2.0) + std::pow(m_testPos[testIndex].y-m_trialPos[trialIndex].y, 2.0) + std::pow(m_testPos[testIndex].z-m_trialPos[trialIndex].z, 2.0) );
+			if (dist < b) { // Enforce the Green singularity. Formula below is at most 1: when dist == 0
+			    wind = std::max<CoordinateType>(wind,exp(2.0*exp(-b/dist)/(dist/b -1.0)));
+			}			
+		     } else if (str.at(0) == 'c') { // Correlations through distance to correlation threshold: might give patches with window not identically one inside but faster
+			CoordinateType dist = std::abs(maxNow/m_rois(testIndex,trialIndex));
+			CoordinateType b = 1.5*thrp;
+//			std::string::size_type sz; // alias of size_t
+//			CoordinateType b = std::stof(str.substr(4),&sz);
+//			b = b*thrp;
+			if(dist < thrp) {
+			   wind = 1;
+			} else if (dist < b) {
+		           wind = exp(2*exp(-(b-thrp)/(dist-thrp) )/((dist-thrp)/(b-thrp) -1));
+			}
+		    } else {
+			throw 20; //error("wrong string");
+		    }
+		    const int testDofCount = m_testGlobalDofs[testIndex].size();
+		    for (int trialDof = 0; trialDof < trialDofCount; ++trialDof) {
                         int trialGlobalDof = m_trialGlobalDofs[trialIndex][trialDof];
                         if (trialGlobalDof < 0)
                             continue;
@@ -186,11 +155,11 @@ if ( ( (trialIndex == 0) & (testIndex == 1) ) | ( (trialIndex == 1) & (testIndex
                             assert(std::abs(m_trialLocalDofWeights[trialIndex][trialDof]) > 0.);
                             m_result(testGlobalDof, trialGlobalDof) += conj(m_testLocalDofWeights[testIndex][testDof]) * m_trialLocalDofWeights[trialIndex][trialDof] *localResult[testIndex](testDof, trialDof)*wind;
 			}
-		}
+		    }
+		} // end loop testIndex
+	    }
 	}
-            }
-        }
-    }
+    } // end operator()
 private:
     std::string str;
     const std::vector<int>& m_testIndices;
@@ -206,12 +175,63 @@ private:
     arma::Mat<ResultType>& m_rois;
     // mutex must be mutable because we need to lock and unlock it
     MutexType& m_mutex;
-	arma::Col<ResultType> * m_solV;
-	std::vector<ResultType> * m_rhsV;
-	arma::Mat<ResultType> * m_wm;
-	std::vector< Point3D<CoordinateType> > m_testPos;
-	std::vector< Point3D<CoordinateType> > m_trialPos;
+    std::vector< Point3D<CoordinateType> > m_testPos;
+    std::vector< Point3D<CoordinateType> > m_trialPos;
+    ResultType m_globMax;
+    arma::Mat<ResultType> m_rowMax;
 };
+
+
+
+// Body of parallel loop for computing rois
+template <typename BasisFunctionType, typename ResultType>
+class DWFALBRois
+{
+public:
+    typedef tbb::spin_mutex MutexType;
+	typedef typename ScalarTraits<ResultType>::RealType CoordinateType;
+    DWFALBRois(std::string strIn, const std::vector<int>& testIndices, const std::vector<std::vector<GlobalDofIndex> >& testGlobalDofs, const std::vector<std::vector<GlobalDofIndex> >& trialGlobalDofs, const std::vector<std::vector<BasisFunctionType> >& testLocalDofWeights, const std::vector<std::vector<BasisFunctionType> >& trialLocalDofWeights, Fiber::LocalAssemblerForIntegralOperators<ResultType>& assembler, MutexType& mutex, arma::Col<ResultType> * solV, arma::Mat<ResultType> * wm, std::vector< Point3D<CoordinateType> > testPos, std::vector< Point3D<CoordinateType> > trialPos, arma::Mat<ResultType>& rois) : //, ResultType globMax, arma:Mat<ResultType>& rowMax) : 
+        str(strIn), m_testIndices(testIndices), m_testGlobalDofs(testGlobalDofs), m_trialGlobalDofs(trialGlobalDofs), m_testLocalDofWeights(testLocalDofWeights), m_trialLocalDofWeights(trialLocalDofWeights), m_assembler(assembler), m_mutex(mutex), m_solV(solV), m_wm(wm), m_testPos(testPos), m_trialPos(trialPos), m_rois(rois) {} //, m_globMax(globMax), m_rowMax(rowMax) { }  
+
+    void operator() (const tbb::blocked_range<size_t>& r) const {
+        const int elementCount = m_testIndices.size();
+        std::vector<arma::Mat<ResultType> > localResult;
+	arma::Col<ResultType> solV = *m_solV;
+	arma::Mat<ResultType> wm = *m_wm;
+
+	CoordinateType a = 0.1;
+	CoordinateType b = 0.3;
+        for (size_t testIndex = r.begin(); testIndex != r.end(); ++testIndex) {
+            {
+                MutexType::scoped_lock lock(m_mutex);
+                for(int windIdx=0; windIdx < elementCount; ++windIdx) {
+		    CoordinateType dist = std::sqrt(std::pow(m_testPos[testIndex].x-m_trialPos[windIdx].x, 2.0) + std::pow(m_testPos[testIndex].y-m_trialPos[windIdx].y, 2.0) + std::pow(m_testPos[testIndex].z-m_trialPos[windIdx].z, 2.0) );
+		    if(dist > b) continue;
+		    CoordinateType wind = 1;
+		    if(dist > a) wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
+		    for (int trialIndex = 0; trialIndex < elementCount; ++trialIndex) {
+			m_rois(testIndex, trialIndex) += wm(windIdx, trialIndex)*solV(windIdx)*wind;
+		    }
+		}
+            }
+        }
+    }
+private:
+    std::string str;
+    const std::vector<int>& m_testIndices;
+    const std::vector<std::vector<GlobalDofIndex> >& m_testGlobalDofs;
+    const std::vector<std::vector<GlobalDofIndex> >& m_trialGlobalDofs;
+    const std::vector<std::vector<BasisFunctionType> >& m_testLocalDofWeights;
+    const std::vector<std::vector<BasisFunctionType> >& m_trialLocalDofWeights;
+    typename Fiber::LocalAssemblerForIntegralOperators<ResultType>& m_assembler;
+    arma::Mat<ResultType>& m_rois;
+    MutexType& m_mutex;
+    arma::Col<ResultType> * m_solV;
+    arma::Mat<ResultType> * m_wm;
+    std::vector< Point3D<CoordinateType> > m_testPos;
+    std::vector< Point3D<CoordinateType> > m_trialPos;
+};
+
 
 // Build a list of lists of global DOF indices corresponding to the local DOFs on each element of space.grid().
 template <typename BasisFunctionType> void ggdsPeter( const Space<BasisFunctionType>& space, std::vector<std::vector<GlobalDofIndex> >& globalDofs, std::vector<std::vector<BasisFunctionType> >& localDofWeights)
@@ -267,200 +287,128 @@ public:
 static std::unique_ptr<DiscreteBoundaryOperator<ResultType> >
 assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& testSpace, const Space<BasisFunctionType>& trialSpace, LocalAssemblerForIntegralOperators& assembler, const Context<BasisFunctionType, ResultType>& context, arma::Col<ResultType> * solV, std::vector<ResultType> * rhsV, arma::Mat<ResultType> * wm)
 {
-
-//std::cout << "entered wakFormPeter.\n";
-
 	std::vector< Point3D<CoordinateType> > testPos;
 	testSpace.getGlobalDofPositions(testPos);
 	std::vector< Point3D<CoordinateType> > trialPos;
 	trialSpace.getGlobalDofPositions(trialPos);
-//std::cout << "got pos.\n";
-	std::stringstream s;
-	for(int i =0; i < 2; ++i) { 
-//		std::cerr << i  << " : " << testPos[i].x << ", " << testPos[i].y << ", " << testPos[i].z << std::endl;
-	}
+
 	const AssemblyOptions& options = context.assemblyOptions();
-    // Global DOF indices corresponding to local DOFs on elements
-    std::vector<std::vector<GlobalDofIndex> > testGlobalDofs, trialGlobalDofs;
-    std::vector<std::vector<BasisFunctionType> > testLocalDofWeights,
-        trialLocalDofWeights;
-//std::cout << "starting ggs.\n";
-    ggdsPeter(testSpace, testGlobalDofs, testLocalDofWeights);
-//std::cout << "ended ggs.\n";
-    if (&testSpace == &trialSpace) {
-        trialGlobalDofs = testGlobalDofs;
-        trialLocalDofWeights = testLocalDofWeights;
-    } else
-        ggdsPeter(trialSpace, trialGlobalDofs, trialLocalDofWeights);
-    const int testElementCount = testGlobalDofs.size();
-    const int trialElementCount = trialGlobalDofs.size();
+	// Global DOF indices corresponding to local DOFs on elements
+	std::vector<std::vector<GlobalDofIndex> > testGlobalDofs, trialGlobalDofs;
+	std::vector<std::vector<BasisFunctionType> > testLocalDofWeights, trialLocalDofWeights;
+	ggdsPeter(testSpace, testGlobalDofs, testLocalDofWeights);
+	if (&testSpace == &trialSpace) {
+	    trialGlobalDofs = testGlobalDofs;
+            trialLocalDofWeights = testLocalDofWeights;
+	} else {ggdsPeter(trialSpace, trialGlobalDofs, trialLocalDofWeights);}
+	const int testElementCount = testGlobalDofs.size();
+	const int trialElementCount = trialGlobalDofs.size();
 
-    // Enumerate the test elements that contribute to at least one global DOF
-    std::vector<int> testIndices;
-    testIndices.reserve(testElementCount);
-    for (int testIndex = 0; testIndex < testElementCount; ++testIndex) {
-        const int testDofCount = testGlobalDofs[testIndex].size();
-        for (int testDof = 0; testDof < testDofCount; ++testDof) {
-            int testGlobalDof = testGlobalDofs[testIndex][testDof];
-            if (testGlobalDof >= 0) {
-                testIndices.push_back(testIndex);
-                break;
-            }
-        }
-    }
+	// Enumerate the test elements that contribute to at least one global DOF
+	std::vector<int> testIndices;
+	testIndices.reserve(testElementCount);
+	for (int testIndex = 0; testIndex < testElementCount; ++testIndex) {
+            const int testDofCount = testGlobalDofs[testIndex].size();
+            for (int testDof = 0; testDof < testDofCount; ++testDof) {
+		int testGlobalDof = testGlobalDofs[testIndex][testDof];
+		if (testGlobalDof >= 0) {
+		    testIndices.push_back(testIndex);
+		    break;
+		}
+	    }
+	}
+	int roisSiz = 2;
+//	size_t roisSiz = 2;
+	if ((str.at(0) == 'd') | (str.at(0) == 'c') ) {
+	    roisSiz = testSpace.globalDofCount();
+	} 
+	arma::Mat<ResultType> rois(roisSiz,roisSiz);
+	rois.fill(0.);
 
-//std::cout << "making operator matrix.\n";
-    arma::Mat<ResultType> result;//(testSpace.globalDofCount(), trialSpace.globalDofCount());
-//    result.fill(0.); // Create and fill the operator's matrix
-//std::cout << "created  operator matrix.\n";
+	typename DWFALBPeter<BasisFunctionType, ResultType>::MutexType mutex;
+	typename DWFALBRois<BasisFunctionType, ResultType>::MutexType mutexR;
+	const ParallelizationOptions& parallelOptions = options.parallelizationOptions();
+	int maxThreadCount = 1;
+	if (!parallelOptions.isOpenClEnabled()) {
+	   if (parallelOptions.maxThreadCount() == ParallelizationOptions::AUTO)
+		maxThreadCount = tbb::task_scheduler_init::automatic;
+	   else maxThreadCount = parallelOptions.maxThreadCount();
+	}
+	ResultType globMax = 0;
 
-//arma::Mat<ResultType> rois(testSpace.globalDofCount(), trialSpace.globalDofCount());
-//    arma::Mat<ResultType> rois;
-    int roisSiz = 2;
-    if (str.at(0) == 'c') {
-	roisSiz = testSpace.globalDofCount();
-//	rois(testSpace.globalDofCount(), trialSpace.globalDofCount());
-    } else {
-//	rois(2,2);
-   }
-   arma::Mat<ResultType> rois(roisSiz,roisSiz);
-   rois.fill(0.);
-
-//std::cout << "created rois.\n";
-    typedef DWFALBPeter<BasisFunctionType, ResultType> Body;
-    typename Body::MutexType mutex;
-    const ParallelizationOptions& parallelOptions = options.parallelizationOptions();
-    int maxThreadCount = 1;
-    if (!parallelOptions.isOpenClEnabled()) {
-        if (parallelOptions.maxThreadCount() == ParallelizationOptions::AUTO)
-            maxThreadCount = tbb::task_scheduler_init::automatic;
-        else
-            maxThreadCount = parallelOptions.maxThreadCount();
-    }
+	arma::Mat<ResultType> rowMax(roisSiz,1);
+//	std::vec<ResultType> rowMax(roisSiz, 0.0);
+//	arma::vec<ResultType>& rowMax(roisSiz);
+//	arma::Col<ResultType>& rowMax(roisSiz);
+//	arma::Col<ResultType>& rowMax = arma::zeros<arma::Col<ResultType>>(roisSiz);
+//	rowMax.fill(0.);
 	
-if (str.at(0) == 't') {
-arma::Mat<ResultType> oneRow(testSpace.globalDofCount(), 1);
-oneRow.fill(0.);
-std::vector<arma::Mat<ResultType> > localResult;
+	if ((str.at(0) == 'd') || (str.at(0) == 'c') ) {
+	    tbb::task_scheduler_init scheduler(maxThreadCount);
+	    std::cout << "Starting computing rois\n";
+	    {
+        	Fiber::SerialBlasRegion region;
+        	tbb::parallel_for(tbb::blocked_range<size_t>(0, trialElementCount), DWFALBRois<BasisFunctionType, ResultType>(str, testIndices, testGlobalDofs, trialGlobalDofs,testLocalDofWeights, trialLocalDofWeights, assembler, mutex, solV, wm, testPos, trialPos, rois));
+	    }
+	    std::cout << "Computing maxima\n"; 
+	    //rowMax = max(abs(rois),1);//For matrix X, return the extremum value for each column (dim=0), or each row (dim=1) 
+	    //globMax = max(abs(rowMax));
+	    rowMax.fill(0.0);
+	    for(int i = 0; i < roisSiz; i ++) { // Better to make this parallel as well
+		for(int j = 0; j < roisSiz; j ++) {
+		    if(abs(rois(i,j)) > abs(rowMax(i)) ) {
+			rowMax(i) = rois(i,j);
+			if(abs(rowMax(i)) > abs(globMax) ) {
+			    globMax = rowMax(i);
+			}
+		    }
+		}
+	    }
+	}
 
-std::string::size_type sz;
-size_t trialIndex = std::stof(str.substr(2),&sz);	
-const int elementCount = testIndices.size();
+	std::cout << rowMax(0) << "=rowmax(0), globMax = " << (abs(rois(0,0)) > abs(rowMax(0)) ) << ", rois(0,0) =" << rois(0,0) << "\n";
+	std::cout << abs(rowMax(0)) << "=a rowmax(0), log = " << globMax << ", a rois(0,0) =" << abs(rois(0,0)) << "\n";
+	if (str.at(0) != 't') {
+	    arma::Mat<ResultType> result(testSpace.globalDofCount(), trialSpace.globalDofCount());
+	    result.fill(0.);
+	    tbb::task_scheduler_init scheduler(maxThreadCount);
+	    std::cout << "Starting assembling system matrix\n";
+	    {
+        	Fiber::SerialBlasRegion region;
+        	tbb::parallel_for(tbb::blocked_range<size_t>(0, trialElementCount), DWFALBPeter<BasisFunctionType, ResultType>(str, testIndices, testGlobalDofs, trialGlobalDofs,testLocalDofWeights, trialLocalDofWeights, assembler, result, mutex, testPos, trialPos, rois, globMax, rowMax));
+	    }
+	    std::cout << "Ended assembling system matrix\n";
+	    return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(result));
+	}
+	arma::Mat<ResultType> oneRow(testSpace.globalDofCount(), 1);
+	oneRow.fill(0.);
+	std::vector<arma::Mat<ResultType> > localResult;
 
-assembler.evaluateLocalWeakFormsPeter(str,TEST_TRIAL, testIndices, trialIndex, ALL_DOFS, localResult);
-const int trialDofCount = trialGlobalDofs[trialIndex].size();
+	std::string::size_type sz;
+	size_t trialIndex = std::stof(str.substr(4),&sz);	
+	const int elementCount = testIndices.size();
 
-for (int testIndex = 0; testIndex < elementCount; ++testIndex) {
-	const int testDofCount = testGlobalDofs[testIndex].size();
-	for (int trialDof = 0; trialDof < trialDofCount; ++trialDof) {
+	assembler.evaluateLocalWeakFormsPeter(str,TEST_TRIAL, testIndices, trialIndex, ALL_DOFS, localResult);
+	const int trialDofCount = trialGlobalDofs[trialIndex].size();
+
+	for (int testIndex = 0; testIndex < elementCount; ++testIndex) {
+	    const int testDofCount = testGlobalDofs[testIndex].size();
+	    for (int trialDof = 0; trialDof < trialDofCount; ++trialDof) {
 		int trialGlobalDof = trialGlobalDofs[trialIndex][trialDof];
 		if (trialGlobalDof < 0)
-			continue;
+		    continue;
 		for (int testDof = 0; testDof < testDofCount; ++testDof) {
-			int testGlobalDof = testGlobalDofs[testIndex][testDof];
-			if (testGlobalDof < 0)
-				continue;
-//		oneRow(testGlobalDof, trialGlobalDof) += conj(testLocalDofWeights[testIndex][testDof]) * trialLocalDofWeights[trialIndex][trialDof] *localResult[testIndex](testDof, trialDof);
-			oneRow(testGlobalDof, 0) += conj(testLocalDofWeights[testIndex][testDof]) * trialLocalDofWeights[trialIndex][trialDof] *localResult[testIndex](testDof, trialDof);
+		    int testGlobalDof = testGlobalDofs[testIndex][testDof];
+		    if (testGlobalDof < 0)
+			continue;
+		    oneRow(testGlobalDof, 0) += conj(testLocalDofWeights[testIndex][testDof]) * trialLocalDofWeights[trialIndex][trialDof] *localResult[testIndex](testDof, trialDof);
 		}
+	    }
 	}
+	std::cout << trialDofCount << " =trialDofCount in dga oneRow , trialIndex = " << trialIndex << ", elmCnt=" << elementCount << ", oneRow[0] = " << oneRow(0,0) << "\n";
+	return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(oneRow));
 }
 
-return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(oneRow));
-/*
-arma::Mat<ResultType> result(testSpace.globalDofCount(), 1);
-result.fill(0.);
-
-	tbb::task_scheduler_init scheduler(maxThreadCount);
-   {
-        Fiber::SerialBlasRegion region;
-        tbb::parallel_for(tbb::blocked_range<size_t>(testRow,testRow), Body("n ", testIndices, testGlobalDofs, trialGlobalDofs,testLocalDofWeights, trialLocalDofWeights, assembler, result, mutex, solV, rhsV, wm, testPos, trialPos, rois));
-    }
-//std::cout << "resRow" << oneRow << " asdf\n";
-//   return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(oneRow));
-   return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(result));
-*/
-}
-else {
-
-    arma::Mat<ResultType> result(testSpace.globalDofCount(), trialSpace.globalDofCount());
-    result.fill(0.);
-
-    tbb::task_scheduler_init scheduler(maxThreadCount);
-    {
-        Fiber::SerialBlasRegion region;
-        tbb::parallel_for(tbb::blocked_range<size_t>(0, trialElementCount), Body(str, testIndices, testGlobalDofs, trialGlobalDofs,testLocalDofWeights, trialLocalDofWeights, assembler, result, mutex, solV, rhsV, wm, testPos, trialPos, rois));
-   }
-   return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(result));
-}
-
-	std::vector<ResultType> rhsVe = *rhsV;
-	ResultType tmpErr, re, rh;
-	ResultType globalNor = 0.0;
-	ResultType globalNorRers = 0.0;
-	ResultType globalErr = 0.0;
-	ResultType zeroR = 0.0;
-	int locmax = -1;
-	arma::Col<float> locmaxs(testSpace.globalDofCount());
-	locmaxs.fill(-1.0);
-	std::stringstream m;
-/*
-std::cout << testSpace.globalDofCount() << " " << result.size() << " " << trialSpace.globalDofCount() << std::endl;
-	for (int i=0; i < testSpace.globalDofCount(); ++i) {
-		tmpErr += std::pow(std::abs(result[i,testRow]-oneRow[i,0]),2.0);
-		globalNor += std::pow(std::abs(result[i,testRow]),2.0);
-std::cout << result[i,testRow] << " =matr, row= " << oneRow[i,0] << " asdf " <<i << " oi " << std::abs(result[i,testRow]) << " asdf " << globalNor << " =gn, term= " << std::pow(std::abs(result[i,testRow]),2.0) << " rowtrans= " << oneRow[0,i] << " rowidx " << oneRow[i,testRow] << " rowtraidx " << oneRow[testRow,i] << "\n";
-//		tmpErr = std::abs(result[0,i]);
-//		if (std::abs(tmpErr) > std::abs(globalErr)) {
-//			globalErr = tmpErr;
-//			locmax = i;
-//		}
-	}
-std::cout << std::sqrt(tmpErr) << " =err first row, nor= "  << std::sqrt(globalNor) <<" , testRow= " << testRow << " aspojfd "<<testSpace.globalDofCount()<<"\n";
-*/
-/*
-	int nnz = 0;
-
-//	arma::Mat<bool> qwer = result != 0;
-	for (int j = 0; j < trialSpace.globalDofCount(); ++j) {
-		globalNor = 0.0;
-		for (int i =0; i < testSpace.globalDofCount(); ++i) {
-			if (abs(result[i,j]-result(i,j))>0 ) {
-				std::cerr << i << "=i,Error square and round indices, j=" << j << result[i,j] << "=sq, round=" << result(i,j) <<std::endl;
-			}
-			if (abs(result(i,j)) >0) {
-//			if (abs(result[i,j]) >0) {
-				nnz = nnz + 1;
-//				if(qwer[i,j]) {
-//				if(result[i,j] == 0) {
-				if(result(i,j) == zeroR) {
-//					std::cout << i << "=i,j=" << j << result[i,j] << "=result, qwer[i,j] = " << qwer[i,j] << std::endl;
-					std::cout << i << "=i,j=" << j << result[i,j] << "=result" << abs(result(i,j)) << std::endl;
-				}
-			}
-//			else if( (result[i,j] != 0)[0] == 1) {
-			else if(result(i,j) != zeroR) {
-					std::cout << i << "=i,j=" << j << result[i,j] << "=resultAbsZero" << abs(result(i,j)) << std::endl;
-			}		
-			tmpErr = std::abs(rois(i,j));
-
-			if (j == 186) {
-			}
-			if (std::abs(tmpErr) > std::abs(globalNor)) {
-				globalNor = tmpErr;
-				locmaxs(j) = i;
-			}
-			else if ((j == 20) | (j == 0) ) {
-			}
-		}
-		m << j << " " << locmaxs(j) << " / ";
-	}
-	std::cout << nnz << " = nnz, nbElem = " << testSpace.globalDofCount()*trialSpace.globalDofCount() << ", percentage = " << nnz/(0.0+testSpace.globalDofCount()*trialSpace.globalDofCount()) << std::endl;
-*/
-//	std::cout << " are corrs of testidx=0, idxmax = " << locmax << " " << globalErr << std::endl;
-//    return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(
-//                new DiscreteDenseBoundaryOperator<ResultType>(result));
-}
 
 };
 
