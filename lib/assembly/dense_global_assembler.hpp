@@ -74,7 +74,7 @@ public:
     void operator() (const tbb::blocked_range<size_t>& r) const {
 	const int elementCount = m_testIndices.size();
 	std::vector<arma::Mat<ResultType> > localResult;
-	CoordinateType percDecay = 0.8;
+	CoordinateType percDecay = 0.65; //0.8;
 	CoordinateType thrp = 0.1; //0.04;
 	for (size_t trialIndex = r.begin(); trialIndex != r.end(); ++trialIndex) {
 	    // Evaluate integrals over pairs of the current trial element and all the test elements	
@@ -90,7 +90,7 @@ public:
 		for (int testIndex = 0; testIndex < elementCount; ++testIndex) {
 //		    ResultType wind = 0.0;
 		    CoordinateType wind = 0.0;
-		    if( (str.at(0) == 'n') | (str.at(0) == 't') | (str.at(0) == 'k') ) {
+		    if( (str.at(0) == 'n') | (str.at(0) == 't') | (str.at(0) == 'k')  | (str.at(0) == 'j') ) {
 			wind = 1.0;
 		    } else if (str.at(0) == 'f') {
 			std::string::size_type sz; // alias of size_t
@@ -103,7 +103,18 @@ public:
 			else if (dist <= b) {
 			    wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
 			}
-//		wind = 1.0; // Multiply by window in kernel-> str.at(1) == 'k'
+		    } else if (str.at(0) == 'i') { // only compression on the illuminated side, 'j' is the version with only modification in the kernel
+			std::string::size_type sz; // alias of size_t
+			CoordinateType b = std::stof(str.substr(4),&sz);		
+			CoordinateType a = (1-percDecay)*b;
+			CoordinateType dist = std::sqrt( std::pow(m_testPos[testIndex].x-m_trialPos[trialIndex].x, 2.0) + std::pow(m_testPos[testIndex].y-m_trialPos[trialIndex].y, 2.0) + std::pow(m_testPos[testIndex].z-m_trialPos[trialIndex].z, 2.0) ); // Distance without x to include stationary points (but also shadow when coll in illuminated...)
+			if ( (dist <= a) || (m_testPos[testIndex].x > -0.15) ) {
+			   wind = 1; // collocation point x negative is illuminated side
+			}
+			else if (dist <= b) {
+			    wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
+			}
+//		wind = 1.0; // Multiply by window in kernel-> str.at(0) == 'k'
 		    } else if (str.at(0) == 'd') { // Correlations through physical distance
 			std::string::size_type sz; // alias of size_t
 			CoordinateType b = std::stof(str.substr(4),&sz);
@@ -307,8 +318,12 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
 	// Enumerate the test elements that contribute to at least one global DOF
 	std::vector<int> testIndices;
 	testIndices.reserve(testElementCount);
+std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
 	for (int testIndex = 0; testIndex < testElementCount; ++testIndex) {
             const int testDofCount = testGlobalDofs[testIndex].size();
+	    if (testIndex % (testElementCount/10) == 0) {
+//		std::cout << testIndex << "=ti, testPt = (" << testPos[testIndex].x << ", "<< testPos[testIndex].y << ", "<< testPos[testIndex].z << ") trial.x= " << trialPos[testIndex].x << "\n";
+	    }
             for (int testDof = 0; testDof < testDofCount; ++testDof) {
 		int testGlobalDof = testGlobalDofs[testIndex][testDof];
 		if (testGlobalDof >= 0) {
@@ -366,8 +381,8 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
 	    }
 	}
 
-	std::cout << rowMax(0) << "=rowmax(0), globMax = " << (abs(rois(0,0)) > abs(rowMax(0)) ) << ", rois(0,0) =" << rois(0,0) << "\n";
-	std::cout << abs(rowMax(0)) << "=a rowmax(0), log = " << globMax << ", a rois(0,0) =" << abs(rois(0,0)) << "\n";
+//	std::cout << rowMax(0) << "=rowmax(0), globMax = " << (abs(rois(0,0)) > abs(rowMax(0)) ) << ", rois(0,0) =" << rois(0,0) << "\n";
+//	std::cout << abs(rowMax(0)) << "=a rowmax(0), log = " << globMax << ", a rois(0,0) =" << abs(rois(0,0)) << "\n";
 	if (str.at(0) != 't') {
 	    arma::Mat<ResultType> result(testSpace.globalDofCount(), trialSpace.globalDofCount());
 	    result.fill(0.);

@@ -84,21 +84,21 @@ public:
 //		std::cerr << "Error, 2 <= distance =" << distance <<  std::endl;
 	}
 	CoordinateType wind = static_cast<CoordinateType>(1.0);
-	CoordinateType cuto = static_cast<CoordinateType>(0.1);
-	CoordinateType cutoSP = static_cast<CoordinateType>(0.3);
+//	CoordinateType cuto = static_cast<CoordinateType>(0.1);
+//	CoordinateType cutoSP = static_cast<CoordinateType>(0.3);
 //if (testGeomData.global(0) < -7) { // for test without window
 //	if (testGeomData.global(0) > 0.8) { // WRONG
 //	if (testGeomData.global(0) < -0.8) { // Hardcoded
 //	if (true) {
-	if(false) {
-		if (distance >= cuto*2) {
-			wind = static_cast<CoordinateType>(0.0);
-		}
-		else if (distance >= cuto) {
-			wind = exp(2*exp(-cuto/(distance-2*cuto) )/( (distance-2*cuto)/cuto-1) );
+//	if(false) {
+//		if (distance >= cuto*2) {
+//			wind = static_cast<CoordinateType>(0.0);
+//		}
+//		else if (distance >= cuto) {
+//			wind = exp(2*exp(-cuto/(distance-2*cuto) )/( (distance-2*cuto)/cuto-1) );
 //			std::cout << wind;
-		} 
-	}
+//		} 
+//	}
 //throw std::logic_error("just for printing backtrace");
 //std::terminate();
 //	if(testGeomData.global(0) > 0
@@ -117,13 +117,14 @@ public:
           testGeomData.global(coordIndex) - trialGeomData.global(coordIndex);
       sum += diff * diff;
     }
+    CoordinateType percDecay = 0.65;
     CoordinateType distance = sqrt(sum);
 	if (distance >= 2) {
 		std::cerr << "Error, 2 <= distance =" << distance <<  std::endl;
 	}
 	CoordinateType wind = static_cast<CoordinateType>(1.0);
-	CoordinateType cuto = static_cast<CoordinateType>(0.1);
-	CoordinateType cutoSP = static_cast<CoordinateType>(0.3);
+//	CoordinateType cuto = static_cast<CoordinateType>(0.1);
+//	CoordinateType cutoSP = static_cast<CoordinateType>(0.3);
 
 //	if (true) {
 	if (str.at(0) == 'k') { // 'f' means fixed windows multiplying matrix entries, 'k' fixed windows multiplying kernel
@@ -131,7 +132,8 @@ public:
 		std::string::size_type sz;   
 		CoordinateType b = std::stof(str.substr(2),&sz);		
 		CoordinateType a = (1-percDecay)*b;
-		CoordinateType dist = std::sqrt( std::pow(testGeomData.global(1) - trialGeomData.global(1), 2.0) + std::pow(testGeomData.global(1) - trialGeomData.global(1), 2.0) );
+//		CoordinateType dist = std::sqrt( std::pow(testGeomData.global(1) - trialGeomData.global(1), 2.0) + std::pow(testGeomData.global(1) - trialGeomData.global(1), 2.0) );
+		CoordinateType dist = std::sqrt( std::pow(testGeomData.global(1) - trialGeomData.global(1), 2.0) + std::pow(testGeomData.global(2) - trialGeomData.global(2), 2.0) );
 
 //std::cout << dist << " = dist, b= " << b << "\n";
 		// Distance without x to include stationary points (but also shadow when coll in illuminated...)
@@ -139,22 +141,32 @@ public:
 		if (dist <= a) {
 			wind = static_cast<CoordinateType>(1.0);
 //			std::cout << "Window 1 for fixedWindows with x=" << m_testPos[testIndex].x << std::endl;
-		}
-		else if (dist <= b) {
+		} else if (dist <= b) {
 			wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
+		} else { 
+			wind = static_cast<CoordinateType>(0.0); 
 		}
-		else { 
+	} else if (str.at(0) == 'j') { // only compression on the illuminated side
+		std::string::size_type sz; // alias of size_t
+		CoordinateType b = std::stof(str.substr(4),&sz);		
+		CoordinateType a = (1-percDecay)*b;
+		CoordinateType dist = std::sqrt( std::pow(testGeomData.global(0) - trialGeomData.global(0), 2.0) + std::pow(testGeomData.global(1) - trialGeomData.global(1), 2.0) + std::pow(testGeomData.global(2) - trialGeomData.global(2), 2.0) );
+		if ( (dist <= a) || (testGeomData.global(0) > -0.15) ) {
+		   wind = 1; // collocation point x negative is illuminated side, testIndex is row-index in dga.hpp
+		} else if (dist <= b) {
+		    wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
+		} else { 
 			wind = static_cast<CoordinateType>(0.0); 
 		}
 	}
-	if (false) {
-		if (distance >= cuto*2) {
-			wind = static_cast<CoordinateType>(0.0);
-		}
-		else if (distance >= cuto) {
-			wind = exp(2*exp(-cuto/(distance-2*cuto) )/( (distance-2*cuto)/cuto-1) );
-		} 
-	}
+//	if (false) {
+//		if (distance >= cuto*2) {
+//			wind = static_cast<CoordinateType>(0.0);
+//		}
+//		else if (distance >= cuto) {
+//			wind = exp(2*exp(-cuto/(distance-2*cuto) )/( (distance-2*cuto)/cuto-1) );
+//		} 
+//	}
 	result[0](0, 0) = static_cast<CoordinateType>(1.0 / (4.0 * M_PI)) / distance * exp(-m_waveNumber * distance)*wind;
 }
 

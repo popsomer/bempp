@@ -65,6 +65,7 @@
 #include <math.h> //Peter
 #include "../../build/external/include/Trilinos/Thyra_BelosLinearOpWithSolve_def.hpp"//Peter
 #include "space/piecewise_polynomial_continuous_scalar_space.hpp" // Peter
+//#include <boost> //Peter: voor sph_bessel
 
 using namespace Bempp;
 
@@ -73,7 +74,12 @@ typedef double BFT; // basis function type
 typedef std::complex<double> RT; // result type (type used to represent discrete operators)
 typedef double CT; // coordinate type
 
+
+typedef std::complex<long double> Hpc;
+typedef long double Hp; // High precisions for calculations
+
 RT waveNumber;
+//Hpc waveNumber;
 class MyFunctor
 {
 public:
@@ -98,6 +104,63 @@ public:
     int resultDimension() const { return 1; }
     inline void evaluate(const arma::Col<CoordinateType>& point,
                          arma::Col<ValueType>& result) const {
+	Hpc imu = std::complex<double>(0, 1);
+	Hpc legnm1;
+	Hpc legn;
+	Hpc tmp;
+	result = 0.0;
+	Hp r = sqrt(pow(point(0)+0.0L,2.0L) +std::pow(point(1)+0.0L,2.0L) +std::pow(point(2)+0.0L,2.0L));
+	if(abs(r-1) > 1e-6) {
+		std::cerr << "r not close to 1\n";
+		exit(1);
+	}
+	Hp prevNorm = abs(waveNumber)+4;
+	Hpc hnm1 = exp(imu*(abs(waveNumber)+0.0L))/(abs(waveNumber)+0.0L); //*(1-2/imu/waveNumber);
+	for(int n = 0; n < 1.4*std::abs(waveNumber)+40; n ++) {
+		if(n == 0) {
+			legn = 1;
+		}
+		else if(n == 1) {
+			legn = point(0)/r;
+			legnm1 = 1;
+		}
+		else {
+			tmp = legn;
+			legn = (std::complex<Hp>((2*n-1)*point(0)/r,0)*legn-std::complex<Hp>(n-1, 0)*legnm1)/std::complex<Hp>(n,0); // l+1 = n in recurrence relation
+			legnm1 = tmp;
+		}
+		Hp sinsumk = 0.0;
+		Hp cossumk = 0.0;
+		for(int k =0; k <= floor(n*0.5); k ++) {
+			sinsumk += pow(-1.0L,k+0.0L)*tgamma(1.0L+n+2*k)/pow(abs(waveNumber)+0.0L,(2*k+1.0L))/pow(2.0L,2.0L*k)/tgamma(1.0L+2*k)/tgamma(1.0L+n-2*k);
+		}
+		for(int k =0; k <= floor((n-1)*0.5); k ++) {
+			cossumk += pow(-1.0L,k+0.0L)*tgamma(2.0L+n+2*k)/pow(abs(waveNumber)+0.0L,(2*k+2.0L))/pow(2.0L,2.0L*k+1)/tgamma(2.0L+2*k)/tgamma(n-2*k+0.0L);
+		}
+		Hpc besk = std::complex<Hp>(sin(abs(waveNumber)-n*acos(-1.0L)/2),0)*sinsumk + std::complex<Hp>(cos(abs(waveNumber)-n*acos(-1.0L)/2),0)*cossumk;
+		Hpc besyk = -std::complex<Hp>(cos(abs(waveNumber)-n*acos(-1.0L)/2),0)*sinsumk + std::complex<Hp>(sin(abs(waveNumber)-n*acos(-1.0L)/2),0)*cossumk;
+		
+		Hpc term = -(2.0L*n+1.0)*std::pow(imu,n+0.0L)*besk*(abs(waveNumber)+0.0L)*legn*(hnm1-(n+1)/(abs(waveNumber)+0.0L)*(besk+imu*besyk) )/(besk+imu*besyk);
+		CoordinateType curNor = abs(term);
+		if((curNor > 3.1*prevNorm) && (n >9) ) {
+			break;
+		}
+		result(0) += term;
+		prevNorm = curNor;
+		hnm1 = besk+imu*besyk;
+	}
+//	result(0) = result(0); // Do nothing
+//	result(0) = -result(0);
+//	result(0) += imu*(abs(waveNumber)+0.0L)*(point(0)+0.0L)*exp((abs(waveNumber)+0.0L)*imu*(point(0)+0.0L));
+//	result(0) -= imu*(abs(waveNumber)+0.0L)*(point(0)+0.0L)*exp((abs(waveNumber)+0.0L)*imu*(point(0)+0.0L));
+//	result(0) = -std::complex<Hp>(real(result(0)), imag(result(0))) + imu*(abs(waveNumber)+0.0L)*(point(0)+0.0L)*exp((abs(waveNumber)+0.0L)*imu*(point(0)+0.0L));
+	result(0) = -std::complex<Hp>(real(result(0)), imag(result(0))) - imu*(abs(waveNumber)+0.0L)*(point(0)+0.0L)*exp((abs(waveNumber)+0.0L)*imu*(point(0)+0.0L));
+//	result(0) = imu*(abs(waveNumber)+0.0L)*(point(0)+0.0L)*exp((abs(waveNumber)+0.0L)*imu*(point(0)+0.0L));
+//	result(0) = -imu*(abs(waveNumber)+0.0L)*(point(0)+0.0L)*exp((abs(waveNumber)+0.0L)*imu*(point(0)+0.0L));
+    }
+
+    inline void evaluateOld(const arma::Col<CoordinateType>& point,
+                         arma::Col<ValueType>& result) const {
 //	using namespace boost::math;
 	RT imu = std::complex<double>(0, 1);
 //        result(0) = 0.0;
@@ -105,6 +168,7 @@ public:
 	RT legn;
 	RT tmp;
 	result = 0.0;
+	CoordinateType r = std::sqrt(std::pow(point(0),2) +std::pow(point(1),2) +std::pow(point(2),2));
 //	for(int n = 0; n < 1.4*std::abs(waveNumber)+40; n ++) {
 	for(unsigned n = 0; n < 1.4*std::abs(waveNumber)+40; n ++) {
 		if(n == 0) {
@@ -117,7 +181,8 @@ public:
 		else {
 			tmp = legn;
 //			legn = ((2*n+1)*point(0)*legn-n*legnm1)/(n+1);
-			legn = (std::complex<double>(2*n+1,0)*point(0)*legn-std::complex<double>(n, 0)*legnm1)/std::complex<double>(n+1,0);
+//			legn = (std::complex<double>(2*n+1,0)*point(0)*legn-std::complex<double>(n, 0)*legnm1)/std::complex<double>(n+1,0);
+			legn = (std::complex<double>(2*n-1,0)*point(0)/r*legn-std::complex<double>(n-1, 0)*legnm1)/std::complex<double>(n,0); // l+1 = n in recurrence relation and maybe /r is useful though r approx 1
 			legnm1 = tmp;
 		}
 //		result += (2.0*n+1.0)*imu^n;//*boost::cyl_bessel_j(n,wavek*1)
@@ -126,31 +191,133 @@ public:
 //		result -= (2.0*n+1.0)*std::pow(imu,n)*jn(n,std::abs(waveNumber)*1.0)*legn;
 //		result -= (2.0*n+1.0)*std::pow(imu,n)*math::sph_bessel(n,std::abs(waveNumber)*1.0)*legn;
 //		result -= (2.0*n+1.0)*std::pow(imu,n)*sph_jn(n,std::abs(waveNumber)*1.0)*legn;
-		result -= (2.0*n+1.0)*std::pow(imu,n)*sqrt(acos(-1.0)/2/std::abs(waveNumber) )*jn(n+0.5,std::abs(waveNumber)*1.0)*legn;
+//		result -= (2.0*n+1.0)*std::pow(imu,n)*sqrt(acos(-1.0)/2/std::abs(waveNumber) )*jn(n+0.5,std::abs(waveNumber)*1.0)*legn;
+		result -= waveNumber*(2.0*n+1.0)*std::pow(imu,n)*sqrt(acos(-1.0)/2/std::abs(waveNumber) )*jn(n+0.5,std::abs(waveNumber)*1.0)*legn;
 	}
-	CoordinateType r = std::sqrt(std::pow(point(0),2) +std::pow(point(1),2) +std::pow(point(2),2));
+//	CoordinateType r = std::sqrt(std::pow(point(0),2) +std::pow(point(1),2) +std::pow(point(2),2));
 	if(result.n_elem != 1) {
 		std::cerr << " Error nelem not 1. , " << result(1);
 //	} else if((r > 1+1e-7) || (r < 1-1e-7)) {
 	} else if((r > 1+1e-2) || (r < 1-1e-2)) {
 		std::cerr << " r out of bounds=" << r;
 	}
-//	result -= imu*waveNumber*point(0)*exp(waveNumber*imu*point(0)); // r=1
+	result -= imu*waveNumber*point(0)*exp(waveNumber*imu*point(0)); // r=1
 //	result += imu*waveNumber*point(0)*exp(waveNumber*imu*point(0));
 //	result = -result + imu*waveNumber*point(0)*exp(waveNumber*imu*point(0));
 //	result = -result - imu*waveNumber*point(0)*exp(waveNumber*imu*point(0));
 //	result = imu*waveNumber*point(0)*exp(waveNumber*imu*point(0));
 //	result = -imu*waveNumber*point(0)*exp(waveNumber*imu*point(0));
 //	result = -result;
-	result = +result;
+//	result = +result;
+    }
+
+    inline double factorial(int n)
+    {
+	return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;
+    }
+    inline void evaluateF(const arma::Col<CoordinateType>& point,
+                         arma::Col<ValueType>& result) const {
+//	RT imu = std::complex<double>(0, 1);
+//	RT legnm1;
+//	RT legn;
+//	RT tmp;
+	Hpc imu = std::complex<double>(0, 1);
+	Hpc legnm1;
+	Hpc legn;
+	Hpc tmp;
+	result = 0.0;
+//	CoordinateType r = std::sqrt(std::pow(point(0),2) +std::pow(point(1),2) +std::pow(point(2),2));
+//	CoordinateType prevNorm = abs(waveNumber)+4;
+	Hp r = sqrt(pow(point(0)+0.0L,2.0L) +std::pow(point(1)+0.0L,2.0L) +std::pow(point(2)+0.0L,2.0L));
+	Hp prevNorm = abs(waveNumber)+4;
+	for(int n = 0; n < 1.4*std::abs(waveNumber)+40; n ++) {
+		if(n == 0) {
+			legn = 1;
+		}
+		else if(n == 1) {
+			legn = point(0)/r;
+			legnm1 = 1;
+		}
+		else {
+			tmp = legn;
+//			legn = (std::complex<double>(2*n+1,0)*point(0)/r*legn-std::complex<double>(n, 0)*legnm1)/std::complex<double>(n+1,0);
+//			legn = (std::complex<double>(2*n-1,0)*point(0)/r*legn-std::complex<double>(n-1, 0)*legnm1)/std::complex<double>(n,0); // l+1 = n in recurrence relation
+			legn = (std::complex<Hp>((2*n-1)*point(0)/r,0)*legn-std::complex<Hp>(n-1, 0)*legnm1)/std::complex<Hp>(n,0); // l+1 = n in recurrence relation
+			legnm1 = tmp;
+		}
+//		std::cout << n << " =n, x= " << point(0)/r << ", legn = " << legn;
+//		result += (2.0*n+1.0)*std::pow(imu,n)*sqrt(acos(-1.0)/2/std::abs(waveNumber*r) )*jn(n+0.5,std::abs(waveNumber)*r)*legn*(jn(n+0.5,abs(waveNumber)*r) + imu*yn(n+0.5,abs(waveNumber)*r) )/(jn(n+0.5,abs(waveNumber)) + imu*jn(n+0.5,abs(waveNumber)))/sqrt(r);
+//		result -= (2.0*n+1.0)*std::pow(imu,n)*sqrt(acos(-1.0)/2/std::abs(waveNumber) )*jn(n+0.5,std::abs(waveNumber))*legn*(jn(n+0.5,abs(waveNumber)*r) + imu*yn(n+0.5,abs(waveNumber)*r) )/(jn(n+0.5,abs(waveNumber)) + imu*yn(n+0.5,abs(waveNumber)))/sqrt(r);
+
+//		ValueType sinsumk = 0.0;
+		Hp sinsumk = 0.0;
+		Hp cossumk = 0.0;
+		Hp sinsumkr = 0.0;
+		Hp cossumkr = 0.0;
+		for(int k =0; k <= floor(n*0.5); k ++) {
+//			sinsumk += pow(-1.0,k)*this->factorial(n+2*k)/pow(waveNumber,(2*k+1))/pow(2.0,2*k)/factorial(2*k)*1.0/factorial(n-2*k);
+			sinsumk += pow(-1.0L,k+0.0L)*tgamma(1.0L+n+2*k)/pow(abs(waveNumber)+0.0L,(2*k+1.0L))/pow(2.0L,2.0L*k)/tgamma(1.0L+2*k)/tgamma(1.0L+n-2*k);
+			sinsumkr += pow(-1.0L,k+0.0L)*tgamma(1.0L+n+2*k)/pow(abs(waveNumber)*r+0.0L,(2*k+1.0L))/pow(2.0L,2.0L*k)/tgamma(1.0L+2*k)/tgamma(1.0L+n-2*k);
+		}
+		for(int k =0; k <= floor((n-1)*0.5); k ++) {
+			cossumk += pow(-1.0L,k+0.0L)*tgamma(2.0L+n+2*k)/pow(abs(waveNumber)+0.0L,(2*k+2.0L))/pow(2.0L,2.0L*k+1)/tgamma(2.0L+2*k)/tgamma(n-2*k+0.0L);
+			cossumkr += pow(-1.0L,k+0.0L)*tgamma(2.0L+n+2*k)/pow(abs(waveNumber)*r+0.0L,(2*k+2.0L))/pow(2.0L,2*k+1.0L)/tgamma(2.0L+2*k)/tgamma(n-2*k+0.0L);
+//			cossumkr += pow(-1.0,k)*tgamma(1+n+2*k+1)/pow(waveNumber*r,(2*k+2))/pow(2.0,2*k+1)/tgamma(1+2*k+1)*1.0/tgamma(n-2*k);
+		}
+//		ValueType besk = sin(waveNumber-n*acos(-1.0)/2)*sinsumk + cos(waveNumber-n*acos(-1.0)/2)*cossumk;
+		Hpc besk = std::complex<Hp>(sin(abs(waveNumber)-n*acos(-1.0L)/2),0)*sinsumk + std::complex<Hp>(cos(abs(waveNumber)-n*acos(-1.0L)/2),0)*cossumk;
+		Hpc beskr = std::complex<Hp>(sin(abs(waveNumber)*r-n*acos(-1.0L)/2),0)*sinsumkr + std::complex<Hp>(cos(abs(waveNumber)*r-n*acos(-1.0L)/2),0)*cossumkr;
+		Hpc besyk = -std::complex<Hp>(cos(abs(waveNumber)-n*acos(-1.0L)/2),0)*sinsumk + std::complex<Hp>(sin(abs(waveNumber)-n*acos(-1.0L)/2),0)*cossumk;
+		Hpc besykr = -std::complex<Hp>(cos(abs(waveNumber)*r-n*acos(-1.0L)/2),0)*sinsumkr + std::complex<Hp>(sin(abs(waveNumber)*r-n*acos(-1.0L)/2),0)*cossumkr;
+		
+		Hpc term = (2.0L*n+1.0)*std::pow(imu,n+0.0L)*besk*legn*(beskr+imu*besykr)/(besk+imu*besyk);
+		CoordinateType curNor = abs(term);//norm(term);
+//		if(curNor > prevNorm*3.1) {
+//		if(curNor > 1) {
+		if((curNor > 3.1*prevNorm) && (n >9) ) {
+//			std::cerr << curNor << "=curnor, prevnor=" << prevNorm << "\n";
+			break;
+		}
+		result(0) -= term;
+		prevNorm = curNor;
+		if(false) {
+		    std::cerr << n << "=n,term=" << (2.0L*n+1.0)*std::pow(imu,n)*besk*legn*(beskr+imu*besykr)/(besk+imu*besyk) << "=term,res=" << result << r << "=r, costheta=" << point(0)/r << "=coshteta, jn=" << besk << "\n";
+//		    std::cerr << n << "=n,term=" << (2.0*n+1.0)*std::pow(imu,n)*sqrt(acos(-1.0)/2/std::abs(waveNumber) )*jn(n+0.5,std::abs(waveNumber))*legn*(jn(n+0.5,abs(waveNumber)*r) + imu*yn(n+0.5,abs(waveNumber)*r) )/(jn(n+0.5,abs(waveNumber)) + imu*yn(n+0.5,abs(waveNumber)))/sqrt(r) << "=term,res=" << result << r << "=r, costheta=" << point(0)/r << "=coshteta, jn=" << jn(n,abs(waveNumber)) << " " << jn(n+0.5,std::abs(waveNumber)) << " " << jn(0.5+n,std::abs(waveNumber)) << "\n";
+//		    std::cerr//< sph_bessel(n,waveNumber) << "\n";
+		    std::cerr << legn << "=legn, nr=" << (2.0L*n+1.0)*std::pow(imu,n) << "=nr, bes=" << besk << "\n"; //sqrt(acos(-1.0)/2/std::abs(waveNumber) )*jn(n+0.5,std::abs(waveNumber)) << "\n";
+		    std::cerr << beskr+imu*besykr << "=hankel kr, hankel k=" << besk + imu*besyk << "\n";
+//		    std::cerr << sqrt(acos(-1.0)/2/std::abs(waveNumber)*r)*(jn(n+0.5,abs(waveNumber)*r) + imu*yn(n+0.5,abs(waveNumber)*r) ) << "=hankel krm hankel k=" << sqrt(acos(-1.0)/2/std::abs(waveNumber) )*(jn(n+0.5,abs(waveNumber)) + imu*yn(n+0.5,abs(waveNumber))) << "\n";
+		}
+//		std::cout << n << " =n, costheta= " << point(0)/r << ", r= " << r << ", k=" << waveNumber << ", result = " << result << "\n";
+//wolfram alpha:-sum( sqrt(-1)^n*(2*n+1)*j_n(8)*(h_n^(1)(0.1))/(h_n^(1)(8))*p(n,0.0646678), n=0..0)
+// sphbess=
+	}
+
+//exit(0);
+/*
+	if(result.n_elem != 1) {
+		std::cerr << " Error nelem not 1. , " << result(1);
+	}
+	if(abs(result(0)) > 3) {
+//	if(true) {
+		for(int n = 0; n < 1.4*std::abs(waveNumber)+40; n ++) {
+		    std::cerr << n << "=n, " << (2.0*n+1.0)*std::pow(imu,n)*sqrt(acos(-1.0)/2/std::abs(waveNumber*r) )*jn(n+0.5,std::abs(waveNumber)*r)*legn*(jn(n+0.5,abs(waveNumber)*r) + imu*yn(n+0.5,abs(waveNumber)*r) )/(jn(n+0.5,abs(waveNumber)) + imu*yn(n+0.5,abs(waveNumber)))/sqrt(r) << ", r=" << r << ", waveNumber = " << waveNumber << ", costheta" << point(0)/r << "\n";
+//		    std::cerr << (2.0*n+1.0)*std::pow(imu,n)*sqrt(acos(-1.0)/2/std::abs(waveNumber*r) ) << ", jn=" << jn(n+0.5,std::abs(waveNumber)*r) << ", legn = " << legn << ", ratio sph hankel = " << (jn(n+0.5,abs(waveNumber)*r) + imu*yn(n+0.5,abs(waveNumber)*r) )/(jn(n+0.5,abs(waveNumber)) + imu*yn(n+0.5,abs(waveNumber)))/sqrt(r) << "\n";
+		    std::cerr << (2.0*n+1.0)*std::pow(imu,n)*sqrt(acos(-1.0)/2/std::abs(waveNumber) ) << ", jn=" << jn(n+0.5,std::abs(waveNumber) ) << ", legn = " << legn << ", ratio sph hankel = " << (jn(n+0.5,abs(waveNumber)*r ) + imu*yn(n+0.5,abs(waveNumber)*r) )/(jn(n+0.5,abs(waveNumber)) + imu*yn(n+0.5,abs(waveNumber)))/sqrt(r) << "\n";
+		    std::cerr << jn(n+0.5,abs(waveNumber)*r) << " = jnkr, iynkr= " << imu*yn(n+0.5,abs(waveNumber)*r) << ", jnk = " << jn(n+0.5,abs(waveNumber)) << ", ynk = " << imu*yn(n+0.5,abs(waveNumber)) << "\n";
+		}
+		exit(0);
+	}
+*/
     }
 };
 
+
 void fixedWindows() {
-/*
+
 // Add code of fixed Windows here
 std::cout << "Entered fixedWindows() " <<  "\n";
-
+/*
 arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,5,3));
 //const int kl = ks.size();
 const int kl = 1;
@@ -163,9 +330,14 @@ const int Tl = Ts.size();
 const int avm = 100;
 arma::Mat<BFT> thetas = arma::zeros(avm,1);
 arma::Mat<BFT> phis = arma::zeros(avm,1);
+std::uniform_real_distribution<BFT> unif(0, 1);
+std::random_device rd;
+std::mt19937 gen(rd());
 for(int av = 0; av < avm; av ++) {
-	thetas(av) = M_PI*std::rand();
-	phis(av) = M_PI*2*std::rand();
+//	thetas(av) = M_PI*std::rand();
+//	phis(av) = M_PI*2*std::rand();
+	thetas(av) = M_PI*unif(gen);
+	phis(av) = M_PI*2*unif(gen);
 }
 arma::Mat<CT> points(3,avm*avm);
 arma::Mat<CT> pointsInt(3,avm*avm);
@@ -176,7 +348,8 @@ for (int thi =0; thi < avm; ++thi) {
 		points(0,idx) = cos(phis(phih))*sin(thetas(thi));
 		points(1,idx) = sin(phis(phih))*sin(thetas(thi));
 		points(2,idx) = cos(thetas(thi));
-		BFT rtmp = std::rand();
+//		BFT rtmp = std::rand();
+		BFT rtmp = unif(gen);
 		pointsInt(0,idx) = rtmp*cos(phis(phih))*sin(thetas(thi));
 		pointsInt(1,idx) = rtmp*sin(phis(phih))*sin(thetas(thi));
 		pointsInt(2,idx) = rtmp*cos(thetas(thi));
@@ -229,6 +402,11 @@ for(int ki = 0; ki < kl; ki++) {
 //	slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
 	BoundaryOperator<BFT, RT> slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
 
+//	std::vector< Point3D<CoordinateType> > testPos;
+//	testSpace.getGlobalDofPositions(testPos);
+//	std::vector< Point3D<CoordinateType> > trialPos;
+//	trialSpace.getGlobalDofPositions(trialPos);
+
 //	wm = slpOp.weakForm()->asMatrix();
 	arma::Mat<RT> wm = slpOp.weakForm()->asMatrix();
 //	std::cout << "Assemble rhs" << std::endl;
@@ -261,7 +439,8 @@ std::cout << "ended std calc\n";
 
 //	arma::Col<RT> rhsVe{std::istream_iterator<RT>(input), std::istream_iterator<RT>() };
 //std::cout << "apsoijfd\n";
-	std::ifstream input("/home/peter/Desktop/Doctoraat/GreenBempp/simpsonRes/rhsV");
+//	std::ifstream input("/home/peter/Desktop/Doctoraat/GreenBempp/simpsonRes/rhsV")
+	std::ifstream input("rhsV");
 	std::vector<RT> rhsVe{std::istream_iterator<RT>(input), std::istream_iterator<RT>() };
         input.close();
 //std::cout << "soghaosiufhd\n";
@@ -290,16 +469,19 @@ std::cout << "ended std calc\n";
 	}
 //std::cout << "oiuhaoisdf\n";
 	arma::Mat<RT> errBCOr = potResOr - diri;
-	errBCavm(ki,0) = mean(mean(abs(errBCOr) ));
+	errBCavm(ki,0) = mean(mean(abs(errBCOr) ))/mean(mean(abs(diri)));
 	errInt(ki,0) = mean(mean(abs(slPot.evaluateAtPoints(solFun, pointsInt, quadStrategy, evalOptions)-dirInt) )); // solFun now has solution of original problem
 	errInt(ki,0) = mean(mean(abs(slPot.evaluateAtPoints(solFun, pointsInt, quadStrategy, evalOptions)-dirInt) ))/mean(mean(abs(dirInt))); // solFun now has solution of original problem
 	
 	arma::Mat<RT> zxcv = slPot.evaluateAtPoints(solFun, pointsInt, quadStrategy, evalOptions);
 	std::cout << dirInt(0) << " = dirint, slpint = " << zxcv(0) << "\n";
+	std::cout << wm.n_rows << " = wmnr, rhsSiz = " << rhsVe.size() << "\n";
 
 
 //std::cout << "apsoijfd\n";
 	CT bnorr = 0.0;
+	BFT l1err = 0.0;
+	BFT l1nor = 0.0;
 //	for (int i=0; i < rhsVe.size(); ++i) {
 	for (int i=0; i < wm.n_rows; ++i) {
 	    RT err = -rhsVe[i];
@@ -308,16 +490,18 @@ std::cout << "ended std calc\n";
 		err += wm(i,j)*solutionCoefficientsOr(j); // sco is arma::col so () iso []
 	    }
 	    if(i % (wm.n_rows/10) == 0) {
-		std::cout << err << " = err, bnor = " << bnorr << ", eaxb= " << errAxb(ki,0) << "\n";
+//		std::cout << err << " = err, bnor = " << bnorr << ", eaxb= " << errAxb(ki,0) << "\n";
 	    }
 	    bnorr += std::pow(std::abs(rhsVe[i]),2.0);
 	    errAxb(ki,0) += std::pow(std::abs(err),2.0);
+	    l1err += std::abs(err);
+	    l1nor += std::abs(rhsVe[i]);
 	}
 	errAxb(ki,0) = std::sqrt(errAxb(ki,0)/bnorr);
+	std::cout << l1nor << " =l1nor orig, l1err orig= " << l1err << "\n";
 
-
-CT qwer = 0.0;
-CT berrr = 0.0;
+//CT qwer = 0.0;
+//CT berrr = 0.0;
 //(1.4838e-07,2.27629e-07) = err, bnor = 0, berrr = 0
 //(-2.3406e-07,-2.94841e-07) = err, bnor = 0.00538152, berrr = 4.30607e-11
 //(3.29072e-07,-2.21606e-08) = err, bnor = 0.0108281, berrr = 8.46947e-11
@@ -328,18 +512,18 @@ CT berrr = 0.0;
 //(-3.99113e-07,-3.60391e-07) = err, bnor = 0.0378162, berrr = 2.97497e-10
 //(-2.11767e-07,-6.79234e-09) = err, bnor = 0.0436223, berrr = 3.44035e-10
 //(2.21862e-07,3.64388e-07) = err, bnor = 0.0490523, berrr = 3.83923e-10
-for (int i=0; i < rhsVe.size(); ++i) {
-	RT err = -rhsVe[i];
-	for (int j=0; j < rhsVe.size(); ++j) {
-		err += wm(i,j)*solutionCoefficientsOr(j); // sco is arma::col so () iso []
-	}
-	if(i % (rhsVe.size()/10) == 0) {
-	    std::cout << err << " = err, qwer = " << qwer << ", berrr = " << berrr << "\n";
-	}
-	qwer += std::pow(std::abs(rhsVe[i]),2.0);
-	berrr += std::pow(std::abs(err),2.0);
-}
-std::cout << std::sqrt(berrr) << " =err,L2 nor= " << std::sqrt(qwer) << "\n";
+//for (int i=0; i < rhsVe.size(); ++i) {
+//	RT err = -rhsVe[i];
+//	for (int j=0; j < rhsVe.size(); ++j) {
+//		err += wm(i,j)*solutionCoefficientsOr(j); // sco is arma::col so () iso []
+//	}
+//	if(i % (rhsVe.size()/10) == 0) {
+//	    std::cout << err << " = err, qwer = " << qwer << ", berrr = " << berrr << "\n";
+//	}
+//	qwer += std::pow(std::abs(rhsVe[i]),2.0);
+//	berrr += std::pow(std::abs(err),2.0);
+//}
+//std::cout << std::sqrt(berrr) << " =err,L2 nor= " << std::sqrt(qwer) << "\n";
 
 
 
@@ -383,19 +567,28 @@ std::cout << std::sqrt(berrr) << " =err,L2 nor= " << std::sqrt(qwer) << "\n";
 	errSol(ki,ti) = arma::norm(solutionCoefficientsCompr -solutionCoefficientsOr)/arma::norm(solutionCoefficientsOr);
 	arma::Mat<RT> potResCompr = slPot.evaluateAtPoints(solFun, points, quadStrategy, evalOptions);
 	arma::Mat<RT> errBCCompr = potResCompr - diri;
-	errBCavm(ki,1+ti) = mean(mean(abs(errBCCompr) ));
-	errInt(ki,1+ti) = mean(mean(abs(slPot.evaluateAtPoints(solFun, pointsInt, quadStrategy, evalOptions)-dirInt) )); // solFun now has solution of compressed problem
+	errBCavm(ki,1+ti) = mean(mean(abs(errBCCompr) ))/mean(mean(abs(diri)));
+	errInt(ki,1+ti) = mean(mean(abs(slPot.evaluateAtPoints(solFun, pointsInt, quadStrategy, evalOptions)-dirInt) ))/mean(mean(abs(dirInt))); // solFun now has solution of compressed problem
 
+	l1err = 0.0;
+	l1nor = 0.0;
 	for (int i=0; i < rhsVe.size(); ++i) {
 	    RT err = -rhsVe[i];
 	    for (int j=0; j < rhsVe.size(); ++j) {
 		err += wm(i,j)*solutionCoefficientsOr(j); // sco is arma::col so () iso [] and wm is now compressed matrix
 	    }
 	    errAxb(ki,1+ti) += std::pow(std::abs(err),2.0);
-	    if(i % (rhsVe.size()/10) == 0) {
-		std::cout << err << " = error for row " << i << ", b_i = " << rhsVe[i] << "\n";
+	    if(std::abs(err)/std::sqrt(bnorr) > 0.01) {
+//		std::cout << err+rhsVe[i] << " =incorrect val row " << i << ", b_i= " << rhsVe[i] << ", relnorerr= " << std::abs(err)/std::sqrt(bnorr) << "\n";
 	    }
+	    if(i % (rhsVe.size()/10) == 0) {
+//		std::cout << err << " = error for row " << i << ", b_i = " << rhsVe[i] << "\n";
+		std::cout << err+rhsVe[i] << " =val row " << i << ", b_i= " << rhsVe[i] << ", relnorerr= " << std::abs(err)/std::sqrt(bnorr) << "\n";
+	    }
+	    l1nor += std::abs(rhsVe[i]);
+	    l1err += std::abs(err);
 	}
+	std::cout << l1nor << " =l1nor, l1err= " << l1err << "\n";
 	errAxb(ki,1+ti) = std::sqrt(errAxb(ki,1+ti)/bnorr);
    }
 std::ofstream myfile;
@@ -424,14 +617,23 @@ fixedWindows();
 arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,4,2));
 const int kl = ks.size();
 
-const int avm = 100;
+const int avm = 20; //100;
 arma::Mat<BFT> thetas = arma::zeros(avm,1);
 arma::Mat<BFT> phis = arma::zeros(avm,1);
+std::uniform_real_distribution<BFT> unif(0, 1);
+std::random_device rd;
+//std::mt19937 gen(rd());
+std::mt19937 gen(11); // Constant seed??
+//std::default_random_engine gen;
 for(int av = 0; av < avm; av ++) {
-	thetas(av) = M_PI*std::rand();
-	phis(av) = M_PI*2*std::rand();
+//	thetas(av) = M_PI*std::rand();
+//	phis(av) = M_PI*2*std::rand();
+	thetas(av) = M_PI*unif(gen);
+	phis(av) = M_PI*2*unif(gen);
 }
 arma::Mat<CT> points(3,avm*avm);
+arma::Mat<CT> pointsInt(3,avm*avm);
+arma::Mat<CT> pointsExt(3,avm*avm);
 // theta in [0,pi) en phi in [0, 2pi)
 for (int thi =0; thi < avm; ++thi) {
 	for(int phih =0; phih < avm; ++phih) {
@@ -439,19 +641,34 @@ for (int thi =0; thi < avm; ++thi) {
 		points(0,idx) = cos(phis(phih))*sin(thetas(thi));
 		points(1,idx) = sin(phis(phih))*sin(thetas(thi));
 		points(2,idx) = cos(thetas(thi));
+//		BFT rtmp = std::rand();
+		BFT rtmp = unif(gen);
+		pointsInt(0,idx) = rtmp*cos(phis(phih))*sin(thetas(thi));
+		pointsInt(1,idx) = rtmp*sin(phis(phih))*sin(thetas(thi));
+		pointsInt(2,idx) = rtmp*cos(thetas(thi));
+//		pointsExt(0,idx) = (rtmp+11.1)*cos(phis(phih))*sin(thetas(thi));
+//		pointsExt(1,idx) = (rtmp+11.1)*sin(phis(phih))*sin(thetas(thi));
+//		pointsExt(2,idx) = (rtmp+11.1)*cos(thetas(thi));
+		pointsExt(0,idx) = (rtmp+1.1)*cos(phis(phih))*sin(thetas(thi));
+		pointsExt(1,idx) = (rtmp+1.1)*sin(phis(phih))*sin(thetas(thi));
+		pointsExt(2,idx) = (rtmp+1.1)*cos(thetas(thi));
 	}
 }
+int maxss = 1;
+arma::Mat<BFT> conds = arma::zeros(maxss,2);
+arma::Mat<BFT> percs = arma::zeros(maxss,1);
 
-arma::Mat<BFT> conds = arma::zeros(3,2);
-arma::Mat<BFT> percs = arma::zeros(3,1);
+arma::Mat<BFT> errBCavm = arma::zeros(maxss,2);
+arma::Mat<BFT> errInt = arma::zeros(maxss,2);
+arma::Mat<BFT> errExt = arma::zeros(maxss,2);
+arma::Mat<BFT> errAxb = arma::zeros(maxss,2);
+arma::Mat<BFT> errSol = arma::zeros(maxss,1);
 
-arma::Mat<BFT> errBCavm = arma::zeros(3,2);
-arma::Mat<BFT> errSol = arma::zeros(3,1);
-
-arma::Mat<BFT> times = arma::zeros(3,2);
+arma::Mat<BFT> times = arma::zeros(maxss,2);
 
 //for(int sim = 0; sim < 3; sim++) {
-for(int sim = 0; sim < 1; sim++) {
+//for(int sim = 0; sim < 1; sim++) {
+for(int sim = 0; sim < maxss; sim++) {
 
 	tbb::tick_count start = tbb::tick_count::now();
 
@@ -507,21 +724,56 @@ for(int sim = 0; sim < 1; sim++) {
 	Helmholtz3dSingleLayerPotentialOperator<BFT> slPot (waveNumber);
 	EvaluationOptions evalOptions = EvaluationOptions();
 	arma::Mat<RT> potResOr = slPot.evaluateAtPoints(solFunOr, points, quadStrategy, evalOptions);
+	arma::Mat<RT> potInt = slPot.evaluateAtPoints(solFunOr, pointsInt, quadStrategy, evalOptions);
+	arma::Mat<RT> potExt = slPot.evaluateAtPoints(solFunOr, pointsExt, quadStrategy, evalOptions);
 	arma::Mat<RT> diri = potResOr;
+	arma::Mat<RT> dirInt = potResOr;
+	arma::Mat<RT> dirExt = potResOr;
 	MyFunctor tmp = MyFunctor();
+	solSphere temss = solSphere();
+	arma::Col<CT> pt(3);
 	for (int i = 0; i < avm*avm; ++i) {
-		arma::Col<CT> pt(3);
 		pt(0) = points(0,i);
 		pt(1) = points(1,i);
 		pt(2) = points(2,i);
 		arma::Col<RT> t(1);
 		tmp.evaluate(pt,t);
 		diri(i) = t(0);
+
+		pt(0) = pointsInt(0,i);
+		pt(1) = pointsInt(1,i);
+		pt(2) = pointsInt(2,i);
+		t.fill(0.);
+		tmp.evaluate(pt,t);
+		dirInt(i) = t(0);
+
+		pt(0) = pointsExt(0,i);
+		pt(1) = pointsExt(1,i);
+		pt(2) = pointsExt(2,i);
+		t.fill(0.);
+		temss.evaluateF(pt,t);
+		dirExt(i) = t(0);
+		if (i % (avm*avm/10) == 0) {
+//		    std::cout << i << " =i, pt= " << pt << "\n";
+//		    std::cout << dirInt(i) << " =dint, potint = " << potInt(i) << " " << dirInt(i,0) << " =dint, potint = " << potInt(i,0) << "\n";
+//		    std::cout << dirInt(i) << " =dint, potint = " << potInt(i) << dirInt(0,i) << " =dint, potint = " << potInt(0,i) << "\n";
+//		    std::cout << dirExt(i) << " =dExt, potExt = " << potExt(i) <<"\n"; //<< dirExt(0,i) << " =dExt, potExt = " << potExt(0,i) << "\n";
+		}
 	}
-	errBCavm(sim,0) = mean(mean(abs(potResOr - diri) ));
+	errBCavm(sim,0) = mean(mean(abs(potResOr - diri) ))/mean(mean(abs(diri)));
+	errInt(sim,0) = mean(mean(abs(slPot.evaluateAtPoints(solFunOr, pointsInt, quadStrategy, evalOptions) - dirInt) ))/mean(mean(abs(dirInt)));
+	errExt(sim,0) = mean(mean(abs(slPot.evaluateAtPoints(solFunOr, pointsExt, quadStrategy, evalOptions) - dirExt) ))/mean(mean(abs(dirExt)));
+//	errExt(sim,0) = mean(mean(abs(slPot.evaluateAtPoints(solFunOr, pointsExt, quadStrategy, evalOptions) + dirExt) ))/mean(mean(abs(dirExt)));
+	pt(0) = pointsExt(0,0);
+	pt(1) = pointsExt(1,0);
+	pt(2) = pointsExt(2,0);
+	std::cout << potExt(0,0) << " =potExt,dirExt = " << dirExt(0,0) << ", mean = " << mean(mean(abs(dirExt))) << ", pt = " << pt << "\n";
+//	std::cout << potExt(1,0) << " =potExt,dirExt = " << dirExt(1,0) << "\n"; Gives index out of bounds because points*(3,avm*avm) 
+	std::cout << potExt(0,1) << " =potExt,dirExt = " << dirExt(0,1) << "\n";
 
 
-GridFunction<BFT, RT> projSol(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), surfaceNormalIndependentFunction(solSphere()));
+
+	GridFunction<BFT, RT> projSol(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), surfaceNormalIndependentFunction(solSphere()));
 
 //arma::Col<RT> projVect(projSol.projections(boundaryOp->dualToRange()));
 #ifdef WITH_TRILINOS
@@ -551,14 +803,14 @@ for (int i=0; i < rhsVe.size(); ++i) {
 		err += wm(i,j)*solutionCoefficientsOr(j); // sco is arma::col so () iso []
 	}
 	if(i % (rhsVe.size()/10) == 0) {
-	    std::cout << err << " = err, bnor = " << bnorr << ", berrr = " << berrr << ", b_i = " << rhsVe[i] << "\n";
+//	    std::cout << err << " = err, bnor = " << bnorr << ", berrr = " << berrr << ", b_i = " << rhsVe[i] << "\n";
 	}
 	bnorr += std::pow(std::abs(rhsVe[i]),2.0);
 //	bnorr += std::pow(std::abs(rhsVee(i)),2.0);
 	berrr += std::pow(std::abs(err),2.0);
 }
-std::cout << "\n\n" << std::sqrt(berrr) << " =err,L2 nor= " << std::sqrt(bnorr) << "\n";
-
+//std::cout << "\n\n" << std::sqrt(berrr) << " =err,L2 nor= " << std::sqrt(bnorr) << "\n";
+	errAxb(sim, 0) = sqrt(berrr/bnorr);
 
 //	std::vector<RT> diff = projVe-rhsVe;
 	RT diff = 0.0;
@@ -590,7 +842,18 @@ std::cout << projVe[0] << "asdf" << solutionCoefficientsOr(0) << "oiuh" << rhsVe
 	for(int i=0; i < projVe.size(); i++) {
 		corrDiff += std::pow(std::abs(projVe[i]*nor/norV -solutionCoefficientsOr(i)), 2); 
 	}
-std::cout << jn(0,0.9) << " asodufh " << jn(3,9.7) << " paosjfhd " << sqrt(acos(-1.0)/2/std::abs(waveNumber) ) << " cordiff = " << sqrt(corrDiff) << "\n";
+	std::cout << jn(0,0.9) << " asodufh " << jn(3,9.7) << " paosjfhd " << sqrt(acos(-1.0)/2/std::abs(waveNumber) ) << " cordiff = " << sqrt(corrDiff) << "\n";
+
+	arma::Col<RT> solutionCoefficientsNew = solutionCoefficientsOr;	
+	for(int i=0; i < projVe.size(); i++) {
+//		solutionCoefficientsNew(i) = projVe[i];
+		solutionCoefficientsNew(i) = projVe[i]*nor/norV;
+	}
+	GridFunction<BFT, RT> solFunNew = solution.gridFunction();
+//	solFunOr.setCoefficients(solutionCoefficientsNew);
+	solFunNew.setCoefficients(solutionCoefficientsNew);
+	
+	std::cout << mean(mean(abs(slPot.evaluateAtPoints(solFunNew, points, quadStrategy, evalOptions) - diri) ))/mean(mean(abs(diri))) << " = err BC when using projection coeffs\n";
 
 //return 0;
 //break;
@@ -601,7 +864,11 @@ std::cout << jn(0,0.9) << " asodufh " << jn(3,9.7) << " paosjfhd " << sqrt(acos(
 //	std::string str = "c   0.8"; //"f   "+ std::to_string(Ts(ti)); //"c   ";
 //	std::string str = "t   0"; //"t   2010";
 //	std::string str = "d   0.1";
-	std::string str = "k     0.6";
+//	std::string str = "k     0.6";
+//	std::string str = "k  1.6";
+//	std::string str = "f  1.6";
+//	std::string str = "i  1.6";
+	std::string str = "j  1.6";
 	start = tbb::tick_count::now();
 
 	slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
@@ -614,7 +881,7 @@ std::cout << jn(0,0.9) << " asodufh " << jn(3,9.7) << " paosjfhd " << sqrt(acos(
 	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weakCompr = bla.weakFormPeter(str,context,&solutionCoefficientsOr, &rhsVe, &wm);
 	
 	wm = weakCompr->asMatrix(); // Warning: wm now contains compressed matrix
-std::cout << "apsoijfd\n";
+//std::cout << "apsoijfd\n";
 
 if (str.at(0) == 't') {
 arma::Mat<RT> oneRow = weakCompr->asMatrix();
@@ -661,15 +928,15 @@ for (int i=0; i < wm.n_rows; ++i) {
 //		err += wm[j,i]*projVe[j];
 	}
 	if(i % (wm.n_rows/10) == 0) {
-	    std::cout << err << " = err, bnor = " << bnor << ", b_i = " << rhsVe[i] << "\n";
+//	    std::cout << err << " = err, bnor = " << bnor << ", b_i = " << rhsVe[i] << "\n";
 	}
 //	std::cout << " " << err;
 	bnor += std::pow(std::abs(rhsVe[i]),2.0);
 //	bnor += std::pow(std::abs(rhsVe(i)),2.0);
 	berr += std::pow(std::abs(err),2.0);
 }
-std::cout << std::sqrt(berr) << " =err,L2 nor= " << std::sqrt(bnor) << "\n";
-
+//std::cout << std::sqrt(berr) << " =err,L2 nor= " << std::sqrt(bnor) << "\n";
+	errAxb(sim,1) = sqrt(berr/bnor);
 //break;
 
 	DefaultIterativeSolver<BFT, RT> solverCompr(weakCompr, str, slpOp, ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
@@ -683,12 +950,15 @@ std::cout << std::sqrt(berr) << " =err,L2 nor= " << std::sqrt(bnor) << "\n";
         times(sim,1) = (end - start).seconds();
 
 // ----------------   Validation of compressed  ------------------------------------
-	std::cout << "valcompr\n";
+//	std::cout << "valcompr\n";
 	conds(sim,1) = arma::cond(wm);
 	percs(sim,0) = arma::accu(wm != 0)/(0.0+wm.n_elem);
 	errSol(sim,0) = arma::norm(solutionCoefficientsCompr -solutionCoefficientsOr)/arma::norm(solutionCoefficientsOr);
 	arma::Mat<RT> potResCompr = slPot.evaluateAtPoints(solFunCompr, points, quadStrategy, evalOptions);
-	errBCavm(sim,1) = mean(mean(abs(potResCompr - diri) ));
+	errBCavm(sim,1) = mean(mean(abs(potResCompr - diri) ))/mean(mean(abs(diri)));
+	errInt(sim,1) = mean(mean(abs(slPot.evaluateAtPoints(solFunCompr, pointsInt, quadStrategy, evalOptions) - dirInt) ))/mean(mean(abs(dirInt)));
+	errExt(sim,1) = mean(mean(abs(slPot.evaluateAtPoints(solFunCompr, pointsExt, quadStrategy, evalOptions) - dirExt) ))/mean(mean(abs(dirExt)));
+//	errExt(sim,1) = mean(mean(abs(slPot.evaluateAtPoints(solFunCompr, pointsExt, quadStrategy, evalOptions) + dirExt) ))/mean(mean(abs(dirExt)));
 
 	std::ofstream myfile;
 	myfile.open ("res");
@@ -697,6 +967,7 @@ std::cout << std::sqrt(berr) << " =err,L2 nor= " << std::sqrt(bnor) << "\n";
 	myfile << percs << " = perc, conds = " << std::endl << conds << std::endl;
 	myfile << times << " = times" << std::endl << std::endl;
 	myfile << errBCavm << " = errBCavm, errSol = " << std::endl << errSol << std::endl;
+	myfile << errInt << " = errInt, errSol = \n" << errAxb << "\nerrExt=\n" << errExt <<"\n";
 	myfile.close();
 }
 
@@ -704,6 +975,7 @@ std::cout << std::sqrt(berr) << " =err,L2 nor= " << std::sqrt(bnor) << "\n";
 std::cout << real(ks) << " = ks " << std::endl;
 std::cout << percs << " = perc, conds = " << conds << std::endl;
 std::cout << times << " = times, " << errBCavm << " = errBCavm, errSol = " << errSol << std::endl;
+std::cout << errInt << " = errInt, errAxb = " << errAxb << "errExt=" << errExt <<"\n";
 
 //correlations();
 }
