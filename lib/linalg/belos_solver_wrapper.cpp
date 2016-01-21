@@ -111,7 +111,7 @@ makeOperatorWithSolve(
     // No preconditioner
 //std::cout << "belossolverwrap.cpp no precond in makeOpWithSolve\n"; // Peter
     result = Thyra::linearOpWithSolve(invertibleOpFactory, realLinOp);
-std::cout << "belossolverwrap.cpp no precond and " << typeid(*result).name() << "=type\n";
+//std::cout << "belossolverwrap.cpp no precond and " << typeid(*result).name() << "=type\n";
 }//Peter
   else {
 //std::cout << "belossolverwrap.cpp have precond in makeOpWithSolve\n";//Peter

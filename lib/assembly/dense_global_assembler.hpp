@@ -76,6 +76,9 @@ public:
 	std::vector<arma::Mat<ResultType> > localResult;
 	CoordinateType percDecay = 0.65; //0.8;
 	CoordinateType thrp = 0.1; //0.04;
+
+//std::cout << testIndex << "=testi, triali=" << trialIndex << "\n";
+
 	for (size_t trialIndex = r.begin(); trialIndex != r.end(); ++trialIndex) {
 	    // Evaluate integrals over pairs of the current trial element and all the test elements	
             m_assembler.evaluateLocalWeakFormsPeter(str,TEST_TRIAL, m_testIndices, trialIndex, ALL_DOFS, localResult);	
@@ -92,6 +95,7 @@ public:
 		    CoordinateType wind = 0.0;
 		    if( (str.at(0) == 'n') | (str.at(0) == 't') | (str.at(0) == 'k')  | (str.at(0) == 'j') ) {
 			wind = 1.0;
+//std::cout << testIndex << "=testi, triali=" << trialIndex << "\n";
 		    } else if (str.at(0) == 'f') {
 			std::string::size_type sz; // alias of size_t
 			CoordinateType b = std::stof(str.substr(4),&sz);		
@@ -113,6 +117,13 @@ public:
 			}
 			else if (dist <= b) {
 			    wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
+			}
+//			wind = std::max(wind, abs(m_testPos[testIndex].x + 0.15) );
+			if(wind < std::abs(m_testPos[testIndex].x + 0.15)) {
+				wind = std::abs(m_testPos[testIndex].x + 0.15);
+			}
+			if ((trialIndex == 0) && (testIndex == 0) ) {
+				std::cerr << "\n str is i: " << str << "\n\n";
 			}
 //		wind = 1.0; // Multiply by window in kernel-> str.at(0) == 'k'
 		    } else if (str.at(0) == 'd') { // Correlations through physical distance
@@ -318,7 +329,7 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
 	// Enumerate the test elements that contribute to at least one global DOF
 	std::vector<int> testIndices;
 	testIndices.reserve(testElementCount);
-std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
+//std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
 	for (int testIndex = 0; testIndex < testElementCount; ++testIndex) {
             const int testDofCount = testGlobalDofs[testIndex].size();
 	    if (testIndex % (testElementCount/10) == 0) {
@@ -356,7 +367,7 @@ std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
 //	arma::vec<ResultType>& rowMax(roisSiz);
 //	arma::Col<ResultType>& rowMax(roisSiz);
 //	arma::Col<ResultType>& rowMax = arma::zeros<arma::Col<ResultType>>(roisSiz);
-//	rowMax.fill(0.);
+	rowMax.fill(0.);
 	
 	if ((str.at(0) == 'd') || (str.at(0) == 'c') ) {
 	    tbb::task_scheduler_init scheduler(maxThreadCount);
@@ -368,7 +379,7 @@ std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
 	    std::cout << "Computing maxima\n"; 
 	    //rowMax = max(abs(rois),1);//For matrix X, return the extremum value for each column (dim=0), or each row (dim=1) 
 	    //globMax = max(abs(rowMax));
-	    rowMax.fill(0.0);
+//	    rowMax.fill(0.0);
 	    for(int i = 0; i < roisSiz; i ++) { // Better to make this parallel as well
 		for(int j = 0; j < roisSiz; j ++) {
 		    if(abs(rois(i,j)) > abs(rowMax(i)) ) {
@@ -395,18 +406,34 @@ std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
 	    std::cout << "Ended assembling system matrix\n";
 	    return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(result));
 	}
-	arma::Mat<ResultType> oneRow(testSpace.globalDofCount(), 1);
+//	arma::Mat<ResultType> oneRow(testSpace.globalDofCount(), 1);
+	arma::Mat<ResultType> oneRow(1, trialSpace.globalDofCount() );
 	oneRow.fill(0.);
 	std::vector<arma::Mat<ResultType> > localResult;
 
 	std::string::size_type sz;
-	size_t trialIndex = std::stof(str.substr(4),&sz);	
-	const int elementCount = testIndices.size();
-
-	assembler.evaluateLocalWeakFormsPeter(str,TEST_TRIAL, testIndices, trialIndex, ALL_DOFS, localResult);
-	const int trialDofCount = trialGlobalDofs[trialIndex].size();
-
-	for (int testIndex = 0; testIndex < elementCount; ++testIndex) {
+//	size_t trialIndex = std::stof(str.substr(4),&sz);
+	size_t testIndex = std::stof(str.substr(4),&sz);
+	testIndices.resize(1);
+	testIndices[0] = testIndex;
+	
+	for(size_t trialIndex = 0; trialIndex != trialElementCount; ++trialIndex) {
+		assembler.evaluateLocalWeakFormsPeter(str,TEST_TRIAL, testIndices, trialIndex, ALL_DOFS, localResult);
+		const int trialDofCount = trialGlobalDofs[trialIndex].size();
+		const int testDofCount = testGlobalDofs[testIndex].size();
+	    	for (int trialDof = 0; trialDof < trialDofCount; ++trialDof) {
+			int trialGlobalDof = trialGlobalDofs[trialIndex][trialDof];
+			if (trialGlobalDof < 0)
+			    continue;
+			for (int testDof = 0; testDof < testDofCount; ++testDof) {
+			    int testGlobalDof = testGlobalDofs[testIndex][testDof];
+			    if (testGlobalDof < 0)
+				continue;
+			    oneRow(0,trialGlobalDof) += conj(testLocalDofWeights[testIndex][testDof]) * trialLocalDofWeights[trialIndex][trialDof] *localResult[testIndex](testDof, trialDof);
+			}
+		}
+	}
+/*	for (int testIndex = 0; testIndex < elementCount; ++testIndex) {
 	    const int testDofCount = testGlobalDofs[testIndex].size();
 	    for (int trialDof = 0; trialDof < trialDofCount; ++trialDof) {
 		int trialGlobalDof = trialGlobalDofs[trialIndex][trialDof];
@@ -416,11 +443,13 @@ std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
 		    int testGlobalDof = testGlobalDofs[testIndex][testDof];
 		    if (testGlobalDof < 0)
 			continue;
-		    oneRow(testGlobalDof, 0) += conj(testLocalDofWeights[testIndex][testDof]) * trialLocalDofWeights[trialIndex][trialDof] *localResult[testIndex](testDof, trialDof);
+		    oneRow(0,testGlobalDof) += conj(testLocalDofWeights[testIndex][testDof]) * trialLocalDofWeights[trialIndex][trialDof] *localResult[testIndex](testDof, trialDof);
+//		    oneRow(testGlobalDof, 0) += conj(testLocalDofWeights[testIndex][testDof]) * trialLocalDofWeights[trialIndex][trialDof] *localResult[testIndex](testDof, trialDof);
 		}
 	    }
 	}
-	std::cout << trialDofCount << " =trialDofCount in dga oneRow , trialIndex = " << trialIndex << ", elmCnt=" << elementCount << ", oneRow[0] = " << oneRow(0,0) << "\n";
+*/
+	std::cout << testIndices[0] << " =testIndex in dga oneRow , testDofCount = " << testGlobalDofs[testIndex].size() << ", trialDofCnt=" << trialGlobalDofs[0].size() << ", oneRow[0] = " << oneRow(0,0) << "=or(0,0), or(0,1)=" << oneRow(0,1) << "\n";
 	return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(oneRow));
 }
 

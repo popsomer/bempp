@@ -158,6 +158,19 @@ public:
 		} else { 
 			wind = static_cast<CoordinateType>(0.0); 
 		}
+//		wind = std::max(wind, abs(testGeomData.global(0) + 0.15) );
+		if(wind < std::abs(testGeomData.global(0) + 0.15) ) {
+			wind = std::abs(testGeomData.global(0) + 0.15);
+		}
+//		if (testGeomData.global(0) < -0.95) {
+		if ((testGeomData.global(0) < -0.95) && (std::abs(trialGeomData.global(0) - testGeomData.global(0)) < 1e-13) ) {
+//		if ((testGeomData.global(0) < -0.95) &&(testGeomData.global(1) > 0.1) &&(testGeomData.global(2) > 0) && (std::abs(trialGeomData.global(0) - testGeomData.global(0)) < 1e-13) ) {
+			std::cerr << "\n str is j: " << str << "\n\n";
+		}
+//		if( (abs(wind) > 1e-13) && (dist > b) && (testGeomData.global(0) <= -0.15) ) {
+		if( (abs(wind) > 1e-13) && (trialGeomData.global(0) > b-0.15) && (testGeomData.global(0) <= -0.15) ) {
+			std::cerr << "\n err, window should be zero: " << a << "=a, dist=" << dist << "=dist, tgd0=" << testGeomData.global(0) << "\n";
+		}
 	}
 //	if (false) {
 //		if (distance >= cuto*2) {

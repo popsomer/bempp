@@ -8,6 +8,8 @@
 // pushd ../..; make tutorial_dirichlet -j6; popd
 // ulimit -v 6000000
 // ./tutorial_dirichlet >res 2>testgeom
+// pushd ../..; make tutorial_dirichlet -j6; popd; ./tutorial_dirichlet 
+
 
 //Simpson:
 // cd build
@@ -93,6 +95,24 @@ public:
                          arma::Col<ValueType>& result) const {
 	RT imu = std::complex<double>(0, 1);
         result(0) = -exp(waveNumber*imu*point(0));
+    }
+};
+class CstFct
+{
+public:
+    typedef RT ValueType;
+    typedef ScalarTraits<RT>::RealType CoordinateType;
+    RT val;
+    CstFct(RT given) {
+	val = given;
+    }
+    // Number of components of the function's argument
+    int argumentDimension() const { return 3; }
+    int resultDimension() const { return 1; }
+    // Evaluate the function at the point "point" and store result in the array "result"
+    inline void evaluate(const arma::Col<CoordinateType>& point,
+                         arma::Col<ValueType>& result) const {
+        result(0) = val;
     }
 };
 class solSphere
@@ -311,6 +331,281 @@ public:
 */
     }
 };
+
+void oneRow()
+{
+arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,4,2));
+const int kl = ks.size();
+
+const int avm = 40;
+arma::Mat<BFT> thetas = arma::zeros(avm,1);
+arma::Mat<BFT> phis = arma::zeros(avm,1);
+std::uniform_real_distribution<BFT> unif(0, 1);
+std::random_device rd;
+std::mt19937 gen(11); // Constant seed
+//std::default_random_engine gen; // Random seed
+for(int av = 0; av < avm; av ++) {
+	thetas(av) = M_PI*unif(gen);
+	phis(av) = M_PI*2*unif(gen);
+}
+arma::Mat<CT> points(3,avm*avm);
+// theta in [0,pi) and phi in [0, 2pi)
+for (int thi =0; thi < avm; ++thi) {
+	for(int phih =0; phih < avm; ++phih) {
+		int idx = thi*avm+phih;
+		points(0,idx) = cos(phis(phih))*sin(thetas(thi));
+		points(1,idx) = sin(phis(phih))*sin(thetas(thi));
+		points(2,idx) = cos(thetas(thi));
+	}
+}
+int maxss = 3;
+arma::Mat<BFT> percs = arma::zeros(maxss,1);
+arma::Mat<BFT> errBCavm = arma::zeros(maxss,1);
+errBCavm.fill(-1.0); // No meaningful values for when only making one row because no exact solution vector to compare with
+arma::Mat<BFT> errBCproj = arma::zeros(maxss,1);
+arma::Mat<BFT> errAxb = arma::zeros(maxss,1);
+errAxb.fill(-1.0); // No meaningful values for when only making one row because no exact solution vector to compare with
+arma::Mat<BFT> errAprojb = arma::zeros(maxss,1);
+arma::Mat<BFT> errProj = arma::zeros(maxss,1);
+errProj.fill(-1.0); // No meaningful values for when only making one row because no exact solution vector to compare with
+arma::Mat<BFT> times = arma::zeros(maxss,1);
+
+Solution<BFT, RT> solution; // Reuse the Solution<BFT,RT> from first simulation and overwrite the coefficients because GridFunction.setCoefficients(...) cannot be called on an uninitialised GridFunction
+
+for(int sim = 0; sim < maxss; sim++) {
+//for(int sim = 1; sim < maxss; sim++) {
+	tbb::tick_count start = tbb::tick_count::now();
+	shared_ptr<Grid> grid;
+	std::string str;
+//	ScalarSpace<BFT> HplusHalfSpace = PiecewiseConstantScalarSpace<BFT>(loadTriangularMeshFromFile("../../../meshes/sphere0.msh"));
+//	ScalarSpace<BFT> HminusHalfSpace = PiecewiseConstantScalarSpace<BFT>(loadTriangularMeshFromFile("../../../meshes/sphere0.msh"));
+//	ScalarSpace<BFT> HplusHalfSpace = NULL;
+//	ScalarSpace<BFT> HminusHalfSpace = &NULL;
+//	int minOrd = 0;
+	if(sim == 0) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");
+		waveNumber = ks(0);
+//		PiecewiseLinearContinuousScalarSpace<BFT> HplusHalfSpace(grid);
+//		PiecewiseConstantScalarSpace<BFT> HminusHalfSpace(grid);
+		str = "n   "; // need at least one space after 'n' for str(2) == 'l'-test in dga.hpp
+	} else if(sim == 1) {
+		if(false){
+			grid = loadTriangularMeshFromFile("../../../meshes/sphere2.msh");
+			waveNumber = ks(1);
+			str = "n    ";
+		} else {
+			grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");	
+			waveNumber = ks(0);
+			str = "t   0";
+		}
+	} else if(sim == 2) {
+//		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere2.msh");	
+		waveNumber = ks(1);
+//		minOrd = 1;
+		str = "t   0 ";
+	} else if(sim == 3) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");	
+		waveNumber = ks(1);
+		str = "n    ";
+	} else if(sim == 4) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere2.msh");	
+		waveNumber = ks(1);
+//		PiecewisePolynomialContinuousScalarSpace<BFT> HplusHalfSpace(grid,2);
+//		PiecewiseLinearContinuousScalarSpace<BFT> HminusHalfSpace(grid);
+//		minOrd = 1;
+		str = "t   0 ";
+	} else{
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere2.msh");
+		waveNumber = ks(1);
+		str = "n    ";
+//		minOrd = 1;
+	}
+//	CT factorProj = 410.36/1.74179; // Probably dependent on k, mesh and choice of Piecewise ScalarSpaces
+	PiecewiseLinearContinuousScalarSpace<BFT> HplusHalfSpace(grid);
+	PiecewiseConstantScalarSpace<BFT> HminusHalfSpace(grid); // cannot do this in the ifblocks above because supertype ScalarSpace is abstract
+//	PiecewisePolynomialContinuousScalarSpace<BFT> HplusHalfSpace(grid,minOrd+1);
+//	PiecewisePolynomialContinuousScalarSpace<BFT> HminusHalfSpace(grid,minOrd);
+
+	std::cout << "\n-----------------  sim = " << sim << "-------\n\n";
+	AssemblyOptions assemblyOptions;
+	assemblyOptions.setVerbosityLevel(VerbosityLevel::LOW);
+
+	AccuracyOptions accuracyOptions;
+	accuracyOptions.doubleRegular.setRelativeQuadratureOrder(1);
+	NumericalQuadratureStrategy<BFT, RT> quadStrategy(accuracyOptions);
+	Context<BFT, RT> context(make_shared_from_ref(quadStrategy), assemblyOptions);
+	
+	GridFunction<BFT, RT> rhs(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace),  surfaceNormalIndependentFunction(MyFunctor()));
+
+	GridFunction<BFT, RT> projSol(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), surfaceNormalIndependentFunction(solSphere()));
+	// Divide by the norms of basis functions
+	GridFunction<BFT, RT> normbas(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), surfaceNormalIndependentFunction(CstFct(1.0)));
+	
+
+	arma::Mat<RT> diri = arma::Mat<RT>(1,avm*avm);
+	MyFunctor tmp = MyFunctor();
+	arma::Col<CT> pt(3);
+	for (int i = 0; i < avm*avm; ++i) {
+		pt(0) = points(0,i);
+		pt(1) = points(1,i);
+		pt(2) = points(2,i);
+		arma::Col<RT> t(1);
+		tmp.evaluate(pt,t);
+		diri(i) = t(0);
+	}
+
+	BoundaryOperator<BFT, RT> slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
+	boost::shared_ptr<const Bempp::AbstractBoundaryOperator<double, std::complex<double> > > asdf = slpOp.abstractOperator();
+	const GeneralElementarySingularIntegralOperator<BFT,RT,RT> bla = dynamic_cast<const GeneralElementarySingularIntegralOperator<BFT,RT,RT>& > (*asdf);
+
+	arma::Mat<RT> wmDummy(3,3);
+	wmDummy.fill(0.);
+	std::vector<RT> rhsVeDummy;
+	arma::Col<RT> scoDummy;
+	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weakCompr = bla.weakFormPeter(str,context,&scoDummy, &rhsVeDummy, &wmDummy);
+	
+	arma::Mat<RT> wm = weakCompr->asMatrix(); // Warning: wm now contains one row of the compressed matrix if str starts with t or ..?.., else use 'n'
+	DefaultIterativeSolver<BFT, RT> solver(slpOp,ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
+
+	tbb::tick_count end = tbb::tick_count::now();
+        times(sim,0) = (end - start).seconds(); // Overwrite with solution time added, when str.at(0) == n
+
+	solver.saveProjections(normbas,"normbas");
+	solver.saveProjections(projSol,"projVectOld");
+	solver.saveProjections(rhs,"rhs");
+
+	std::ifstream inputn("normbas");
+	std::vector<RT> normBasVe{std::istream_iterator<RT>(inputn), std::istream_iterator<RT>() };
+        inputn.close();
+
+	std::ifstream inputp("projVectOld");
+	std::vector<RT> projVeOld{std::istream_iterator<RT>(inputp), std::istream_iterator<RT>() };
+        inputp.close();
+
+	std::ifstream inputt("rhs");
+	std::vector<RT> rhsVe{std::istream_iterator<RT>(inputt), std::istream_iterator<RT>() };
+        inputt.close();
+
+	std::cout << "\n norbas(0)=" << normBasVe[0] << "=nb[0],nb[1]=" << normBasVe[1] << "=nb1, pv0=" << projVeOld[0] << "=pv0, pv1=" << projVeOld[1] << "\n";
+
+	// Change projSol to divide by the norms of the basis functions
+	arma::Col<RT> correctedProj = arma::Col<RT>(normBasVe.size());
+	for(int i=0; i < projVeOld.size(); i++) {
+		correctedProj(i) = projVeOld[i]/normBasVe[i];
+//		newNor += std::pow(std::abs(solutionCoefficientsNew(i)),2.0);
+	}
+//	projSol.setCoefficients(correctedProj);	
+	projSol.setProjections(make_shared_from_ref(HminusHalfSpace), correctedProj);
+
+	solver.saveProjections(projSol,"projVect");
+	std::ifstream inputpn("projVect");
+	std::vector<RT> projVe{std::istream_iterator<RT>(inputpn), std::istream_iterator<RT>() };
+        inputpn.close();
+
+	std::cout << projVe[0] << "=pv0, pv1=" << projVe[1] << "=pv1, cp0=" << correctedProj(0) << "\n\n";
+
+	int startI = 0;
+	int endI = rhsVe.size();
+	EvaluationOptions evalOptions = EvaluationOptions();
+	Helmholtz3dSingleLayerPotentialOperator<BFT> slPot (waveNumber);
+
+//	if(sim == 0) {
+	if (str.at(0) == 'n') {
+		solver.initializeSolver(defaultGmresParameterList(1e-5));
+		solution = solver.solve(rhs);
+		end = tbb::tick_count::now();
+	        times(sim,0) = (end - start).seconds();
+
+		std::cout << "ended std calc\n";
+		const GridFunction<BFT, RT>& solFunOr = solution.gridFunction();
+		arma::Col<RT> solutionCoefficientsOr = solFunOr.coefficients(); // Same as armaSolution from def_iter_solver.cpp
+		arma::Mat<RT> potResOr = slPot.evaluateAtPoints(solFunOr, points, quadStrategy, evalOptions);
+		errBCavm(sim,0) = arma::mean(arma::mean(abs(potResOr - diri) ))/arma::mean(arma::mean(abs(diri)));
+		RT diff = 0.0;
+		RT nor = 0.0;
+		RT norV = 0.0;
+//		RT errFact = 0.0;
+		for(int i=0; i < projVe.size(); i++) {
+			diff = diff + std::abs(projVe[i]-solutionCoefficientsOr(i))*std::abs(projVe[i]-solutionCoefficientsOr(i)); // sco is arma:col so () iso []
+			norV = norV + std::abs(projVe[i])*std::abs(projVe[i]);
+			nor = nor + std::abs(solutionCoefficientsOr(i))*std::abs(solutionCoefficientsOr(i));
+//			errFact = errFact + std::abs(projVe[i]*factorProj -solutionCoefficientsOr(i))*std::abs(projVe[i]*factorProj -solutionCoefficientsOr(i)); // sco is arma:col so () iso []
+		}
+		diff = std::sqrt(diff);
+		nor = std::sqrt(nor);
+		norV = std::sqrt(norV);
+//		errProj(sim,0) = std::abs(std::sqrt(errFact)/nor);
+		errProj(sim,0) = std::abs(diff/nor);
+		std::cout << errBCavm(sim,0) << "=errBCavm, diff =" << diff << "=diff, nor=" << nor << " =norm solCoeffs, norV = " << norV << "=norV\n";
+
+		CT bnorr = 0.0;
+		CT berrr = 0.0;
+		for (int i=0; i < rhsVe.size(); ++i) {
+			RT err = -rhsVe[i];//rhsVee is vector so [] iso ()
+			for (int j=0; j < rhsVe.size(); ++j) {
+				err += wm(i,j)*solutionCoefficientsOr(j); // sco is arma::col so () iso []
+			}
+			bnorr += std::pow(std::abs(rhsVe[i]),2.0);
+			berrr += std::pow(std::abs(err),2.0);
+		}
+		errAxb(sim, 0) = sqrt(berrr/bnorr);
+		RT corrDiff = 0.0;
+		for(int i=0; i < projVe.size(); i++) {
+			corrDiff += std::pow(std::abs(projVe[i]*nor/norV -solutionCoefficientsOr(i)), 2); 
+		}
+		std::cout << std::sqrt(corrDiff) << "=corrDiff, errAxb=" << errAxb(sim,0) << "\n";
+	} else {
+		std::string::size_type sz;
+		startI = std::stof(str.substr(4),&sz);
+		endI = startI+1;
+	}
+	percs(sim,0) = arma::accu(wm != 0)/(0.0+wm.n_elem);
+	CT newNor = 0.0;
+//	std::vector<RT> scn = projVe;
+//	std::transform(scn.begin(),scn.end(),scn.begin(), std::bind1st(std::multiplies<RT>(),factorProj));
+//	arma::Col<RT> solutionCoefficientsNew = arma::vec<RT>(scn);
+	arma::Col<RT> solutionCoefficientsNew = arma::Col<RT>(projVe.size());
+	for(int i=0; i < projVe.size(); i++) {
+		solutionCoefficientsNew(i) = projVe[i]; //projVeOld[i]*factorProj;
+		newNor += std::pow(std::abs(solutionCoefficientsNew(i)),2.0);
+	}
+	
+	CT bnorr = 0.0;
+	CT berrr = 0.0;
+	std::cout << std::sqrt(newNor) << "=newNor, startI=" << startI << "apoapsodjf" << endI << "=endI, mrow=" << wm.n_rows << "=mrows, mcols=" << wm.n_cols << "\n";
+	for (int i=startI; i < endI; ++i) {
+		RT err = -rhsVe[i];//rhsVee is vector so [] iso ()
+		for (int j=0; j < rhsVe.size(); ++j) {
+			err += wm(i,j)*solutionCoefficientsNew(j); // sco is arma::col so () iso []
+		}
+		bnorr += std::pow(std::abs(rhsVe[i]),2.0);
+		berrr += std::pow(std::abs(err),2.0);
+	}
+	errAprojb(sim, 0) = sqrt(berrr/bnorr);
+	GridFunction<BFT, RT> solFunNew = solution.gridFunction();
+//	const GridFunction<BFT, RT> solFunNew();
+	solFunNew.setCoefficients(solutionCoefficientsNew);	
+	errBCproj(sim,0) = arma::mean(arma::mean(abs(slPot.evaluateAtPoints(solFunNew, points, quadStrategy, evalOptions) - diri) ))/arma::mean(arma::mean(abs(diri)));
+	std::cout << errBCproj(sim,0) << " = err BC when using scaled projection coeffs\n";
+	std::cout << percs(sim,0) << "perc, errAprojb=" << errAprojb(sim,0) << "\n";
+
+	std::ofstream myfile;
+	myfile.open("res");
+	myfile << "Output of tutorial_dirichlet with one row.\n";
+	myfile << real(ks) << " = ks " << std::endl;
+	myfile << percs << " = perc, errAxb = \n" << errAxb << "\n";
+	myfile << times << " = times, errProj = \n" << errProj << "\n";
+	myfile << errBCavm << " = errBCavm, errBCproj=" << errBCproj << "\n";
+	myfile.close();
+}
+
+maxss = std::system("cat res");
+//std::cout << real(ks) << " = ks, errAprojb= " << errAprojb << "\n";
+//std::cout << percs << " = perc, errAxb = " << errAxb << "\n";
+//std::cout << times << " = times, errProj" << errProj << "\n";
+//std::cout << errBCavm << "=errBCavm, errBCproj=" << errBCproj << "\n";
+}
 
 
 void fixedWindows() {
@@ -613,6 +908,8 @@ std::cout << errInt << " = errInt, errAxb = " << errAxb << "\n";
 int main(int argc, char* argv[])
 {
 fixedWindows();
+oneRow();
+/*
 
 arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,4,2));
 const int kl = ks.size();
@@ -685,6 +982,8 @@ for(int sim = 0; sim < maxss; sim++) {
 	}
 	PiecewiseLinearContinuousScalarSpace<BFT> HplusHalfSpace(grid);
 	PiecewiseConstantScalarSpace<BFT> HminusHalfSpace(grid);
+//	PiecewisePolynomialContinuousScalarSpace<BFT> HplusHalfSpace(grid,2);
+//	PiecewiseLinearContinuousScalarSpace<BFT> HminusHalfSpace(grid);
 	AssemblyOptions assemblyOptions;
 	assemblyOptions.setVerbosityLevel(VerbosityLevel::LOW);
 //	assemblyOptions.setVerbosityLevel(VerbosityLevel::HIGH);
@@ -865,10 +1164,10 @@ std::cout << projVe[0] << "asdf" << solutionCoefficientsOr(0) << "oiuh" << rhsVe
 //	std::string str = "t   0"; //"t   2010";
 //	std::string str = "d   0.1";
 //	std::string str = "k     0.6";
-//	std::string str = "k  1.6";
+	std::string str = "k  1.6";
 //	std::string str = "f  1.6";
 //	std::string str = "i  1.6";
-	std::string str = "j  1.6";
+//	std::string str = "j  1.6";
 	start = tbb::tick_count::now();
 
 	slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
@@ -976,7 +1275,7 @@ std::cout << real(ks) << " = ks " << std::endl;
 std::cout << percs << " = perc, conds = " << conds << std::endl;
 std::cout << times << " = times, " << errBCavm << " = errBCavm, errSol = " << errSol << std::endl;
 std::cout << errInt << " = errInt, errAxb = " << errAxb << "errExt=" << errExt <<"\n";
-
+*/
 //correlations();
 }
 //void correlations() {
