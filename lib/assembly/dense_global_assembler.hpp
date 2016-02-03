@@ -329,7 +329,7 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
 	// Enumerate the test elements that contribute to at least one global DOF
 	std::vector<int> testIndices;
 	testIndices.reserve(testElementCount);
-//std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
+std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
 	for (int testIndex = 0; testIndex < testElementCount; ++testIndex) {
             const int testDofCount = testGlobalDofs[testIndex].size();
 	    if (testIndex % (testElementCount/10) == 0) {
@@ -392,7 +392,7 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
 	    }
 	}
 
-//	std::cout << rowMax(0) << "=rowmax(0), globMax = " << (abs(rois(0,0)) > abs(rowMax(0)) ) << ", rois(0,0) =" << rois(0,0) << "\n";
+	std::cout << rowMax(0) << "=rowmax(0), globMax = " << (abs(rois(0,0)) > abs(rowMax(0)) ) << ", rois(0,0) =" << rois(0,0) << "\n";
 //	std::cout << abs(rowMax(0)) << "=a rowmax(0), log = " << globMax << ", a rois(0,0) =" << abs(rois(0,0)) << "\n";
 	if (str.at(0) != 't') {
 	    arma::Mat<ResultType> result(testSpace.globalDofCount(), trialSpace.globalDofCount());

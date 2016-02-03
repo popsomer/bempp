@@ -5,6 +5,8 @@
 // gedit /opt/fb/bempp/build/external/include/Trilinos/Thyra_BelosLinearOpWithSolve_def.hpp
 
 // cd /opt/fb/bempp/build/examples/cpp/
+// pushd ../..; make tutorial_dirichlet -j6 && popd && ./tutorial_dirichlet
+
 // pushd ../..; make tutorial_dirichlet -j6; popd
 // ulimit -v 6000000
 // ./tutorial_dirichlet >res 2>testgeom
@@ -134,6 +136,7 @@ public:
 		std::cerr << "r not close to 1\n";
 		exit(1);
 	}
+	Hp ppvn = abs(waveNumber)+40;
 	Hp prevNorm = abs(waveNumber)+4;
 	Hpc hnm1 = exp(imu*(abs(waveNumber)+0.0L))/(abs(waveNumber)+0.0L); //*(1-2/imu/waveNumber);
 	for(int n = 0; n < 1.4*std::abs(waveNumber)+40; n ++) {
@@ -149,23 +152,78 @@ public:
 			legn = (std::complex<Hp>((2*n-1)*point(0)/r,0)*legn-std::complex<Hp>(n-1, 0)*legnm1)/std::complex<Hp>(n,0); // l+1 = n in recurrence relation
 			legnm1 = tmp;
 		}
+/*
 		Hp sinsumk = 0.0;
 		Hp cossumk = 0.0;
 		for(int k =0; k <= floor(n*0.5); k ++) {
-			sinsumk += pow(-1.0L,k+0.0L)*tgamma(1.0L+n+2*k)/pow(abs(waveNumber)+0.0L,(2*k+1.0L))/pow(2.0L,2.0L*k)/tgamma(1.0L+2*k)/tgamma(1.0L+n-2*k);
+//			sinsumk += pow(-1.0L,k+0.0L)*tgamma(1.0L+n+2*k)/pow(abs(waveNumber)+0.0L,(2*k+1.0L))/pow(2.0L,2.0L*k)/tgamma(1.0L+2*k)/tgamma(1.0L+n-2*k);
+			sinsumk += pow(-1.0L,k+0.0L)*exp(lgamma(1.0L+n+2*k) - log(abs(waveNumber)+0.0L)*(2*k+1.0L) -log(2.0L)*2.0L*k -lgamma(1.0L+2*k) -lgamma(1.0L+n-2*k) );
 		}
 		for(int k =0; k <= floor((n-1)*0.5); k ++) {
-			cossumk += pow(-1.0L,k+0.0L)*tgamma(2.0L+n+2*k)/pow(abs(waveNumber)+0.0L,(2*k+2.0L))/pow(2.0L,2.0L*k+1)/tgamma(2.0L+2*k)/tgamma(n-2*k+0.0L);
+//			cossumk += pow(-1.0L,k+0.0L)*tgamma(2.0L+n+2*k)/pow(abs(waveNumber)+0.0L,(2*k+2.0L))/pow(2.0L,2.0L*k+1)/tgamma(2.0L+2*k)/tgamma(n-2*k+0.0L);
+			cossumk += pow(-1.0L,k+0.0L)*exp(lgamma(2.0L+n+2*k)-log(abs(waveNumber)+0.0L)*(2*k+2.0L) -log(2.0L)*(2.0L*k+1) -lgamma(2.0L+2*k) -lgamma(n-2*k+0.0L) );
 		}
 		Hpc besk = std::complex<Hp>(sin(abs(waveNumber)-n*acos(-1.0L)/2),0)*sinsumk + std::complex<Hp>(cos(abs(waveNumber)-n*acos(-1.0L)/2),0)*cossumk;
 		Hpc besyk = -std::complex<Hp>(cos(abs(waveNumber)-n*acos(-1.0L)/2),0)*sinsumk + std::complex<Hp>(sin(abs(waveNumber)-n*acos(-1.0L)/2),0)*cossumk;
 		
+		besk = boost::cyl_bessel_j(n+0.5,abs(waveNumber));		
+*/
+		Hpc besk = 0.0L;
+		Hpc besyk = 0.0L;
+//		for(int k=0; k < 1.5*n+20; k ++) {// Upper bound for k was guessed so check whether break-cond is met
+		for(int k=0; k < n+20+abs(waveNumber); k ++) { // Upper bound for k was computed for when temporarily no osc
+//		int k=0;
+//		for(; abs(2.0L*k*log(abs(waveNumber)/2.0L) -lgamma(k+1.0L) -lgamma(k-n+0.5L) ) < -20; k ++) {// besyk term will be highest
+//			besk += exp(4.0L*k*log(abs(waveNumber)/2.0L) -lgamma(2*k+1.0L) -lgamma(n+2*k+1.5L) )*(1.0L-abs(waveNumber)*abs(waveNumber)/4.0L/(2*k+1)/(n+2*k+1.5L));
+			besk += exp(4.0L*k*log(abs(waveNumber)/2.0L) -lgamma(2*k+1.0L) -lgamma(n+2*k+1.5L) )*(1.0L-abs(waveNumber)*abs(waveNumber)/4.0L/(1.0L+2.0L*k)/(n+2*k+1.5L));
+//			besk += pow(-1.0L,k)*exp(2.0L*k*log(abs(waveNumber)/2.0L) -lgamma(k+1.0L) -lgamma(n+k+1.5L) );
+//			besyk += pow(-1.0L,k)*exp(2.0L*k*log(abs(waveNumber)/2.0L) -lgamma(k+1.0L) -lgamma(k-n+0.5L+0.L*imu) );
+//			if( (k-n < 0) && (((n-k) % 2) == 1) ) { // because then gamma(k-n+0/5) < 0 and lgamma imag but double in cpp with only real component
+			if( (k-n < 0) && (((n-2*k) % 2) == 1) ) { // because then gamma(k-n+0/5) < 0 and lgamma imag but double in cpp with only real component, changed meaning of k to 2k
+//				besyk -= pow(-1.0L,k)*exp(2.0L*k*log(abs(waveNumber)/2.0L) -lgamma(k+1.0L) -lgamma(k-n+0.5L) ); // lgamma(k-n+0.5L) takes real part and imag part is pi
+//				besyk -= exp(4.0L*k*log(abs(waveNumber)/2.0L) -lgamma(2*k+1.0L) -lgamma(2*k-n+0.5L) )*(1.0L-abs(waveNumber)*abs(waveNumber)/4.0L/std::max(1.0L,2.0L*k)/(2*k-n-0.5L));
+				besyk -= exp(4.0L*k*log(abs(waveNumber)/2.0L) -lgamma(2*k+1.0L) -lgamma(2*k-n+0.5L) )*(1.0L-abs(waveNumber)*abs(waveNumber)/4.0L/(1.0L+2.0L*k)/(2*k-n+0.5L));
+			} else {
+//				besyk += pow(-1.0L,k)*exp(2.0L*k*log(abs(waveNumber)/2.0L) -lgamma(k+1.0L) -lgamma(k-n+0.5L) );
+				besyk += exp(4.0L*k*log(abs(waveNumber)/2.0L) -lgamma(2*k+1.0L) -lgamma(2*k-n+0.5L) )*(1.0L-abs(waveNumber)*abs(waveNumber)/4.0L/(1.0L+2.0L*k)/(2*k-n+0.5L));
+			}
+//			if(abs(besk) > 1e6) { // besk = -inf, possibly because of 1/0
+			if(!std::isfinite(abs(besk)) ) { // besk = -inf, possibly because of 1/0
+				std::cout << n << "=n,k=" << k << "=k, besk=" << besk << "=besk, exp=" << exp(4.0L*k*log(abs(waveNumber)/2.0L) -lgamma(2*k+1.0L) -lgamma(n+2*k+1.5L) ) << "=exp\n";
+				std::cout << abs(waveNumber)*abs(waveNumber)/4.0L << "=fct, max=" << std::max(1.0L,2.0L*k) << "=max, n+2k+1/2=" << n+2*k+0.5L << "\n";
+				exit(1);
+			}
+//			std::cout << n << "=n, k=" << k << "=k, besk=" << besk << " = j, y= " << besyk << " = y, termy = " << pow(-1.0L,k)*exp(2.0L*k*log(abs(waveNumber)/2.0L) -lgamma(k+1.0L) -lgamma(k-n+0.5L) ) << "=term, cond1=" << (k-n < 0) << "=con1,cond2=" << (((n-k) % 2) == 1) <<"\n"; // wolfram alpha: sum( (-1)^k*exp(2*k*ln(8/2)-lgamma(k+1)-lgamma(k-10+0.5)), k=0..34)
+//			std::cout << pow(-1.0L,k) << " = -1^k, zspk= " << exp(2.0L*k*log(abs(waveNumber)/2.0L) ) << "=zspk, fak1 = " << exp(-lgamma(k+1.0L)) << "=fak1, gam= " << exp(-lgamma(k-n+0.5L) ) << "=gamma, lgamma=" << -lgamma(k-n+0.5L) <<"\n";
+		}
+		besk *= sqrt(acos(-1.0L))/2.0L*std::pow(abs(waveNumber)/2.0L, n+0.0L);
+//		besk *= sqrt(acos(-1.0L)/2.0L/abs(waveNumber))*std::pow(abs(waveNumber)/2.0L, n+0.5L);
+		Hpc besMn = std::pow(abs(waveNumber)/2.0L, -0.5L-n)*besyk;
+		besyk *= std::pow(-1.0L,n+1.0L)*sqrt(acos(-1.0L)/abs(waveNumber)/2.0L)*std::pow(abs(waveNumber)/2.0L, -n-0.5L);
+
+//		besyk *= std::pow(-1.0L,n+1.0L)*sqrt(acos(-1.0L))/abs(waveNumber)*std::pow(2.0L/abs(waveNumber), n+0.0L);
+		// Upper bound for k was guessed so check whether break-cond is met
 		Hpc term = -(2.0L*n+1.0)*std::pow(imu,n+0.0L)*besk*(abs(waveNumber)+0.0L)*legn*(hnm1-(n+1)/(abs(waveNumber)+0.0L)*(besk+imu*besyk) )/(besk+imu*besyk);
 		CoordinateType curNor = abs(term);
-		if((curNor > 3.1*prevNorm) && (n >9) ) {
-			break;
+
+//		if(n==1) { 
+//		if ((curNor > 3.1*prevNorm) && (n >9) ) {
+//		if ((curNor > 3.1*prevNorm) && (prevNorm > 1.2*ppvn) && (n > 1.2*abs(waveNumber)+10) ) {
+//		if( (!std::isnormal(1/3.0L+abs(2.0L*k*log(abs(waveNumber)/2.0L) -lgamma(k+1.0L) -lgamma(k-n+0.5L) ) ) ) || (abs(result(0)) > 1e6 ) ) {
+//		if ((curNor > 3.1*prevNorm) && (n > 1.2*abs(waveNumber)+10) ) {
+//		if (n == 10) {
+		if (abs(result(0)) > 1e6 ) {
+//			Hpc besMn = besyk/std::pow(-1.0L,n+1.0L)/sqrt(acos(-1.0L)/2.0L/(abs(waveNumber)+0.0L));
+//			Hpc besMn = besyk/std::pow(-1.0L,n+1.0L)/std::pow(acos(-1.0L)/2.0L/(abs(waveNumber)+0.0L), 0.5L);
+//std::cerr << k << "=k";
+			std::cerr << n << "=n,legn=" << legn << "=legn, bes-n-1.2=" << besMn << "=bes-n-1/2=" << besyk/std::pow(-1.0L,n+1.0L)/std::pow(acos(-1.0L)/2.0L/(abs(waveNumber)+0.0L), 0.5L) << "\n"; //, sinsumk=" << sinsumk << "=sinsumk\n";
+			std::cerr << "besk=" << besk << "=besk, besyk=" << besyk << "=besyk, hnm1= " << hnm1 << "=hnm1\n";
+			std::cerr << term << " = term, prevNorm = " << prevNorm << "=prevNorm, result=" << result << "\n";
+			std::cerr << pow(-1.0L,1.5*n+20)*exp(2.0L*(1.5*n+20)*log(abs(waveNumber)/2.0L) -lgamma(1.5*n+20+1.0L) -lgamma(1.5*n+20-n+0.5L) ) << "=maxterm, mod-0.5=" << 0 % 2 << "=mod-0.5, mod-1.5=" << 1 % 2 << "=mod-1/5, mod-2.5=" << 2 % 2 << ", factbesk=" << sqrt(acos(-1.0L))/2.0L*std::pow(abs(waveNumber)/2.0L, n+0.0L) << "\n";
+			exit(1);
 		}
 		result(0) += term;
+		ppvn = prevNorm;
 		prevNorm = curNor;
 		hnm1 = besk+imu*besyk;
 	}
@@ -334,7 +392,9 @@ public:
 
 void oneRow()
 {
-arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,4,2));
+//arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(2,3,2));
+//arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,4,2));
+arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,5,3));
 const int kl = ks.size();
 
 const int avm = 40;
@@ -358,7 +418,7 @@ for (int thi =0; thi < avm; ++thi) {
 		points(2,idx) = cos(thetas(thi));
 	}
 }
-int maxss = 3;
+int maxss = 6;
 arma::Mat<BFT> percs = arma::zeros(maxss,1);
 arma::Mat<BFT> errBCavm = arma::zeros(maxss,1);
 errBCavm.fill(-1.0); // No meaningful values for when only making one row because no exact solution vector to compare with
@@ -373,7 +433,7 @@ arma::Mat<BFT> times = arma::zeros(maxss,1);
 Solution<BFT, RT> solution; // Reuse the Solution<BFT,RT> from first simulation and overwrite the coefficients because GridFunction.setCoefficients(...) cannot be called on an uninitialised GridFunction
 
 for(int sim = 0; sim < maxss; sim++) {
-//for(int sim = 1; sim < maxss; sim++) {
+//for(int sim = 5; sim < maxss; sim++) {
 	tbb::tick_count start = tbb::tick_count::now();
 	shared_ptr<Grid> grid;
 	std::string str;
@@ -399,8 +459,8 @@ for(int sim = 0; sim < maxss; sim++) {
 			str = "t   0";
 		}
 	} else if(sim == 2) {
-//		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");
-		grid = loadTriangularMeshFromFile("../../../meshes/sphere2.msh");	
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");
+//		grid = loadTriangularMeshFromFile("../../../meshes/sphere2.msh");	
 		waveNumber = ks(1);
 //		minOrd = 1;
 		str = "t   0 ";
@@ -414,6 +474,10 @@ for(int sim = 0; sim < maxss; sim++) {
 //		PiecewisePolynomialContinuousScalarSpace<BFT> HplusHalfSpace(grid,2);
 //		PiecewiseLinearContinuousScalarSpace<BFT> HminusHalfSpace(grid);
 //		minOrd = 1;
+		str = "t   0 ";
+	} else if(sim == 5) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere3.msh");	
+		waveNumber = ks(2);
 		str = "t   0 ";
 	} else{
 		grid = loadTriangularMeshFromFile("../../../meshes/sphere2.msh");
@@ -438,22 +502,34 @@ for(int sim = 0; sim < maxss; sim++) {
 	
 	GridFunction<BFT, RT> rhs(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace),  surfaceNormalIndependentFunction(MyFunctor()));
 
+	time_t now = time(0);
+	std::cerr << asctime(localtime(&now) ) << "= time before making GridFunction projSol \n";
 	GridFunction<BFT, RT> projSol(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), surfaceNormalIndependentFunction(solSphere()));
+	now = time(0);
+	std::cerr << asctime(localtime(&now) ) << "= time after making GridF projSol \n";
 	// Divide by the norms of basis functions
 	GridFunction<BFT, RT> normbas(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), surfaceNormalIndependentFunction(CstFct(1.0)));
+	now = time(0);
+	std::cerr << asctime(localtime(&now) ) << "= time after making GridFunction normBas \n";
 	
-
 	arma::Mat<RT> diri = arma::Mat<RT>(1,avm*avm);
 	MyFunctor tmp = MyFunctor();
 	arma::Col<CT> pt(3);
+	arma::Col<RT> t(1);
 	for (int i = 0; i < avm*avm; ++i) {
 		pt(0) = points(0,i);
 		pt(1) = points(1,i);
 		pt(2) = points(2,i);
-		arma::Col<RT> t(1);
 		tmp.evaluate(pt,t);
 		diri(i) = t(0);
 	}
+//	pt(0) = 0.0;
+//	pt(1) = 1.0/std::sqrt(2.0);
+//	pt(2) = 1.0/std::sqrt(2.0);
+//	SolSphere ssph = solSphere();
+//	ssph.evaluate(pt,t);
+	// but not clear how to evaluate projSol at pt...
+	
 
 	BoundaryOperator<BFT, RT> slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
 	boost::shared_ptr<const Bempp::AbstractBoundaryOperator<double, std::complex<double> > > asdf = slpOp.abstractOperator();
@@ -465,28 +541,48 @@ for(int sim = 0; sim < maxss; sim++) {
 	arma::Col<RT> scoDummy;
 	boost::shared_ptr<const Bempp::DiscreteBoundaryOperator<RT> > weakCompr = bla.weakFormPeter(str,context,&scoDummy, &rhsVeDummy, &wmDummy);
 	
+	now = time(0);
+//	std::cerr << asctime(localtime(&now) ) << "= time before converting wm to matrix\n";
 	arma::Mat<RT> wm = weakCompr->asMatrix(); // Warning: wm now contains one row of the compressed matrix if str starts with t or ..?.., else use 'n'
-	DefaultIterativeSolver<BFT, RT> solver(slpOp,ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
+	now = time(0);
+//	std::cerr << asctime(localtime(&now) ) << " = time after conv wm\n";
+
+//	DefaultIterativeSolver<BFT, RT> solver(slpOp,ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
+	DefaultIterativeSolver<BFT, RT> solver(weakCompr, str, slpOp,ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
 
 	tbb::tick_count end = tbb::tick_count::now();
         times(sim,0) = (end - start).seconds(); // Overwrite with solution time added, when str.at(0) == n
+	now = time(0);
+	std::cerr << asctime(localtime(&now) ) << "\n";
 
-	solver.saveProjections(normbas,"normbas");
+//	solver.saveProjections(normbas,"normbas");	
+//	Vector<ResultType> norVect(normbas.projections(slpOp->dualToRange()));
+	std::fstream myStream;
+	myStream.open("normbas",std::ios::out);
+	myStream << normbas.projections(slpOp.dualToRange());
+	myStream.close();
+
+	now = time(0);
+//	std::cerr << asctime(localtime(&now) ) << ": starting computing and saving projections\n";
 	solver.saveProjections(projSol,"projVectOld");
+	now = time(0);
+//	std::cerr << asctime(localtime(&now) ) << "=time after saving proj\n";
 	solver.saveProjections(rhs,"rhs");
-
+//std::cerr << "aposidjf\n";
 	std::ifstream inputn("normbas");
 	std::vector<RT> normBasVe{std::istream_iterator<RT>(inputn), std::istream_iterator<RT>() };
         inputn.close();
+//std::cerr << "aasdff\n";
 
 	std::ifstream inputp("projVectOld");
 	std::vector<RT> projVeOld{std::istream_iterator<RT>(inputp), std::istream_iterator<RT>() };
         inputp.close();
 
+//std::cerr << "aposufgha\n";
 	std::ifstream inputt("rhs");
 	std::vector<RT> rhsVe{std::istream_iterator<RT>(inputt), std::istream_iterator<RT>() };
         inputt.close();
-
+//std::cout << "pasoijfd\n";
 	std::cout << "\n norbas(0)=" << normBasVe[0] << "=nb[0],nb[1]=" << normBasVe[1] << "=nb1, pv0=" << projVeOld[0] << "=pv0, pv1=" << projVeOld[1] << "\n";
 
 	// Change projSol to divide by the norms of the basis functions
@@ -594,7 +690,7 @@ for(int sim = 0; sim < maxss; sim++) {
 	myfile.open("res");
 	myfile << "Output of tutorial_dirichlet with one row.\n";
 	myfile << real(ks) << " = ks " << std::endl;
-	myfile << percs << " = perc, errAxb = \n" << errAxb << "\n";
+	myfile << percs << " = perc, errAxb = \n" << errAxb << "=errAxb, errAprojb=" << errAprojb << "\n";
 	myfile << times << " = times, errProj = \n" << errProj << "\n";
 	myfile << errBCavm << " = errBCavm, errBCproj=" << errBCproj << "\n";
 	myfile.close();

@@ -94,8 +94,9 @@ if (str.empty() ) {
           Teuchos::rcp<const Thyra::LinearOpBase<ResultType>>(
               boundaryOp.weakForm())));
 //std::cout << "apsodifj\n";
-}
-else{
+//} else if (str.at(0) == 't') { 
+//	return; 
+} else{
 //std::cout << "defItSolv:Impl doing weakFormPeter" << std::endl;
 
 //boost::shared_ptr<const Bempp::AbstractBoundaryOperator<double, std::complex<double> > > asdf = slpOpCompr.abstractOperator();
