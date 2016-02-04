@@ -127,7 +127,7 @@ public:
 //	CoordinateType cutoSP = static_cast<CoordinateType>(0.3);
 
 //	if (true) {
-	if (str.at(0) == 'k') { // 'f' means fixed windows multiplying matrix entries, 'k' fixed windows multiplying kernel
+	if ((str.at(0) == 'k') | (str.at(0) == 'b') ) { // 'f' means fixed windows multiplying matrix entries, 'k' fixed windows multiplying kernel
 		CoordinateType percDecay = static_cast<CoordinateType>(0.8);
 		std::string::size_type sz;   
 		CoordinateType b = std::stof(str.substr(2),&sz);		

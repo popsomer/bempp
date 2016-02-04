@@ -21,6 +21,14 @@
 // pushd ../..; make tutorial_dirichlet -j14; popd
 // ulimit -v 62000000
 
+// str = "c 0.8" corr through dist to corr, "d  0.6" corr through phys dist
+// "f  0.6" fixed windows elements, "k  0.6" fixed windows kernel
+// " i 0.6" illuminated only element, "j  1.9" illuminated only kernel
+// "n   " normal BEM, "t          0" only row 0 full
+// "a    1.2   7570 " only row 7570 fixed windows elements, "b    0.6  7570 " only row 7570 fixed windows kernel
+// number appearing from position 4 = b = max correlation distance with nonzero weight
+// number from 9 = which row
+
 #include <complex>
 
 #include "bempp/common/config_trilinos.hpp"//
@@ -418,7 +426,9 @@ for (int thi =0; thi < avm; ++thi) {
 		points(2,idx) = cos(thetas(thi));
 	}
 }
-int maxss = 6;
+//int maxss = 6;
+int nrSimWoWind = 6;
+int maxss = 3*nrSimWoWind;
 arma::Mat<BFT> percs = arma::zeros(maxss,1);
 arma::Mat<BFT> errBCavm = arma::zeros(maxss,1);
 errBCavm.fill(-1.0); // No meaningful values for when only making one row because no exact solution vector to compare with
@@ -433,7 +443,7 @@ arma::Mat<BFT> times = arma::zeros(maxss,1);
 Solution<BFT, RT> solution; // Reuse the Solution<BFT,RT> from first simulation and overwrite the coefficients because GridFunction.setCoefficients(...) cannot be called on an uninitialised GridFunction
 
 for(int sim = 0; sim < maxss; sim++) {
-//for(int sim = 5; sim < maxss; sim++) {
+//for(int sim = nrSimWoWind; sim < maxss; sim++) {
 	tbb::tick_count start = tbb::tick_count::now();
 	shared_ptr<Grid> grid;
 	std::string str;
@@ -447,7 +457,7 @@ for(int sim = 0; sim < maxss; sim++) {
 		waveNumber = ks(0);
 //		PiecewiseLinearContinuousScalarSpace<BFT> HplusHalfSpace(grid);
 //		PiecewiseConstantScalarSpace<BFT> HminusHalfSpace(grid);
-		str = "n   "; // need at least one space after 'n' for str(2) == 'l'-test in dga.hpp
+		str = "n               "; // need at least one space after 'n' for str(2) == 'l'-test in dga.hpp and 9 to be sure for when thinking t
 	} else if(sim == 1) {
 		if(false){
 			grid = loadTriangularMeshFromFile("../../../meshes/sphere2.msh");
@@ -456,33 +466,83 @@ for(int sim = 0; sim < maxss; sim++) {
 		} else {
 			grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");	
 			waveNumber = ks(0);
-			str = "t   0";
+			str = "t         0";
 		}
 	} else if(sim == 2) {
 		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");
 //		grid = loadTriangularMeshFromFile("../../../meshes/sphere2.msh");	
 		waveNumber = ks(1);
 //		minOrd = 1;
-		str = "t   0 ";
+		str = "t         0 ";
 	} else if(sim == 3) {
 		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");	
 		waveNumber = ks(1);
-		str = "n    ";
+		str = "n           ";
 	} else if(sim == 4) {
 		grid = loadTriangularMeshFromFile("../../../meshes/sphere2.msh");	
 		waveNumber = ks(1);
 //		PiecewisePolynomialContinuousScalarSpace<BFT> HplusHalfSpace(grid,2);
 //		PiecewiseLinearContinuousScalarSpace<BFT> HminusHalfSpace(grid);
 //		minOrd = 1;
-		str = "t   0 ";
+		str = "t         0 ";
 	} else if(sim == 5) {
 		grid = loadTriangularMeshFromFile("../../../meshes/sphere3.msh");	
 		waveNumber = ks(2);
-		str = "t   0 ";
+		str = "t         0 ";
+	// Start using windows, now a = multiply elements
+	} else if(sim == nrSimWoWind + 0) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");
+		waveNumber = ks(0);
+		str = "f   0.8     ";
+	} else if(sim == nrSimWoWind + 1) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");	
+		waveNumber = ks(0);
+		str = "a   0.8   0 ";
+	} else if(sim == nrSimWoWind + 2) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");	
+		waveNumber = ks(1);
+		str = "a   0.8   0 ";
+	} else if(sim == nrSimWoWind + 3) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");	
+		waveNumber = ks(1);
+		str = "f   0.8     ";
+	} else if(sim == nrSimWoWind + 4) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere2.msh");	
+		waveNumber = ks(1);
+		str = "a   0.8   0 ";
+	} else if(sim == nrSimWoWind + 5) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere3.msh");	
+		waveNumber = ks(2);
+		str = "a   0.8   0 ";
+	// Now b = multiply kernel
+	} else if(sim == 2*nrSimWoWind + 0) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");
+		waveNumber = ks(0);
+		str = "k   0.8      ";
+	} else if(sim == 2*nrSimWoWind + 1) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");	
+		waveNumber = ks(0);
+		str = "b   0.8   0 ";
+	} else if(sim == 2*nrSimWoWind + 2) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");	
+		waveNumber = ks(1);
+		str = "b   0.8    0 ";
+	} else if(sim == 2*nrSimWoWind + 3) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");	
+		waveNumber = ks(1);
+		str = "k   0.8       ";
+	} else if(sim == 2*nrSimWoWind + 4) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere2.msh");	
+		waveNumber = ks(1);
+		str = "b   0.8   0 ";
+	} else if(sim == 2*nrSimWoWind + 5) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere3.msh");	
+		waveNumber = ks(2);
+		str = "b   0.8   0 ";
 	} else{
 		grid = loadTriangularMeshFromFile("../../../meshes/sphere2.msh");
 		waveNumber = ks(1);
-		str = "n    ";
+		str = "n               ";
 //		minOrd = 1;
 	}
 //	CT factorProj = 410.36/1.74179; // Probably dependent on k, mesh and choice of Piecewise ScalarSpaces
@@ -509,8 +569,8 @@ for(int sim = 0; sim < maxss; sim++) {
 	std::cerr << asctime(localtime(&now) ) << "= time after making GridF projSol \n";
 	// Divide by the norms of basis functions
 	GridFunction<BFT, RT> normbas(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), surfaceNormalIndependentFunction(CstFct(1.0)));
-	now = time(0);
-	std::cerr << asctime(localtime(&now) ) << "= time after making GridFunction normBas \n";
+//	now = time(0);
+//	std::cerr << asctime(localtime(&now) ) << "= time after making GridFunction normBas \n";
 	
 	arma::Mat<RT> diri = arma::Mat<RT>(1,avm*avm);
 	MyFunctor tmp = MyFunctor();
@@ -545,7 +605,7 @@ for(int sim = 0; sim < maxss; sim++) {
 //	std::cerr << asctime(localtime(&now) ) << "= time before converting wm to matrix\n";
 	arma::Mat<RT> wm = weakCompr->asMatrix(); // Warning: wm now contains one row of the compressed matrix if str starts with t or ..?.., else use 'n'
 	now = time(0);
-//	std::cerr << asctime(localtime(&now) ) << " = time after conv wm\n";
+	std::cerr << asctime(localtime(&now) ) << " = time after conv wm\n";
 
 //	DefaultIterativeSolver<BFT, RT> solver(slpOp,ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
 	DefaultIterativeSolver<BFT, RT> solver(weakCompr, str, slpOp,ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
@@ -607,7 +667,7 @@ for(int sim = 0; sim < maxss; sim++) {
 	Helmholtz3dSingleLayerPotentialOperator<BFT> slPot (waveNumber);
 
 //	if(sim == 0) {
-	if (str.at(0) == 'n') {
+	if ((str.at(0) == 'n') | (str.at(0) == 'f')  | (str.at(0) == 'k') ) {
 		solver.initializeSolver(defaultGmresParameterList(1e-5));
 		solution = solver.solve(rhs);
 		end = tbb::tick_count::now();
@@ -653,7 +713,8 @@ for(int sim = 0; sim < maxss; sim++) {
 		std::cout << std::sqrt(corrDiff) << "=corrDiff, errAxb=" << errAxb(sim,0) << "\n";
 	} else {
 		std::string::size_type sz;
-		startI = std::stof(str.substr(4),&sz);
+//		startI = std::stof(str.substr(4),&sz);
+		startI = std::stof(str.substr(9),&sz);
 		endI = startI+1;
 	}
 	percs(sim,0) = arma::accu(wm != 0)/(0.0+wm.n_elem);

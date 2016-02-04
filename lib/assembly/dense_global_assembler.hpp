@@ -93,10 +93,10 @@ public:
 		for (int testIndex = 0; testIndex < elementCount; ++testIndex) {
 //		    ResultType wind = 0.0;
 		    CoordinateType wind = 0.0;
-		    if( (str.at(0) == 'n') | (str.at(0) == 't') | (str.at(0) == 'k')  | (str.at(0) == 'j') ) {
+		    if( (str.at(0) == 'n') | (str.at(0) == 't') | (str.at(0) == 'k')  | (str.at(0) == 'j')  | (str.at(0) == 'b') ) { // 't', 'a' and 'b' will actually be computed in the calling function below
 			wind = 1.0;
 //std::cout << testIndex << "=testi, triali=" << trialIndex << "\n";
-		    } else if (str.at(0) == 'f') {
+		    } else if ((str.at(0) == 'f')  | (str.at(0) == 'a') ) {
 			std::string::size_type sz; // alias of size_t
 			CoordinateType b = std::stof(str.substr(4),&sz);		
 			CoordinateType a = (1-percDecay)*b;
@@ -394,7 +394,7 @@ std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
 
 	std::cout << rowMax(0) << "=rowmax(0), globMax = " << (abs(rois(0,0)) > abs(rowMax(0)) ) << ", rois(0,0) =" << rois(0,0) << "\n";
 //	std::cout << abs(rowMax(0)) << "=a rowmax(0), log = " << globMax << ", a rois(0,0) =" << abs(rois(0,0)) << "\n";
-	if (str.at(0) != 't') {
+	if ((str.at(0) != 't') & (str.at(0) != 'a') & (str.at(0) != 'b') ) {
 	    arma::Mat<ResultType> result(testSpace.globalDofCount(), trialSpace.globalDofCount());
 	    result.fill(0.);
 	    tbb::task_scheduler_init scheduler(maxThreadCount);
@@ -413,14 +413,37 @@ std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
 
 	std::string::size_type sz;
 //	size_t trialIndex = std::stof(str.substr(4),&sz);
-	size_t testIndex = std::stof(str.substr(4),&sz);
+//	size_t testIndex;
+//	if(str.at(0) == 't') {
+//		testIndex = std::stof(str.substr(4),&sz);
+//	} else {
+//		testIndex = std::stof(str.substr(9),&sz);
+//	}
+std::cerr << "before stof9\n";
+	size_t testIndex = std::stof(str.substr(9),&sz);
 	testIndices.resize(1);
+std::cerr << "after stof9\n";
 	testIndices[0] = testIndex;
-	
+
+	CoordinateType percDecay = 0.65; //0.8;
+
 	for(size_t trialIndex = 0; trialIndex != trialElementCount; ++trialIndex) {
 		assembler.evaluateLocalWeakFormsPeter(str,TEST_TRIAL, testIndices, trialIndex, ALL_DOFS, localResult);
 		const int trialDofCount = trialGlobalDofs[trialIndex].size();
 		const int testDofCount = testGlobalDofs[testIndex].size();
+		CoordinateType wind = 1.0;
+		if (str.at(0) == 'a') {
+			std::string::size_type szz; // alias of size_t
+			CoordinateType b = std::stof(str.substr(4),&szz);		
+			CoordinateType a = (1-percDecay)*b;
+			CoordinateType dist = std::sqrt( std::pow(testPos[testIndex].y-trialPos[trialIndex].y, 2.0) + std::pow(testPos[testIndex].z-trialPos[trialIndex].z, 2.0) ); // Distance without x to include stationary points (but also shadow when coll in illuminated...)
+			if (dist > b) {
+			   wind = 0.0;
+			}
+			else if (dist > a) {
+			    wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
+			}
+		}
 	    	for (int trialDof = 0; trialDof < trialDofCount; ++trialDof) {
 			int trialGlobalDof = trialGlobalDofs[trialIndex][trialDof];
 			if (trialGlobalDof < 0)
@@ -429,7 +452,7 @@ std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
 			    int testGlobalDof = testGlobalDofs[testIndex][testDof];
 			    if (testGlobalDof < 0)
 				continue;
-			    oneRow(0,trialGlobalDof) += conj(testLocalDofWeights[testIndex][testDof]) * trialLocalDofWeights[trialIndex][trialDof] *localResult[testIndex](testDof, trialDof);
+			    oneRow(0,trialGlobalDof) += conj(testLocalDofWeights[testIndex][testDof]) * trialLocalDofWeights[trialIndex][trialDof] *localResult[testIndex](testDof, trialDof)*wind;
 			}
 		}
 	}
