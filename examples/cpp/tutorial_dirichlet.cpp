@@ -402,7 +402,8 @@ void oneRow()
 {
 //arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(2,3,2));
 //arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,4,2));
-arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,5,3));
+//arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,5,3));
+arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,7,3));
 const int kl = ks.size();
 
 const int avm = 40;
@@ -427,7 +428,7 @@ for (int thi =0; thi < avm; ++thi) {
 	}
 }
 //int maxss = 6;
-int nrSimWoWind = 6;
+int nrSimWoWind = 8;
 int maxss = 3*nrSimWoWind;
 arma::Mat<BFT> percs = arma::zeros(maxss,1);
 arma::Mat<BFT> errBCavm = arma::zeros(maxss,1);
@@ -489,6 +490,14 @@ for(int sim = 0; sim < maxss; sim++) {
 		grid = loadTriangularMeshFromFile("../../../meshes/sphere3.msh");	
 		waveNumber = ks(2);
 		str = "t         0 ";
+	} else if(sim == 6) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere4.msh");	
+		waveNumber = ks(3);
+		str = "t         0 ";
+	} else if(sim == 7) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere5.msh");	
+		waveNumber = ks(4);
+		str = "t         0 ";
 	// Start using windows, now a = multiply elements
 	} else if(sim == nrSimWoWind + 0) {
 		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");
@@ -514,6 +523,14 @@ for(int sim = 0; sim < maxss; sim++) {
 		grid = loadTriangularMeshFromFile("../../../meshes/sphere3.msh");	
 		waveNumber = ks(2);
 		str = "a   0.8   0 ";
+	} else if(sim == nrSimWoWind + 6) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere4.msh");	
+		waveNumber = ks(3);
+		str = "a   0.8   0 ";
+	} else if(sim == nrSimWoWind + 7) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere5.msh");	
+		waveNumber = ks(4);
+		str = "a   0.8   0 ";
 	// Now b = multiply kernel
 	} else if(sim == 2*nrSimWoWind + 0) {
 		grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");
@@ -538,6 +555,14 @@ for(int sim = 0; sim < maxss; sim++) {
 	} else if(sim == 2*nrSimWoWind + 5) {
 		grid = loadTriangularMeshFromFile("../../../meshes/sphere3.msh");	
 		waveNumber = ks(2);
+		str = "b   0.8   0 ";
+	} else if(sim == 2*nrSimWoWind + 6) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere4.msh");	
+		waveNumber = ks(3);
+		str = "b   0.8   0 ";
+	} else if(sim == 2*nrSimWoWind + 7) {
+		grid = loadTriangularMeshFromFile("../../../meshes/sphere5.msh");	
+		waveNumber = ks(4);
 		str = "b   0.8   0 ";
 	} else{
 		grid = loadTriangularMeshFromFile("../../../meshes/sphere2.msh");
