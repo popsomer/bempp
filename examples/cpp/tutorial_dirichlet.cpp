@@ -5,7 +5,7 @@
 // gedit /opt/fb/bempp/build/external/include/Trilinos/Thyra_BelosLinearOpWithSolve_def.hpp
 
 // cd /opt/fb/bempp/build/examples/cpp/
-// pushd ../..; make tutorial_dirichlet -j6 && popd && ./tutorial_dirichlet
+// pushd ../..; make tutorial_dirichlet -j6 && popd && ./tutorial_dirichlet || popd
 
 // pushd ../..; make tutorial_dirichlet -j6; popd
 // ulimit -v 6000000
@@ -78,6 +78,11 @@
 #include "../../build/external/include/Trilinos/Thyra_BelosLinearOpWithSolve_def.hpp"//Peter
 #include "space/piecewise_polynomial_continuous_scalar_space.hpp" // Peter
 //#include <boost> //Peter: voor sph_bessel
+#include "../../build/external/include/boost/math/special_functions/bessel.hpp" //Peter: voor sph_bessel
+//#include <boost::math> //Peter: voor sph_bessel
+
+
+
 
 using namespace Bempp;
 
@@ -176,6 +181,8 @@ public:
 		
 		besk = boost::cyl_bessel_j(n+0.5,abs(waveNumber));		
 */
+
+/*
 		Hpc besk = 0.0L;
 		Hpc besyk = 0.0L;
 //		for(int k=0; k < 1.5*n+20; k ++) {// Upper bound for k was guessed so check whether break-cond is met
@@ -196,10 +203,11 @@ public:
 				besyk += exp(4.0L*k*log(abs(waveNumber)/2.0L) -lgamma(2*k+1.0L) -lgamma(2*k-n+0.5L) )*(1.0L-abs(waveNumber)*abs(waveNumber)/4.0L/(1.0L+2.0L*k)/(2*k-n+0.5L));
 			}
 //			if(abs(besk) > 1e6) { // besk = -inf, possibly because of 1/0
-			if(!std::isfinite(abs(besk)) ) { // besk = -inf, possibly because of 1/0
+//			if(!std::isfinite(abs(besk)) ) { // besk = -inf, possibly because of 1/0
+			if(abs(waveNumber-64.0) < 0.2) {
 				std::cout << n << "=n,k=" << k << "=k, besk=" << besk << "=besk, exp=" << exp(4.0L*k*log(abs(waveNumber)/2.0L) -lgamma(2*k+1.0L) -lgamma(n+2*k+1.5L) ) << "=exp\n";
-				std::cout << abs(waveNumber)*abs(waveNumber)/4.0L << "=fct, max=" << std::max(1.0L,2.0L*k) << "=max, n+2k+1/2=" << n+2*k+0.5L << "\n";
-				exit(1);
+				std::cout << abs(waveNumber)*abs(waveNumber)/4.0L << "=fct, max=" << std::max(1.0L,2.0L*k) << "=max, n+2k+3/2=" << n+2*k+1.5L << "\n";
+//				exit(1);
 			}
 //			std::cout << n << "=n, k=" << k << "=k, besk=" << besk << " = j, y= " << besyk << " = y, termy = " << pow(-1.0L,k)*exp(2.0L*k*log(abs(waveNumber)/2.0L) -lgamma(k+1.0L) -lgamma(k-n+0.5L) ) << "=term, cond1=" << (k-n < 0) << "=con1,cond2=" << (((n-k) % 2) == 1) <<"\n"; // wolfram alpha: sum( (-1)^k*exp(2*k*ln(8/2)-lgamma(k+1)-lgamma(k-10+0.5)), k=0..34)
 //			std::cout << pow(-1.0L,k) << " = -1^k, zspk= " << exp(2.0L*k*log(abs(waveNumber)/2.0L) ) << "=zspk, fak1 = " << exp(-lgamma(k+1.0L)) << "=fak1, gam= " << exp(-lgamma(k-n+0.5L) ) << "=gamma, lgamma=" << -lgamma(k-n+0.5L) <<"\n";
@@ -209,6 +217,9 @@ public:
 		Hpc besMn = std::pow(abs(waveNumber)/2.0L, -0.5L-n)*besyk;
 		besyk *= std::pow(-1.0L,n+1.0L)*sqrt(acos(-1.0L)/abs(waveNumber)/2.0L)*std::pow(abs(waveNumber)/2.0L, -n-0.5L);
 
+*/
+		Hpc besk = boost::math::sph_bessel(n, abs(waveNumber) );
+		Hpc besyk = boost::math::sph_neumann(n, abs(waveNumber) );
 //		besyk *= std::pow(-1.0L,n+1.0L)*sqrt(acos(-1.0L))/abs(waveNumber)*std::pow(2.0L/abs(waveNumber), n+0.0L);
 		// Upper bound for k was guessed so check whether break-cond is met
 		Hpc term = -(2.0L*n+1.0)*std::pow(imu,n+0.0L)*besk*(abs(waveNumber)+0.0L)*legn*(hnm1-(n+1)/(abs(waveNumber)+0.0L)*(besk+imu*besyk) )/(besk+imu*besyk);
@@ -224,10 +235,11 @@ public:
 //			Hpc besMn = besyk/std::pow(-1.0L,n+1.0L)/sqrt(acos(-1.0L)/2.0L/(abs(waveNumber)+0.0L));
 //			Hpc besMn = besyk/std::pow(-1.0L,n+1.0L)/std::pow(acos(-1.0L)/2.0L/(abs(waveNumber)+0.0L), 0.5L);
 //std::cerr << k << "=k";
-			std::cerr << n << "=n,legn=" << legn << "=legn, bes-n-1.2=" << besMn << "=bes-n-1/2=" << besyk/std::pow(-1.0L,n+1.0L)/std::pow(acos(-1.0L)/2.0L/(abs(waveNumber)+0.0L), 0.5L) << "\n"; //, sinsumk=" << sinsumk << "=sinsumk\n";
+			std::cerr << n << "=n,legn=" << legn << "=legn, bes-n-1/2=" << besyk/std::pow(-1.0L,n+1.0L)/std::pow(acos(-1.0L)/2.0L/(abs(waveNumber)+0.0L), 0.5L) << "\n"; //, sinsumk=" << sinsumk << "=sinsumk\n";
 			std::cerr << "besk=" << besk << "=besk, besyk=" << besyk << "=besyk, hnm1= " << hnm1 << "=hnm1\n";
 			std::cerr << term << " = term, prevNorm = " << prevNorm << "=prevNorm, result=" << result << "\n";
 			std::cerr << pow(-1.0L,1.5*n+20)*exp(2.0L*(1.5*n+20)*log(abs(waveNumber)/2.0L) -lgamma(1.5*n+20+1.0L) -lgamma(1.5*n+20-n+0.5L) ) << "=maxterm, mod-0.5=" << 0 % 2 << "=mod-0.5, mod-1.5=" << 1 % 2 << "=mod-1/5, mod-2.5=" << 2 % 2 << ", factbesk=" << sqrt(acos(-1.0L))/2.0L*std::pow(abs(waveNumber)/2.0L, n+0.0L) << "\n";
+			std::cerr << waveNumber << "=wavenr,abs k-32=" << abs(waveNumber-32.0) << ", sphbes=" << boost::math::sph_bessel(n, abs(waveNumber) ) << " \n ERROR: normal derivative cannot be this high, printed info above\n";
 			exit(1);
 		}
 		result(0) += term;
@@ -403,7 +415,7 @@ void oneRow()
 //arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(2,3,2));
 //arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,4,2));
 //arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,5,3));
-arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,7,3));
+arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,7,5));
 const int kl = ks.size();
 
 const int avm = 40;
@@ -464,6 +476,10 @@ for(int sim = 0; sim < maxss; sim++) {
 			grid = loadTriangularMeshFromFile("../../../meshes/sphere2.msh");
 			waveNumber = ks(1);
 			str = "n    ";
+		} else if (false) {
+			grid = loadTriangularMeshFromFile("../../../meshes/sphere4.msh");	
+			waveNumber = ks(3);
+			str = "t         0";
 		} else {
 			grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh");	
 			waveNumber = ks(0);
@@ -576,7 +592,7 @@ for(int sim = 0; sim < maxss; sim++) {
 //	PiecewisePolynomialContinuousScalarSpace<BFT> HplusHalfSpace(grid,minOrd+1);
 //	PiecewisePolynomialContinuousScalarSpace<BFT> HminusHalfSpace(grid,minOrd);
 
-	std::cout << "\n-----------------  sim = " << sim << "-------\n\n";
+	std::cout << "\n----  sim = " << sim << ", waveNr= " << waveNumber << "-------\n\n";
 	AssemblyOptions assemblyOptions;
 	assemblyOptions.setVerbosityLevel(VerbosityLevel::LOW);
 
