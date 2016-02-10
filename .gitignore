@@ -22,3 +22,5 @@ pkg_install/
 py-*/
 pytest*/
 external/
+meshes/sphere6.msh
+meshes/sphere7.msh
