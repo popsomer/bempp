@@ -76,7 +76,7 @@ public:
 	std::vector<arma::Mat<ResultType> > localResult;
 	CoordinateType percDecay = 0.65; //0.8;
 	CoordinateType thrp = 0.1; //0.04;
-
+	std::string::size_type sz; // alias of size_t
 //std::cout << testIndex << "=testi, triali=" << trialIndex << "\n";
 
 	for (size_t trialIndex = r.begin(); trialIndex != r.end(); ++trialIndex) {
@@ -97,7 +97,7 @@ public:
 			wind = 1.0;
 //std::cout << testIndex << "=testi, triali=" << trialIndex << "\n";
 		    } else if ((str.at(0) == 'f')  | (str.at(0) == 'a') ) {
-			std::string::size_type sz; // alias of size_t
+//			std::string::size_type sz; // alias of size_t
 			CoordinateType b = std::stof(str.substr(4),&sz);		
 			CoordinateType a = (1-percDecay)*b;
 			CoordinateType dist = std::sqrt( std::pow(m_testPos[testIndex].y-m_trialPos[trialIndex].y, 2.0) + std::pow(m_testPos[testIndex].z-m_trialPos[trialIndex].z, 2.0) ); // Distance without x to include stationary points (but also shadow when coll in illuminated...)
@@ -108,7 +108,7 @@ public:
 			    wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
 			}
 		    } else if (str.at(0) == 'i') { // only compression on the illuminated side, 'j' is the version with only modification in the kernel
-			std::string::size_type sz; // alias of size_t
+//			std::string::size_type sz; // alias of size_t
 			CoordinateType b = std::stof(str.substr(4),&sz);		
 			CoordinateType a = (1-percDecay)*b;
 			CoordinateType dist = std::sqrt( std::pow(m_testPos[testIndex].x-m_trialPos[trialIndex].x, 2.0) + std::pow(m_testPos[testIndex].y-m_trialPos[trialIndex].y, 2.0) + std::pow(m_testPos[testIndex].z-m_trialPos[trialIndex].z, 2.0) ); // Distance without x to include stationary points (but also shadow when coll in illuminated...)
@@ -127,7 +127,7 @@ public:
 			}
 //		wind = 1.0; // Multiply by window in kernel-> str.at(0) == 'k'
 		    } else if (str.at(0) == 'd') { // Correlations through physical distance
-			std::string::size_type sz; // alias of size_t
+//			std::string::size_type sz; // alias of size_t
 			CoordinateType b = std::stof(str.substr(4),&sz);
 			if( (trialIndex == 0) && (testIndex == 0) ) {
 			    std::cout << maxNow << "=maxNow, globMax = " << m_globMax << ", rowMax = " << m_rowMax(trialIndex,0) << ", b=" << b << "\n";
@@ -150,9 +150,10 @@ public:
 			if (dist < b) { // Enforce the Green singularity. Formula below is at most 1: when dist == 0
 			    wind = std::max<CoordinateType>(wind,exp(2.0*exp(-b/dist)/(dist/b -1.0)));
 			}			
-		     } else if (str.at(0) == 'c') { // Correlations through distance to correlation threshold: might give patches with window not identically one inside but faster
+		     } else if( (str.at(0) == 'c') | (str.at(0) == 'e') ) { // Correlations through distance to correlation threshold: might give patches with window not identically one inside but faster
 			CoordinateType dist = std::abs(maxNow/m_rois(testIndex,trialIndex));
-			CoordinateType b = 1.5*thrp;
+//			CoordinateType b = 1.5*thrp;
+			CoordinateType b = std::stof(str.substr(4),&sz)*thrp;
 //			std::string::size_type sz; // alias of size_t
 //			CoordinateType b = std::stof(str.substr(4),&sz);
 //			b = b*thrp;
@@ -306,6 +307,28 @@ public:
                             LocalAssemblerForPotentialOperators& assembler,
                             const EvaluationOptions& options);
 
+/*
+static int closestElement(const Space<BasisFunctionType>& testSpace, arma::Col<CoordinateType> point)
+{
+	std::vector< Point3D<CoordinateType> > testPos;
+	testSpace.getGlobalDofPositions(testPos);
+	int row = -1;
+	CoordinateType minDist = 2.1;
+	for(int el = 0; el < testPos.size(); el ++) {
+		CoordinateType dist = std::sqrt(std::pow(point(0) - testPos[el].x, 2.0) + std::pow(point(1) - testPos[el].y, 2.0) + std::pow(point(2) - testPos[el].z, 2.0) );
+std::cerr << dist << "=d, el=" << el << "=el, x=" << testPos[el].x << "=testP.x, y=" << testPos[el].y << "=testP.y, z=" << testPos[el].z << "=testPos.z,\n";
+		if(dist < minDist) {
+std::cerr << "---------" << minDist << "=md, d=" << dist << "=d, ro=" << row << "=ro,el=" << el << "\n";
+std::cerr << testPos[el].x << "=testP.x, y=" << testPos[el].y << "=testP.y, z=" << testPos[el].z << "=testPos.z, pt=" << point << "\n";
+			minDist = dist;
+			row = el;
+		}
+	}
+exit(1);
+	return row;
+}
+*/
+
 static std::unique_ptr<DiscreteBoundaryOperator<ResultType> >
 assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& testSpace, const Space<BasisFunctionType>& trialSpace, LocalAssemblerForIntegralOperators& assembler, const Context<BasisFunctionType, ResultType>& context, arma::Col<ResultType> * solV, std::vector<ResultType> * rhsV, arma::Mat<ResultType> * wm)
 {
@@ -329,7 +352,7 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
 	// Enumerate the test elements that contribute to at least one global DOF
 	std::vector<int> testIndices;
 	testIndices.reserve(testElementCount);
-std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
+//std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
 	for (int testIndex = 0; testIndex < testElementCount; ++testIndex) {
             const int testDofCount = testGlobalDofs[testIndex].size();
 	    if (testIndex % (testElementCount/10) == 0) {
@@ -392,9 +415,9 @@ std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
 	    }
 	}
 
-	std::cout << rowMax(0) << "=rowmax(0), globMax = " << (abs(rois(0,0)) > abs(rowMax(0)) ) << ", rois(0,0) =" << rois(0,0) << "\n";
+//	std::cout << rowMax(0) << "=rowmax(0), globMax = " << (abs(rois(0,0)) > abs(rowMax(0)) ) << ", rois(0,0) =" << rois(0,0) << "\n";
 //	std::cout << abs(rowMax(0)) << "=a rowmax(0), log = " << globMax << ", a rois(0,0) =" << abs(rois(0,0)) << "\n";
-	if ((str.at(0) != 't') & (str.at(0) != 'a') & (str.at(0) != 'b') ) {
+	if ((str.at(0) != 't') & (str.at(0) != 'a') & (str.at(0) != 'b') & (str.at(0) != 'e') ) { // Full solution
 	    arma::Mat<ResultType> result(testSpace.globalDofCount(), trialSpace.globalDofCount());
 	    result.fill(0.);
 	    tbb::task_scheduler_init scheduler(maxThreadCount);
@@ -419,10 +442,10 @@ std::cout << testElementCount << "=testc, trialc=" << trialElementCount << "\n";
 //	} else {
 //		testIndex = std::stof(str.substr(9),&sz);
 //	}
-std::cerr << "before stof9\n";
+//std::cerr << "before stof9\n";
 	size_t testIndex = std::stof(str.substr(9),&sz);
 	testIndices.resize(1);
-std::cerr << "after stof9\n";
+//std::cerr << testIndex << "after stof9\n";
 	testIndices[0] = testIndex;
 
 	CoordinateType percDecay = 0.65; //0.8;
@@ -443,7 +466,16 @@ std::cerr << "after stof9\n";
 			else if (dist > a) {
 			    wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
 			}
-		}
+		} else if(str.at(0) == 'e') { // Correlations through distance to correlation threshold: might give patches with window not identically one inside but faster
+			CoordinateType dist = std::abs(arma::max(arma::max(rois))/rois(0,trialIndex));
+			CoordinateType thrp = std::stof(str.substr(4),&sz);
+			CoordinateType b = 1.5*thrp;
+			if(dist < thrp) {
+			   wind = 1;
+			} else if (dist < b) {
+		           wind = exp(2*exp(-(b-thrp)/(dist-thrp) )/((dist-thrp)/(b-thrp) -1));
+			}
+		    }
 	    	for (int trialDof = 0; trialDof < trialDofCount; ++trialDof) {
 			int trialGlobalDof = trialGlobalDofs[trialIndex][trialDof];
 			if (trialGlobalDof < 0)
@@ -452,7 +484,10 @@ std::cerr << "after stof9\n";
 			    int testGlobalDof = testGlobalDofs[testIndex][testDof];
 			    if (testGlobalDof < 0)
 				continue;
-			    oneRow(0,trialGlobalDof) += conj(testLocalDofWeights[testIndex][testDof]) * trialLocalDofWeights[trialIndex][trialDof] *localResult[testIndex](testDof, trialDof)*wind;
+//std::cerr << trialGlobalDof << "=trgd, tedof=" << testDof << " = tedof, trialI = " << trialIndex << "=triali, trialdof=" << trialDof << "\n";
+//std::cerr << localResult[testIndex] << "=locres[ti], lecRes[0] = " << localResult[0] << "\n";
+//			    oneRow(0,trialGlobalDof) += conj(testLocalDofWeights[testIndex][testDof]) * trialLocalDofWeights[trialIndex][trialDof] *localResult[testIndex](testDof, trialDof)*wind;
+			    oneRow(0,trialGlobalDof) += conj(testLocalDofWeights[testIndex][testDof]) * trialLocalDofWeights[trialIndex][trialDof] *localResult[0](testDof, trialDof)*wind; // localResult only has one meaningful element (in the std::vector) which corresponds to the chosen row
 			}
 		}
 	}
@@ -472,7 +507,7 @@ std::cerr << "after stof9\n";
 	    }
 	}
 */
-	std::cout << testIndices[0] << " =testIndex in dga oneRow , testDofCount = " << testGlobalDofs[testIndex].size() << ", trialDofCnt=" << trialGlobalDofs[0].size() << ", oneRow[0] = " << oneRow(0,0) << "=or(0,0), or(0,1)=" << oneRow(0,1) << "\n";
+//	std::cout << testIndices[0] << " =testIndex in dga oneRow , testDofCount = " << testGlobalDofs[testIndex].size() << ", trialDofCnt=" << trialGlobalDofs[0].size() << ", oneRow[0] = " << oneRow(0,0) << "=or(0,0), or(0,1)=" << oneRow(0,1) << "\n";
 	return std::unique_ptr<DiscreteBoundaryOperator<ResultType> >(new DiscreteDenseBoundaryOperator<ResultType>(oneRow));
 }
 
