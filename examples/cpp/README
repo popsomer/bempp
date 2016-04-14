@@ -1,0 +1,4 @@
+
+
+oneRow kl
+	kl is an integer denoting the number of wavenumbers being tested when only computing one row of the system matrix for a sphere. Make sure there are enough meshes/sphere*.msh.

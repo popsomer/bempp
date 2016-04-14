@@ -91,9 +91,14 @@ public:
 
 
 //int main(int argc, char* argv[])
-void oneRow()
+void oneRow(int kl)
 {
-
+struct stat buffer;   
+if (stat (("../../../meshes/sphere" + std::to_string(kl) + ".msh").c_str(), &buffer) != 0) {
+	std::cerr << "Error: meshes/sphere" << std::to_string(kl) << ".msh does not exist.\n Please create all sphere*.msh by loading sphere.geo into gmsh, executing 2D meshing, refining (*-1) times and saving.\n Or use other arguments for tutorial_dirichlet.\n";
+	exit(kl+1);
+}
+//const int shift = 2;
 const int avm = 40;
 arma::Mat<BFT> thetas = arma::zeros(avm,1);
 arma::Mat<BFT> phis = arma::zeros(avm,1);
@@ -115,9 +120,9 @@ for (int thi =0; thi < avm; ++thi) {
 		points(2,idx) = cos(thetas(thi));
 	}
 }
-
-arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,9,7));
-const int kl = ks.size();
+arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,kl+2,kl));
+//arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,9,7));
+//const int kl = ks.size();
 //char typeSim[][10] = {"t        ", "a   0.6  ", "b   0.6  "};
 char typeSim[][10] = {"t        ", "b   0.6  ", "a   0.6  ", "a   0.4  ", "a   0.2  "};
 //arma::Mat<CT> testPts = { {-1.0, 0.0, 0.0}, {-0.3, std::sqrt(1.0-0.09-0.25), -0.5}, {0.0, 1.0/std::sqrt(2.0), -1.0/std::sqrt(2.0)}, {0.6, -0.2, std::sqrt(1.0-0.36-0.04)} }; // Best case in the illuminated region, Illuminated region, Transition region and Shadow region
@@ -165,7 +170,8 @@ Solution<BFT, RT> solution = solver.solve(rhsDummy); // Reuse the Solution<BFT,R
 for(int ki = 0; ki < kl; ki++) {
 	tbb::tick_count starttk = tbb::tick_count::now();
 	waveNumber = ks(ki);
-	std::string mfs = "../../../meshes/sphere" + std::to_string(ki+1) + ".msh"; // When k doubles, double the number of elements in each spatial direction (# elements *= 4)
+	std::string mfs = "../../../meshes/sphere" + std::to_string(ki+3) + ".msh"; // When k doubles, double the number of elements in each spatial direction (# elements *= 4)
+//	std::string mfs = "../../../meshes/sphere" + std::to_string(ki+1) + ".msh"; // When k doubles, double the number of elements in each spatial direction (# elements *= 4)
 	shared_ptr<Grid> grid = loadTriangularMeshFromFile(mfs.c_str());
 	PiecewiseLinearContinuousScalarSpace<BFT> HplusHalfSpace(grid);
 	PiecewiseConstantScalarSpace<BFT> HminusHalfSpace(grid); // Supertype ScalarSpace is abstract so cannot define Hplus/min HS as such to choose cst/lin/quadr depending on for example str.at(2) like:
@@ -300,7 +306,7 @@ exit(1);
         		times(tsi,pti,ki) = (tbb::tick_count::now() - start).seconds(); // Could add timeProj
 		} // End of loop over types of simulation
 		std::ofstream myfile;
-		myfile.open("res");
+		myfile.open("resOneRow");
 		myfile << "Output of tutorial_dirichlet with one row.\n";
 		myfile << real(ks) << " = ks\ntestPts=" << testPts << "\ntypeSim = ";// << std::str(typeSim) << "\n, testPts=" << testPts;
 		for(int qwer = 0; qwer < nrTsim; qwer ++) {
@@ -310,12 +316,13 @@ exit(1);
 		myfile << errBCproj << "= errBCproj, errBCpts = " << errBCpts << "\n";
 		myfile << percs << " = perc, errowAprojb=" << errowAprojb << "\n";
 		myfile.close();
+		errowAprojb.save("errowAprojb.dat", arma::raw_ascii); 
 //		if(pti == 3) { exit(0); }
 	}
-	if(ki == 2) { exit(0); }
+//	if(ki == 2) { exit(0); }
 } // End of loop over wavenumbers
 
-nrTpts = std::system("cat res");
+//nrTpts = std::system("cat res");
 }
 
 

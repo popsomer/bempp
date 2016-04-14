@@ -1,5 +1,6 @@
 // gedit /opt/fb/bempp/lib/fiber/modified_helmholtz_3d_single_layer_potential_kernel_functor.hpp
 // gedit /opt/fb/bempp/lib/assembly/dense_global_assembler.hpp
+// gedit /opt/fb/bempp/examples/cpp/oneRow.cpp
 
 // cd /opt/fb/bempp/build/examples/cpp/
 // pushd ../..; make tutorial_dirichlet -j6 && popd && ./tutorial_dirichlet || popd
@@ -22,10 +23,27 @@
 // number from 9 = which row
 
 #include "oneRow.cpp"
+//#include "oneCorr.cpp"
+#include "fixedWindows.cpp"
 
 int main(int argc, char* argv[])
 {
-	oneRow();
+
+//std::string::size_type sz;
+if(argc == 1) {
+//	oneRow(4); // For shifted meshes for higher accuracy with "sphere" + std::to_string(ki+3) + ".msh";
+	fixedWindows();
+//	oneRow(2);
+//	oneRow(7);
+}
+if (argv[1] == "help") {
+	return std::system("cat README");
+} else if (argv[1] == "oneRow") {
+//	oneRow(std::stof(argv[2]+" ",&sz) );
+	oneRow(std::atoi(argv[2]) );
+}
+return 0;
+
 }
 
 
