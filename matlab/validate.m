@@ -167,7 +167,7 @@ if isfield(v,'mti'), for ti = 1:v.mti
         warning([num2str(ti) ' = ti, GMRES wrong at ix = ' num2str(ix) ' with flag = ' num2str(flag) ...
             ', relres = ' num2str(relres) ' and tol = ' num2str(tol)]);
     end
-    if isfield(v,'iterGm'), v.nbIter(ix,ti) = iter(2); end
+    if isfield(v,'nbIter'), v.nbIter(ix,ti) = iter(2); end
     if isfield(v,'errSol'); v.errSol(ix,2+ti) = norm(c-c1)/norm(c1); end
     if isfield(v,'errBCcol'), v.errBCcol(ix,2+ti) = norm(A1*c-b)/norm(b); end
     if isfield(v, 'errBCavm'), for av = 1:v.avm, 
