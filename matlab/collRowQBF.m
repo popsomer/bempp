@@ -137,39 +137,23 @@ for j=-1:dbf % Removes NaN due to singularity
             end
             x = x';
             % Evaluate a periodic spline in the points x.
-            if 0
-                z2 = zeros(size(x));
-                
-                bspEv = {@(y,fct,t,k) (t(1) <= y) && (y < t(2)), @(y,fct,t,k) (y-t(1))/(t(end-1)-t(1)) * fct{(k ~= 1)+1}(y,fct,t(1:end-1), k-1) ...
-                    + (t(end)-y)/(t(end)-t(2)) * fct{(k ~= 1)+1}(y, fct, t(2:end), k-1) };
-                % This is a recursive anonymous function (which needs a struct) for splines, but is inlined when dbf==1 for speed.
-                bspSel = @(y,t,k) bspEv{(k ~= 0)+1}(y,bspEv,t,k);
-                if dbf == 1
-                    for ii=1:length(x)
-                        %   Evaluate the b-spline of degree 1 determined by the knots t at x.
-                        z2(ii) = z2(ii) + (x(ii)-u(idx))/(u(idx+1)-u(idx))*((x(ii) >= u(idx)) && (x(ii) < u(idx+1))) ...
-                            + (u(idx+2) -x(ii))/(u(idx+2)-u(idx+1))*((x(ii) >= u(idx+1)) && (x(ii) < u(idx+2)));
-                        if idx <= 1 % Add the periodic parts for the basis functions at the end
-                            z2(ii) = z2(ii) + (x(ii)-u(idx+par.N))/(u(idx+par.N+1)-u(idx+par.N))*((x(ii) >= u(idx+par.N)) && (x(ii) < u(idx+par.N+1))) ...
-                                + (u(idx+par.N+2) -x(ii))/(u(idx+par.N+2)-u(idx+par.N+1))*((x(ii) >= u(idx+par.N+1)) && (x(ii) < u(idx+par.N+2)));
-                        end
-                    end
-                else
-                    for ii=1:length(x)
-                        z2(ii) = bspSel(x(ii), u(idx:idx+dbf+1), dbf);
-                        
-                        if idx <= dbf % Add the periodic parts for the basis functions at the end
-                            z2(ii) = z2(ii) + bspSel(x(ii), u(idx+par.N:idx+par.N+dbf+1), dbf);
-                        end
+            z2 = zeros(size(x));
+            if dbf == 1 % Using bspline_eval is correct but slower than inlining:
+                for ii=1:length(x)
+                    %   Evaluate the b-spline of degree 1 determined by the knots t at x.
+                    z2(ii) = z2(ii) + (x(ii)-u(idx))/(u(idx+1)-u(idx))*((x(ii) >= u(idx)) && (x(ii) < u(idx+1))) ...
+                        + (u(idx+2) -x(ii))/(u(idx+2)-u(idx+1))*((x(ii) >= u(idx+1)) && (x(ii) < u(idx+2)));
+                    if idx <= 1 % Add the periodic parts for the basis functions at the end
+                        z2(ii) = z2(ii) + (x(ii)-u(idx+par.N))/(u(idx+par.N+1)-u(idx+par.N))*((x(ii) >= u(idx+par.N)) && (x(ii) < u(idx+par.N+1))) ...
+                            + (u(idx+par.N+2) -x(ii))/(u(idx+par.N+2)-u(idx+par.N+1))*((x(ii) >= u(idx+par.N+1)) && (x(ii) < u(idx+par.N+2)));
                     end
                 end
             else
-                z2 = zeros(size(x));
-                for i=1:length(x)
-                    z2(i) = z2(i) + bspline_eval(u(idx:idx+par.dbf+1), par.dbf, x(i));
+                for ii=1:length(x)
+                    z2(ii) = z2(ii) + bspline_eval(u(idx:idx+par.dbf+1), par.dbf, x(ii));
                     % Add the periodic parts for the basis functions at the end.
-                    if idx <= par.dbf
-                        z2(i) = z2(i) + bspline_eval(u(idx+par.N:idx+par.N+par.dbf+1), par.dbf, x(i));
+                    if idx <= dbf
+                        z2(ii) = z2(ii) + bspline_eval(u(idx+par.N:idx+par.N+par.dbf+1), par.dbf, x(ii));
                     end
                 end
             end
@@ -188,7 +172,7 @@ end
 
 end
 
-% Evaluate the b-spline determined by the knots t at x.
+% Evaluate the b-spline of degree k determined by the knots t at xi.
 function z = bspline_eval(t, k, xi)
 
 if k==0

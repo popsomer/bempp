@@ -40,10 +40,15 @@ while i >= 0
 	nab = 2*(2:p-1)';
 	ab = [zeros(p,1) [2; 1/3; nab.^2./(4*(nab+1).*(nab-1))]];
 	
-	% The following four lines are gauss(N=p,ab)
-	J = spdiags([sqrt([ab(2:p,2); NaN]) ab(:,1) sqrt([NaN; ab(2:p,2)])], -1:1, p,p);
-	[V,D]=eig(full(J));
-	[D,I]=sort(diag(D));
+	% The following lines are gauss(N=p,ab)
+	J = zeros(p);
+    for n=1:p, J(n,n) = ab(n,1); end
+    for n=2:p % The input-n is not used in the main loop, so we can re-use it
+        J(n,n-1) = sqrt(ab(n,2));
+        J(n-1,n) = J(n,n-1);
+    end
+	[V,D]=eig(J);
+    [D,I]=sort(diag(D));
 	xw=[D ab(1,2)*V(1,I)'.^2];
 	
 	% Scale [-1,1] to [u,v]

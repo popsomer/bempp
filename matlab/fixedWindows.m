@@ -10,13 +10,14 @@ varykT = 0;
 factShad = 3; % Factor of the width of a window around a stationary point, although this is dependent on k.
 percDecay = 0.5; % Percentage of the window for the C-inf decay: 0 means a block window and 1 means not identically one on any interval.
 
-par = getObst(1);
+par = getObst(0);
 
 if varykT
     ks = 2.^(4:10); Ts = linspace(0.001,0.15,20); mti = 2;
 %     ks = 2.^(4:6); Ts = linspace(0.001,0.15,5);
 else % Only one k and T
     ks = 2^8; Ts = 0.08; mti = 0;
+    ks = 2^6; Ts = 0.08; mti = 0;
 %     ks = 2^4; Ts = 0.001; mti = 0;
 end
 Tl = length(Ts); kl = length(ks);

@@ -8,6 +8,10 @@
 %   z		  - The scattered field
 function z = evalFieldQBF(par,x,sol,comprSol)
 
+if isfield(par,'obsts')
+    par.dbf = par.obsts(1).dbf; % Assume the same degree of basis functions to avoid refactoring.
+end
+
 if par.dbf == 1
 	qbf_w = [   0.01666666666667   0.26666666666667   0.43333333333333   0.26666666666667   0.01666666666667];
 	step = 1/2; istep = 1/step;
