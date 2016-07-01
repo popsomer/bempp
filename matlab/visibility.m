@@ -17,6 +17,7 @@ par.colltau = par.t(1:par.N);
 mnr = 200;
 ts = linspace(0,1,mnr)';
 parametr = par.par(ts');
+fs = 25;
 
 leftb = 0.365;
 lefte = 0.27;
@@ -28,14 +29,14 @@ plot(parametr(1,:),parametr(2,:),'k', 'LineWidth',3);
 hold on;
 tsSight = ts((ts >= leftb) & (ts <= rightb) )';
 pSight = par.par(tsSight)-0.008*par.normal(tsSight);
-plot(pSight(1,:),pSight(2,:),'LineWidth',5);
+plot(pSight(1,:),pSight(2,:),'b','LineWidth',5);
 
 tsRoloff = ts((ts >= lefte) & (ts < leftb+0.05) )';
 pRol = par.par(tsRoloff)-0.008*par.normal(tsRoloff);
-plot(pRol(1,:),pRol(2,:),'--','LineWidth',5);
+plot(pRol(1,:),pRol(2,:),'b:','LineWidth',5);
 tsRoloff = ts((ts > rightb-0.05) & (ts <= righte))';
 pRol = par.par(tsRoloff)-0.008*par.normal(tsRoloff);
-plot(pRol(1,:),pRol(2,:),'--','LineWidth',5);
+plot(pRol(1,:),pRol(2,:),'b:','LineWidth',5);
 col = par.par(0.5);
 up = (par.par(leftb)-col)*1.56+col;
 down = (par.par(rightb)-col)*1.5+col;
@@ -46,7 +47,8 @@ plot(spar(1,:), spar(2,:), 'r*','LineWidth',5);
 labels = cellstr( num2str(te.') );
 h = text(spar(1,:), spar(2,:), labels, 'VerticalAlignment','bottom', ...
 	'HorizontalAlignment','right');
-set(h,'FontSize',22);
+set(h,'FontSize',fs);
+set(gca,'FontSize',fs);
 hold off;
 
 %% Computations for the full matrix

@@ -1,4 +1,4 @@
-% Introduce window functions with a wavenumber-dependent support to reduce the complexity of a a standard BEM for a circle.
+% Introduce window functions with a wavenumber-dependent support to reduce the complexity of a standard BEM for a circle.
 %% Initialising
 clearvars
 close all
@@ -7,10 +7,9 @@ set(0,'DefaultFigureWindowStyle','docked');
 
 percDecay = 0.5; % Percentage of the window for the C-inf decay: 0 means block window and 1 means not identically one on any interval
 ks = 2.^(4:12);
-ks = 2^4;
 
 kl = length(ks);
-mti = 4; %A1\b, A2\b, A1\b wiht precond A2, A1\b with x0=A2\b
+mti = 4; % gmres on A1\b, A2\b, A1\b with precond A2, A1\b with x0=A2\b
 
 avm = 100; % Number of random taus to average the error on the BC over
 v = struct('conds', zeros(kl,2), 'mti', mti, 'avm', avm, 'taus', rand(avm,1), 'errBCavm', zeros(kl,2+mti),...
@@ -18,7 +17,7 @@ v = struct('conds', zeros(kl,2), 'mti', mti, 'avm', avm, 'taus', rand(avm,1), 'e
     'nbIter', zeros(kl,mti), 'timeA', zeros(kl,2), 'ks', ks, 'errInt', zeros(kl,2+mti) ); 
 
 %% Computations
-for oi = 0:1
+for oi = 0:1 % Cubic and linear basis functions
     par = getObst(oi);
     start = now;
     for ki = 1:kl
@@ -33,8 +32,6 @@ for oi = 0:1
         end
         v.timeA(ki,1) = toc;
         tic;
-        b = par.bc(par.k,par.par(par.colltau));
-        c1 = A1\b; % For printing temporary compression error
         
         fact = 0.4;
         TtrRow = fact*0.7*(par.k/64)^(-1/3);
@@ -44,10 +41,9 @@ for oi = 0:1
         skew = 13;
         A2 = zeros(par.N);
         
-        coll = par.colltau;
         tic;
         for i = 1:par.N
-            tc = coll(i);
+            tc = par.colltau(i);
             if (abs(tc-0.25) < TtrRow)
                 tbounds = [tc-Tsi; max(tc+TtrColu, 0.5-tc+TtrColu); Tsi*percDecay; TtrColu*percDecay]; % Much faster oscillations to the left
             elseif (abs(tc-0.75) < TtrRow)
@@ -70,7 +66,7 @@ for oi = 0:1
         v = validate(A1,A2,par,v,ki);
         
         clearvars A1 A2 % Avoid saving large matrices
-        save complRed.mat % -v7.3
+        save complRed.mat
         if oi == 0
             vCub = v;
         end

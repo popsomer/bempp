@@ -9,10 +9,8 @@ x0 = par.par(0);
 a = x0(1); % Radius
 tol = 1e-8; % Tolerance for computing quadgk
 
-% ks = 2.^(6:15);
-% Ts = linspace(0.04,0.4,25);
-ks = 2.^(6:8);
-Ts = linspace(0.04,0.4,4);
+ks = 2.^(6:15);
+Ts = linspace(0.04,0.4,25);
 shad = 0.91; % Parametrization of the point in the shadow region
 pts = [par.par(0.56), par.par(0.25), par.par(shad), [-1.1; -0.4]];
 
@@ -88,10 +86,11 @@ cltau(3) = 1.5-shad; % SP for collocation point in the shadow
 
 errs = NaN*ones(kl,Tl,pl);
 exVal = NaN*ones(kl,pl);
+start = now;
 for ki = 1:kl
     par.k = ks(ki);
     for pti = 1:pl
-        display([num2str(ks(ki)) ' =k, pti = ' num2str(pti)]);
+        display([datestr(now) '=now, ' num2str(ks(ki)) ' =k, pti = ' num2str(pti)]);
         point = pts(:,pti);
         
         exVal(ki,pti) = - scatField(point); % Take minus so that -BC-sum = 0 and integral-(-sum)=0
@@ -110,6 +109,7 @@ for ki = 1:kl
         end
         save withoutDiscret.mat % Save results when running this long computation
     end
+    display([datestr(now) '=now, k=' num2str(par.k) ', est. end=' datestr(start + (now-start)*sum(ks.^2)/sum(ks(1:ki).^2) )]);
 end
 
 
@@ -143,10 +143,11 @@ for i = 1:kl
     legends{i} = ['k = ' num2str(ks(i))];
 end
 set(0,'DefaultFigureWindowStyle', 'docked');
-titl = {'illuminated region', 'transition region', 'shadow region', 'exterior region'};
+titl = {'Illuminated region', 'Transition region', 'Shadow region', 'Exterior region'};
 s = NaN*ones(2,pl); % least squares parameters
 linest = {'-','-.','--',':'};
 cols = 'rgbmkcy';
+fs = 20;
 for pti = 1:pl
     figure; set(axes,'LineStyleOrder',linest'); 
     for ki = 1:kl
@@ -157,12 +158,13 @@ for pti = 1:pl
     adenkl = abs(diag(errs(nonzeros(kiLsq(:,pti) ), nonzeros(locLsq(:,pti))',pti)));
     semilogy(nonzeros(Tlsq(:,pti)), adenkl, 'k*', 'MarkerSize', 14); 
     xlabel('T'); ylabel('Relative error'); 
-    legend(legends, 'FontSize',15);
+    legend(legends(1:10-4*(pti==1)), 'FontSize',fs);
     s(:,pti) = [ones(length(nzk),1), log(nzk)] \ log(nonzeros(Tlsq(:,pti)));
-    set(gca, 'FontSize', 20);
+    set(gca, 'FontSize', fs);
 end
 % Now make the least squares plot
 figure;
+fs = 28;
 hold on; 
 % Using ax = gca; ax.ColorOrderIndex = 1; does not make the next plot use the same colors, so Matlab forces us to write loops with 
 % explicit colors if we want to combine them with markers or linestyles.
@@ -173,8 +175,8 @@ end
 for pti = 1:pl
      loglog(nonzeros(klsq(:,pti)),nonzeros(Tlsq(:,pti)),[marks{pti} cols(pti)], 'MarkerSize', 12);
 end
-xlabel('k', 'FontSize', 20); legend(titl, 'FontSize', 20); ylabel('T(k)', 'FontSize', 20);
-set(gca, 'XScale', 'log', 'YScale', 'log', 'FontSize', 20);
-s % See the least squares functions in the article
+xlabel('k', 'FontSize', fs); legend(titl, 'FontSize', fs); ylabel('T(k)', 'FontSize', fs);
+set(gca, 'XScale', 'log', 'YScale', 'log', 'FontSize', fs);
+s % Determines the least squares functions
 
 end % function withoutDiscret

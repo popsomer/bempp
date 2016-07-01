@@ -24,7 +24,7 @@ end
 if par.dbf == 1
     qbf_x = [  -1.00000000000000  -0.50000000000000                  0   0.50000000000000   1.00000000000000];
     qbf_w = [   0.01666666666667   0.26666666666667   0.43333333333333   0.26666666666667   0.01666666666667];
-    % step distance between quadrature points
+    % Step distance between quadrature points
     step = 1/2; istep = 1/step;
     A = -1;
     dbf = 1;
@@ -37,7 +37,6 @@ elseif par.dbf== 3 % Weights computed in iepack/basis/make_bfinfo_periodic_splin
     A = -2;
     dbf = 3;
 end
-
 % The size of the row
 Lj = j2-j1+1;
 
@@ -52,7 +51,7 @@ else
     tc = par.colltau(i);
     kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
 end
-row = zeros(1,Lj); % We could adjust A here, but that would not allow using parfor in the loop over i.
+row = zeros(1,Lj); % We could adjust A here, but that would not allow using parfor in the loop over i and might cause copying A.
 % Perform Sweldens quadrature on the given kernelvalues; this gives NaN on singularities that are removed later.
 for l=1:Lj
     if dbf == 1
@@ -73,10 +72,10 @@ for l=1:Lj
     end
 end
 if exist('collx','var') && ~isempty(collx)
-    return % A singularity is not possible when calculating coupling matrix
+    return % A singularity is not possible when calculating the coupling matrix
 end
 u = [par.t(end-dbf:end-1)-1, par.t, par.t(2:dbf+1)+1]; % the extended knots
-% It would not be advisable to return when i is not in [j1,j2]: there could be windows close by i not in [j1,j2].
+% It would not be advisable to return when i is not in [j1,j2], as there could be windows close by i not in [j1,j2].
 for j=-1:dbf % Removes NaN due to singularity
     idx = mod(i+j-1,par.N)+1;
     idxRow = mod(i+j-1,par.N)+2-j1;
@@ -172,18 +171,18 @@ end
 
 end
 
-% Evaluate the b-spline of degree k determined by the knots t at xi.
-function z = bspline_eval(t, k, xi)
+% Evaluate the b-spline of degree k and determined by the knots t, at y.
+function z = bspline_eval(t, k, y)
 
 if k==0
-    if (xi >= t(1)) && (xi < t(2))
+    if (y >= t(1)) && (y < t(2))
         z = 1;
     else
         z = 0;
     end
 else
-    z = (xi-t(1))/(t(end-1)-t(1)) * bspline_eval(t(1:end-1), k-1, xi) ...
-        + (t(end)-xi)/(t(end)-t(2)) * bspline_eval(t(2:end), k-1, xi);
+    z = (y-t(1))/(t(end-1)-t(1)) * bspline_eval(t(1:end-1), k-1, y) ...
+        + (t(end)-y)/(t(end)-t(2)) * bspline_eval(t(2:end), k-1, y);
 end
 
 end

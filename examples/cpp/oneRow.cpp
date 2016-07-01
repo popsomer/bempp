@@ -1,16 +1,10 @@
+// Validate the asymptotic compression scheme by comparing one row of the compressed BEM matrix.
+
 // gedit /opt/fb/bempp/lib/fiber/modified_helmholtz_3d_single_layer_potential_kernel_functor.hpp
 // gedit /opt/fb/bempp/lib/assembly/dense_global_assembler.hpp
 
 // cd /opt/fb/bempp/build/examples/cpp/
 // pushd ../..; make tutorial_dirichlet -j6 && popd && ./tutorial_dirichlet || popd
-
-//Simpson:
-// cd build
-// cmake -DCMAKE_BUILD_TYPE=Release -DWITH_FENICS=ON .. -DCMAKE_CXX_FLAGS:STRING=-lpthread
-// cd /export/home1/NoCsBack/nines/fb/bempp/build/examples/cpp/
-// vim /export/home1/NoCsBack/nines/fb/bempp/examples/cpp/tutorial_dirichlet.cpp 
-// pushd ../..; make tutorial_dirichlet -j14; popd
-// ulimit -v 62000000
 
 // str = "c 0.8" corr through dist to corr, "d  0.6" corr through phys dist
 // "f  0.6" fixed windows elements, "k  0.6" fixed windows kernel
@@ -89,8 +83,6 @@ public:
     }
 };
 
-
-//int main(int argc, char* argv[])
 void oneRow(int kl)
 {
 struct stat buffer;   
@@ -98,7 +90,6 @@ if (stat (("../../../meshes/sphere" + std::to_string(kl) + ".msh").c_str(), &buf
 	std::cerr << "Error: meshes/sphere" << std::to_string(kl) << ".msh does not exist.\n Please create all sphere*.msh by loading sphere.geo into gmsh, executing 2D meshing, refining (*-1) times and saving.\n Or use other arguments for tutorial_dirichlet.\n";
 	exit(kl+1);
 }
-//const int shift = 2;
 const int avm = 40;
 arma::Mat<BFT> thetas = arma::zeros(avm,1);
 arma::Mat<BFT> phis = arma::zeros(avm,1);
@@ -121,12 +112,7 @@ for (int thi =0; thi < avm; ++thi) {
 	}
 }
 arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,kl+2,kl));
-//arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,9,7));
-//const int kl = ks.size();
-//char typeSim[][10] = {"t        ", "a   0.6  ", "b   0.6  "};
 char typeSim[][10] = {"t        ", "b   0.6  ", "a   0.6  ", "a   0.4  ", "a   0.2  "};
-//arma::Mat<CT> testPts = { {-1.0, 0.0, 0.0}, {-0.3, std::sqrt(1.0-0.09-0.25), -0.5}, {0.0, 1.0/std::sqrt(2.0), -1.0/std::sqrt(2.0)}, {0.6, -0.2, std::sqrt(1.0-0.36-0.04)} }; // Best case in the illuminated region, Illuminated region, Transition region and Shadow region
-//int nrTpts = testPts.n_cols;
 int nrTpts = 4;
 arma::Mat<CT> testPts(nrTpts,3);
 testPts(0,0) = -1.0; testPts(0,1) = 0.0; testPts(0,2) = 0.0;
@@ -152,26 +138,12 @@ AccuracyOptions accuracyOptions;
 accuracyOptions.doubleRegular.setRelativeQuadratureOrder(1);
 NumericalQuadratureStrategy<BFT, RT> quadStrategy(accuracyOptions);
 Context<BFT, RT> context(make_shared_from_ref(quadStrategy), assemblyOptions);
-/*
-//shared_ptr<Grid> grid = loadTriangularMeshFromFile("../../../meshes/sphere0.msh");
-shared_ptr<Grid> grid = loadTriangularMeshFromFile("../../../meshes/sphere1.msh"); // to solve "terminate called after throwing an instance of 'std::invalid_argument'  what():  GridFunction::setCoefficients(): dimension of the provided vector does not match the number of global DOFs in the primal space "
-PiecewiseLinearContinuousScalarSpace<BFT> Hphs(grid);
-PiecewiseConstantScalarSpace<BFT> Hmhs(grid);// Supertype ScalarSpace is abstract so cannot define Hplus/min HS as such to choose cst/lin/quadr depending on for example str.at(2)
-// PiecewisePolynomialContinuousScalarSpace<BFT> Hphs(grid,2);
-// PiecewisePolynomialContinuousScalarSpace<BFT> Hmhs(grid,3);
 
-BoundaryOperator<BFT, RT> slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(Hmhs), make_shared_from_ref(Hphs), make_shared_from_ref(Hmhs),waveNumber);
-DefaultIterativeSolver<BFT, RT> solver(slpOp,ConvergenceTestMode::TEST_CONVERGENCE_IN_DUAL_TO_RANGE);
-
-solver.initializeSolver(defaultGmresParameterList(1e-5));
-GridFunction<BFT, RT> rhsDummy(make_shared_from_ref(context), make_shared_from_ref(Hmhs), make_shared_from_ref(Hmhs),  surfaceNormalIndependentFunction(MyFunctor()));
-Solution<BFT, RT> solution = solver.solve(rhsDummy); // Reuse the Solution<BFT,RT> from first simulation and overwrite the coefficients because GridFunction.setCoefficients(...) cannot be called on an uninitialised GridFunction
-*/
 for(int ki = 0; ki < kl; ki++) {
 	tbb::tick_count starttk = tbb::tick_count::now();
 	waveNumber = ks(ki);
-	std::string mfs = "../../../meshes/sphere" + std::to_string(ki+3) + ".msh"; // When k doubles, double the number of elements in each spatial direction (# elements *= 4)
-//	std::string mfs = "../../../meshes/sphere" + std::to_string(ki+1) + ".msh"; // When k doubles, double the number of elements in each spatial direction (# elements *= 4)
+//	std::string mfs = "../../../meshes/sphere" + std::to_string(ki+3) + ".msh"; // Shift the meshes for higher accuracy, but lower maximal wavenumbers.
+	std::string mfs = "../../../meshes/sphere" + std::to_string(ki+1) + ".msh"; // When k doubles, double the number of elements in each spatial direction (# elements *= 4)
 	shared_ptr<Grid> grid = loadTriangularMeshFromFile(mfs.c_str());
 	PiecewiseLinearContinuousScalarSpace<BFT> HplusHalfSpace(grid);
 	PiecewiseConstantScalarSpace<BFT> HminusHalfSpace(grid); // Supertype ScalarSpace is abstract so cannot define Hplus/min HS as such to choose cst/lin/quadr depending on for example str.at(2) like:
@@ -186,32 +158,11 @@ for(int ki = 0; ki < kl; ki++) {
 	GridFunction<BFT, RT> normbas(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), surfaceNormalIndependentFunction(CstFct(1.0)));
 	arma::Col<RT> rhsCol = rhs.projections(make_shared_from_ref(HminusHalfSpace));
 	arma::Col<RT> normBasCol = normbas.projections(make_shared_from_ref(HminusHalfSpace));
-//	arma::Col<RT> projCol = projSol.projections(slpOp.dualToRange());
 	arma::Col<RT> projCol = projSol.projections(make_shared_from_ref(HminusHalfSpace));
-/*
-	std::fstream myStream;
-	myStream.open("normbas",std::ios::out);
-	myStream << normbas.projections(make_shared_from_ref(HminusHalfSpace));
-	myStream.close();
-	std::ifstream inputn("normbas");
-	std::vector<RT> normBasVe{std::istream_iterator<RT>(inputn), std::istream_iterator<RT>() };
-        inputn.close();
-*/
-//	arma::Col<RT> solutionCoefficientsNew = arma::Col<RT>(projCol.n_rows);
-//	for(int i=0; i < projCol.n_cols; i++) {
-//std::cout << projCol.n_cols << "=ncol, nrow=" << projCol.n_rows << "\n";
 	for(int i=0; i < projCol.n_rows; i++) {
 		projCol(i) /= normBasCol(i);
-//		projCol(i) = projCol(i)/normBasCol(i);
-//		solutionCoefficientsNew(i) = projCol(i)/normBasVe[i];
 	}
-//	projSol.setProjections(make_shared_from_ref(HminusHalfSpace), projCol);
 	projSol.setCoefficients(projCol);
-
-//	GridFunction<BFT, RT> solFunNew = solution.gridFunction();
-//	solFunNew.setCoefficients(solutionCoefficientsNew);
-//	GridFunction<BFT, RT> solFunNew(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), projCol); // Actually the second Space should be dual to the first...
-//	GridFunction<BFT, RT> solFunNew(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), projCol); // sets coeffs iso projections
 
 	arma::Mat<RT> diri = arma::Mat<RT>(1,avm*avm);
 	MyFunctor tmp = MyFunctor();
@@ -227,7 +178,6 @@ for(int ki = 0; ki < kl; ki++) {
 	EvaluationOptions evalOptions = EvaluationOptions();
 	Helmholtz3dSingleLayerPotentialOperator<BFT> slPot (waveNumber);
 	errBCproj(ki) = arma::mean(arma::mean(abs(slPot.evaluateAtPoints(projSol, points, quadStrategy, evalOptions) - diri) ))/arma::mean(arma::mean(abs(diri)));
-//	errBCproj(ki) = arma::mean(arma::mean(abs(slPot.evaluateAtPoints(solFunNew, points, quadStrategy, evalOptions) - diri) ))/arma::mean(arma::mean(abs(diri)));
 
 	BoundaryOperator<BFT, RT> slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
 	boost::shared_ptr<const Bempp::AbstractBoundaryOperator<double, std::complex<double> > > asdf = slpOp.abstractOperator();
@@ -243,18 +193,6 @@ for(int ki = 0; ki < kl; ki++) {
 	arma::Mat<int> corners;
 	arma::Mat<char> aux;
 	gv->getRawElementData(vertices, corners, aux);
-/*
-std::cout << vertices.n_cols << "=cols,rows=" << vertices.n_rows << ", first vert (x,y,z)= (" << vertices(0,0) << ", " << vertices(1,0) << ", " << vertices(2,0) << ")\n";
-std::cout << corners.n_cols << "=corCols, corRows=" << corners.n_rows << " asdf " << aux.n_rows << "," << aux.n_cols << "\n";
-std::cout << "first cor= " << corners(0,0) << ", " << corners(1,0) << "," << corners(2,0) << ", " << corners(3,0) << "\n";
-std::cout << "second cor= " << corners(0,1) << ", " << corners(1,1) << "," << corners(2,1) << ", " << corners(3,1) << "\n";
-for(int zx =0; zx<2; zx ++) {
-	std::cout << zx << "=element has first corner (" << vertices(0,corners(0,zx)) << ", " << vertices(1,corners(0,zx)) << ", " << vertices(2,corners(0,zx)) << ")\n";
-	std::cout << zx << "=element has second corner (" << vertices(0,corners(1,zx)) << ", " << vertices(1,corners(1,zx)) << ", " << vertices(2,corners(1,zx)) << ")\n";
-	std::cout << zx << "=element has third corner (" << vertices(0,corners(2,zx)) << ", " << vertices(1,corners(2,zx)) << ", " << vertices(2,corners(2,zx)) << ")\n";
-}
-exit(1);
-*/
 	arma::Mat<CT> baryCenters(3,corners.n_cols);
 	for(int elmt = 0; elmt < corners.n_cols; elmt ++) {
 		baryCenters(0,elmt) = (vertices(0,corners(0,elmt)) + vertices(0,corners(1,elmt)) + vertices(0,corners(2,elmt)) )/3;
@@ -266,10 +204,7 @@ exit(1);
 		pt(0) = testPts(pti,0);	pt(1) = testPts(pti,1);	pt(2) = testPts(pti,2);
 		tmp.evaluate(pt,t);
 		arma::Mat<RT> evB = slPot.evaluateAtPoints(projSol, pt, quadStrategy, evalOptions);
-//		arma::Mat<RT> evB = slPot.evaluateAtPoints(solFunNew, pt, quadStrategy, evalOptions);
 		errBCpts(pti,ki) = abs(evB(0,0) - t(0))/abs(t(0));
-//std::cout << evB << "=evB, t=" << t << "\n";
-//		int rowPti = DenseGlobalAssembler<BFT,RT>::closestElement(HplusHalfSpace,pt);
 		int rowPti = -1;
 		CT minDist = 2.1;
 		for(int elmt = 0; elmt < corners.n_cols; elmt ++) {
@@ -294,13 +229,9 @@ exit(1);
 			arma::Mat<RT> wm = weakCompr->asMatrix(); // wm now contains one row of the compressed matrix if str starts with t, a or b
 			percs(tsi,pti,ki) = arma::accu(wm != 0)/(0.0+wm.n_elem);
 
-//std::cerr << rhsCol.n_cols << "aposdijf\n";
 			RT err = -rhsCol(rowPti);
-//std::cerr << projCol.n_rows << "jaspojff\n";
 			for (int j=0; j < projCol.n_rows; ++j) {
-//				std::cerr << j << "aposdijf" << wm.n_cols << "\n";
 				err += wm(0,j)*projCol(j); // projCol is arma::col so () iso [] which gives a wrong result iso an error
-//				err += wm(rowPti,j)*projCol(j); // projCol is arma::col so () iso [] which gives a wrong result iso an error
 			}
 			errowAprojb(tsi, pti, ki) = std::abs(err)/std::abs(rhsCol(rowPti) );
         		times(tsi,pti,ki) = (tbb::tick_count::now() - start).seconds(); // Could add timeProj
@@ -308,7 +239,7 @@ exit(1);
 		std::ofstream myfile;
 		myfile.open("resOneRow");
 		myfile << "Output of tutorial_dirichlet with one row.\n";
-		myfile << real(ks) << " = ks\ntestPts=" << testPts << "\ntypeSim = ";// << std::str(typeSim) << "\n, testPts=" << testPts;
+		myfile << real(ks) << " = ks\ntestPts=" << testPts << "\ntypeSim = ";
 		for(int qwer = 0; qwer < nrTsim; qwer ++) {
 			myfile << typeSim[qwer] + std::string(" \n");
 		}
@@ -316,13 +247,11 @@ exit(1);
 		myfile << errBCproj << "= errBCproj, errBCpts = " << errBCpts << "\n";
 		myfile << percs << " = perc, errowAprojb=" << errowAprojb << "\n";
 		myfile.close();
-		errowAprojb.save("errowAprojb.dat", arma::raw_ascii); 
-//		if(pti == 3) { exit(0); }
+		errowAprojb.save("errowAprojb.dat", arma::raw_ascii);
 	}
-//	if(ki == 2) { exit(0); }
 } // End of loop over wavenumbers
 
-//nrTpts = std::system("cat res");
+nrTpts = std::system("cat res");
 }
 
 

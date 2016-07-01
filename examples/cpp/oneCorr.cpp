@@ -1,16 +1,10 @@
+// Compute one row of the correlation matrix
+
 // gedit /opt/fb/bempp/lib/fiber/modified_helmholtz_3d_single_layer_potential_kernel_functor.hpp
 // gedit /opt/fb/bempp/lib/assembly/dense_global_assembler.hpp
 
 // cd /opt/fb/bempp/build/examples/cpp/
 // pushd ../..; make tutorial_dirichlet -j6 && popd && ./tutorial_dirichlet || popd
-
-//Simpson:
-// cd build
-// cmake -DCMAKE_BUILD_TYPE=Release -DWITH_FENICS=ON .. -DCMAKE_CXX_FLAGS:STRING=-lpthread
-// cd /export/home1/NoCsBack/nines/fb/bempp/build/examples/cpp/
-// vim /export/home1/NoCsBack/nines/fb/bempp/examples/cpp/tutorial_dirichlet.cpp 
-// pushd ../..; make tutorial_dirichlet -j14; popd
-// ulimit -v 62000000
 
 // str = "c 0.8" corr through dist to corr, "d  0.6" corr through phys dist
 // "f  0.6" fixed windows elements, "k  0.6" fixed windows kernel
@@ -92,11 +86,7 @@ for (int i = 0; i < avm*avm; ++i) {
 EvaluationOptions evalOptions = EvaluationOptions();
 Helmholtz3dSingleLayerPotentialOperator<BFT> slPot (waveNumber);
 
-
-
-
 	errBCproj(ki) = arma::mean(arma::mean(abs(slPot.evaluateAtPoints(projSol, points, quadStrategy, evalOptions) - diri) ))/arma::mean(arma::mean(abs(diri)));
-
 
 
 	BoundaryOperator<BFT, RT> slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
@@ -113,18 +103,7 @@ Helmholtz3dSingleLayerPotentialOperator<BFT> slPot (waveNumber);
 	arma::Mat<int> corners;
 	arma::Mat<char> aux;
 	gv->getRawElementData(vertices, corners, aux);
-/*
-std::cout << vertices.n_cols << "=cols,rows=" << vertices.n_rows << ", first vert (x,y,z)= (" << vertices(0,0) << ", " << vertices(1,0) << ", " << vertices(2,0) << ")\n";
-std::cout << corners.n_cols << "=corCols, corRows=" << corners.n_rows << " asdf " << aux.n_rows << "," << aux.n_cols << "\n";
-std::cout << "first cor= " << corners(0,0) << ", " << corners(1,0) << "," << corners(2,0) << ", " << corners(3,0) << "\n";
-std::cout << "second cor= " << corners(0,1) << ", " << corners(1,1) << "," << corners(2,1) << ", " << corners(3,1) << "\n";
-for(int zx =0; zx<2; zx ++) {
-	std::cout << zx << "=element has first corner (" << vertices(0,corners(0,zx)) << ", " << vertices(1,corners(0,zx)) << ", " << vertices(2,corners(0,zx)) << ")\n";
-	std::cout << zx << "=element has second corner (" << vertices(0,corners(1,zx)) << ", " << vertices(1,corners(1,zx)) << ", " << vertices(2,corners(1,zx)) << ")\n";
-	std::cout << zx << "=element has third corner (" << vertices(0,corners(2,zx)) << ", " << vertices(1,corners(2,zx)) << ", " << vertices(2,corners(2,zx)) << ")\n";
-}
-exit(1);
-*/
+
 	arma::Mat<CT> baryCenters(3,corners.n_cols);
 	for(int elmt = 0; elmt < corners.n_cols; elmt ++) {
 		baryCenters(0,elmt) = (vertices(0,corners(0,elmt)) + vertices(0,corners(1,elmt)) + vertices(0,corners(2,elmt)) )/3;
@@ -136,10 +115,7 @@ exit(1);
 		pt(0) = testPts(pti,0);	pt(1) = testPts(pti,1);	pt(2) = testPts(pti,2);
 		tmp.evaluate(pt,t);
 		arma::Mat<RT> evB = slPot.evaluateAtPoints(projSol, pt, quadStrategy, evalOptions);
-//		arma::Mat<RT> evB = slPot.evaluateAtPoints(solFunNew, pt, quadStrategy, evalOptions);
 		errBCpts(pti,ki) = abs(evB(0,0) - t(0))/abs(t(0));
-//std::cout << evB << "=evB, t=" << t << "\n";
-//		int rowPti = DenseGlobalAssembler<BFT,RT>::closestElement(HplusHalfSpace,pt);
 		int rowPti = -1;
 		CT minDist = 2.1;
 		for(int elmt = 0; elmt < corners.n_cols; elmt ++) {
@@ -164,13 +140,9 @@ exit(1);
 			arma::Mat<RT> wm = weakCompr->asMatrix(); // wm now contains one row of the compressed matrix if str starts with t, a or b
 			percs(tsi,pti,ki) = arma::accu(wm != 0)/(0.0+wm.n_elem);
 
-//std::cerr << rhsCol.n_cols << "aposdijf\n";
 			RT err = -rhsCol(rowPti);
-//std::cerr << projCol.n_rows << "jaspojff\n";
 			for (int j=0; j < projCol.n_rows; ++j) {
-//				std::cerr << j << "aposdijf" << wm.n_cols << "\n";
 				err += wm(0,j)*projCol(j); // projCol is arma::col so () iso [] which gives a wrong result iso an error
-//				err += wm(rowPti,j)*projCol(j); // projCol is arma::col so () iso [] which gives a wrong result iso an error
 			}
 			errowAprojb(tsi, pti, ki) = std::abs(err)/std::abs(rhsCol(rowPti) );
         		times(tsi,pti,ki) = (tbb::tick_count::now() - start).seconds(); // Could add timeProj
@@ -178,7 +150,7 @@ exit(1);
 		std::ofstream myfile;
 		myfile.open("res");
 		myfile << "Output of tutorial_dirichlet with one row.\n";
-		myfile << real(ks) << " = ks\ntestPts=" << testPts << "\ntypeSim = ";// << std::str(typeSim) << "\n, testPts=" << testPts;
+		myfile << real(ks) << " = ks\ntestPts=" << testPts << "\ntypeSim = ";
 		for(int qwer = 0; qwer < nrTsim; qwer ++) {
 			myfile << typeSim[qwer] + std::string(" \n");
 		}
@@ -187,10 +159,9 @@ exit(1);
 		myfile << percs << " = perc, errowAprojb=" << errowAprojb << "\n";
 		myfile.close();
 		errowAprojb.save("errowAprojb.dat", arma::raw_ascii); 
-//		if(pti == 3) { exit(0); }
 	}
 
-//nrTpts = std::system("cat res");
+nrTpts = std::system("cat res");
 }
 
 

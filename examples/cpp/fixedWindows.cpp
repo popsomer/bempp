@@ -2,13 +2,10 @@ void fixedWindows() {
 
 arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,5,3));
 const int kl = ks.size();
-//const int kl = 1;
 
 arma::Mat<BFT> Ts = arma::linspace<arma::Mat<BFT>>(0.6,0.8,2);
-//arma::Mat<BFT> Ts = arma::linspace<arma::Mat<BFT>>(0.03,2.0,10);
 
 const int Tl = Ts.size();
-//const int Tl = 1;
 
 const int avm = 100;
 arma::Mat<BFT> thetas = arma::zeros(avm,1);
@@ -54,7 +51,7 @@ for(int ki = 0; ki < kl; ki++) {
 	PiecewiseLinearContinuousScalarSpace<BFT> HplusHalfSpace(grid);
 	PiecewiseConstantScalarSpace<BFT> HminusHalfSpace(grid);
 	AssemblyOptions assemblyOptions;
-	assemblyOptions.setVerbosityLevel(VerbosityLevel::LOW); // Less junk
+	assemblyOptions.setVerbosityLevel(VerbosityLevel::LOW);
 //	assemblyOptions.setVerbosityLevel(VerbosityLevel::HIGH); // More info (progress % matrix)
 	// No ACA (AcaOptions) 
 	AccuracyOptions accuracyOptions;
@@ -65,8 +62,7 @@ for(int ki = 0; ki < kl; ki++) {
 	BoundaryOperator<BFT, RT> slpOp = helmholtz3dSingleLayerBoundaryOperator<BFT>(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HplusHalfSpace), make_shared_from_ref(HminusHalfSpace),waveNumber);
 
 	arma::Mat<RT> wm = slpOp.weakForm()->asMatrix();
-	GridFunction<BFT, RT> rhs(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), // is this the right choice?
-            surfaceNormalIndependentFunction(MyFunctor()));
+	GridFunction<BFT, RT> rhs(make_shared_from_ref(context), make_shared_from_ref(HminusHalfSpace), make_shared_from_ref(HminusHalfSpace), surfaceNormalIndependentFunction(MyFunctor()));
 
 	// Initialize the solver
 #ifdef WITH_TRILINOS
@@ -97,7 +93,7 @@ for(int ki = 0; ki < kl; ki++) {
 		pt(0) = points(0,i);
 		pt(1) = points(1,i);
 		pt(2) = points(2,i);
-		t.fill(0.);//t = 0;
+		t.fill(0.);
 		tmp.evaluate(pt,t);
 		diri(i) = t(0);
 

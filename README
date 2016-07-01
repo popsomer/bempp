@@ -1,6 +1,8 @@
 This implementation accompanies the article "High-frequency asymptotic compression of dense BEM matrices", D. Huybrechs and P. Opsomer, (in preparation). The Matlab code for 2D problems is located in the subfolder 'matlab'. The other code is an adaptation of the BEMPP software package, of which there is information below.
 
-Results from the paper can be reproduced by running the Matlab-files with the respective name, or the build/examples/cpp/tutorial_dirichlet executable obtained after compilation of BEMPP, see examples/cpp/tutorial_dirichlet.cpp for a description. We have used Matlab2015b and gcc 4.8.4 on a 64-bit machine with 66GB memory and 32 Intel(R) Xeon(R) CPU E5-2650 v2 CPU’s at 2.6Ghz.
+Results from the paper can be reproduced by running the Matlab-files with the respective name, or the build/examples/cpp/tutorial_dirichlet executable obtained after compilation of BEMPP. We have used Matlab2015b and gcc 4.8.4 on a 64-bit machine with 66GB memory and 32 Intel(R) Xeon(R) CPU E5-2650 v2 CPU’s at 2.6Ghz.
+
+One can execute tutorial_dirichlet to run the 3D experiments in the article. Executing tutorial_dirichlet oneRow kl runs the example checking the compression accuracy at higher wavenumbers using kl wavenumbers when only computing four representative (compressed) rows of the system matrix for a sphere. Make sure there are meshes/sphere*.msh for * up to kl.
 
 Introduction
 ============

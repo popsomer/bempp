@@ -1,43 +1,39 @@
 % Introduce window functions with fixed support in a standard BEM for a circle.
 %% Initialising
-clear variables -except A3 A
+clear variables
 close all
 format longe
 set(0,'DefaultFigureWindowStyle','docked');
 
-% If varykTs = 0 then plot sparsity structure for one k and T, else vary k and T
-varykT = 0;
+varykT = 0; % If varykTs = 0 then plot sparsity structure for one k and T and try block window, else vary k and T.
 factShad = 3; % Factor of the width of a window around a stationary point, although this is dependent on k.
 percDecay = 0.5; % Percentage of the window for the C-inf decay: 0 means a block window and 1 means not identically one on any interval.
-
-par = getObst(0);
+printtoc = 10; % Number of seconds after which to print progress information
+par = getObst(1);
 
 if varykT
     ks = 2.^(4:10); Ts = linspace(0.001,0.15,20); mti = 2;
-%     ks = 2.^(4:6); Ts = linspace(0.001,0.15,5);
 else % Only one k and T
     ks = 2^8; Ts = 0.08; mti = 0;
-    ks = 2^6; Ts = 0.08; mti = 0;
-%     ks = 2^4; Ts = 0.001; mti = 0;
 end
-Tl = length(Ts); kl = length(ks);
-avm = 100; % Number of random taus to average BC over
-taus = rand(avm,1);
-rtests = 1 + 2*(randn(avm,1)).^2; % To compare with exact solution in the field
-
-% v is for validation: 2 refers to A and A2=\tilde{A}, 2+mti to A\b, A2\b and the solutions of the iterative solver
+Tl = length(Ts);
+kl = length(ks);
+avm = 100; % Number of random taus to average boundary conditions over
+taus = rand(avm,1); % Where to test the boundary conditions
+% v is for validation: 2 refers to A1 = A and A2 = \tilde{A}, 2+mti to A\b, A2\b and the solutions of the iterative solver
 if varykT
-    v = struct('conds', zeros(Tl*kl,2), 'mti', mti, 'avm', avm, 'taus', taus, 'rtests', rtests, 'errBCavm', zeros(Tl*kl,2+mti),...
-        'errTrueF', zeros(Tl*kl,2+mti), 'nnz', zeros(Tl*kl,2), 'perc', zeros(Tl*kl,2), 'errSol', zeros(Tl*kl,2+mti), 'errBCcol', ...
+    v = struct('conds', zeros(Tl*kl,2), 'mti', mti, 'avm', avm, 'taus', taus, 'errBCavm', zeros(Tl*kl,2+mti),...
+        'nnz', zeros(Tl*kl,2), 'perc', zeros(Tl*kl,2), 'errSol', zeros(Tl*kl,2+mti), 'errBCcol', ...
         zeros(Tl*kl,2+mti), 'compresErr', zeros(Tl*kl,2), 'timeSol', zeros(Tl*kl,2+mti), 'nbIter', zeros(Tl*kl,mti), 'timeA', ...
         zeros(Tl*kl,2), 'ks', ks, 'field', zeros(70), 'errInt', zeros(Tl*kl,2+mti) );
 else
-    v = struct('perc', zeros(Tl*kl,2), 'errSol', zeros(Tl*kl,2+mti), 'mti', mti, 'avm', avm, 'taus', taus, 'rtests', rtests, 'errBCavm', ...
+    v = struct('perc', zeros(Tl*kl,2), 'errSol', zeros(Tl*kl,2+mti), 'mti', mti, 'avm', avm, 'taus', taus, 'errBCavm', ...
         zeros(Tl*kl,2+mti), 'timeSol', zeros(Tl*kl,2+mti), 'errBCcol', zeros(Tl*kl,2+mti), 'compresErr', zeros(Tl*kl,2), ...
         'timeA', zeros(Tl*kl,2), 'ks', ks, 'errInt', zeros(Tl*kl,2+mti), 'conds', zeros(Tl*kl,2), 'nbIter', zeros(Tl*kl,mti) );
 end
 
 %% Computations
+startAll = now;
 for ki = 1:kl
     par.k = ks(ki); par.N = par.ppw*par.k;
     par.t = linspace(0,1,par.N + 1); % The knots of the periodic spline;
@@ -48,15 +44,17 @@ for ki = 1:kl
     tic;
     prevToc = toc;
     for i = 1:par.N
-        if (toc-prevToc > 5)
+        if (toc-prevToc > printtoc)
             prevToc = toc;
-            display(['k = ', num2str(par.k), ', ' num2str( (i-1)/par.N,'%7.3f'), ' = part of matrix, estim sec left = ' num2str(toc*(par.N-i+1)/(i-1)) ])
+            display([num2str(par.k), '=k, ' num2str( (i-1)/par.N,'%7.3f'), '=A1%, est. # sec. left for A1=' num2str(toc*(par.N-i+1)/(i-1)) ])
         end
         % 	parfor i=1:par.N % Possibly use this instead of a sequential loop
         A1(i,:) = collRowQBF(i,par);
     end
     ix = Tl*(ki-1)+1:Tl*ki;
     v.timeA(ix,1) = toc;
+    b = par.bc(par.k,par.par(par.colltau)); 
+    c1 = A1\b; % Needed for computing the temporary errors
     
     for ti = 1:Tl
         T = Ts(ti);
@@ -64,10 +62,10 @@ for ki = 1:kl
         tic;
         prevToc = toc;
         for i = 1:par.N
-            if (toc-prevToc > 5)
+            if (toc-prevToc > printtoc)
                 prevToc = toc;
-                display(['k = ', num2str(par.k), ', ' num2str( (i-1)/par.N,'%7.3f'), ' = part of compr. matrix, estim sec left = ' ...
-                    num2str(toc*(par.N-i+1)/(i-1)) ])
+                display([num2str(ks(ki)) '=k, ' num2str(i/par.N,'%7.3f') '=A2%, now=' datestr(now) ', T%=' num2str(ti/Tl) ', est. # sec. left for A2=' ...
+                    num2str(toc*(par.N-i)/i) ', temp. compr. error=' num2str(norm(A2(1:(i-1),:)*c1-b(1:(i-1)))/norm(b(1:(i-1))  ))]);
             end
             tc = par.colltau(i);
             tbounds = [tc-T; tc+T; T*percDecay; T*percDecay];
@@ -88,49 +86,44 @@ for ki = 1:kl
             end
             tbounds(1,:) = tbounds(1,:) - eps; % Make sure that tbounds(1,:) < tbounds(2,:).
             tbounds(2,:) = tbounds(2,:) + eps;
-            warning('off', 'windRow:removeGreen'); % When T is too small, the matrix will loose the Green singularity and become singular.
+            warning('off'); % When T is too small, the matrix will loose the Green singularity and become singular.
             A2(i,:) = windRow(i,par,tbounds);
         end
         ix = Tl*(ki-1)+ti;
         v.timeA(ix,2) = toc;
         v = validate(A1,A2,par,v,ix);
     end
+    display([num2str(ki) '=ki, now is ' datestr(now) ', expected end ' datestr(startAll + ...
+        (now-startAll)*sum(ks.^2)/sum(ks(1:ki).^2) ) ]);
+    save('fixedWindows.mat','-regexp','^(?!(A1|A2)$).')
 end
 
 %% Plots
 if varykT
-    clearvars A1 A2
-    save fixedWindows.mat
-    % Afterwards, do:
-    if 0
-        clearvars;
-        load fixedWindows.mat;
-        
-        fs = 27;
-        l = {'*', '+', 'o', '.', 'x', 's', 'd', '>', '<', 'p', 'h', 'v', '^'};
-        c = 'bgrcmk';
-        fss = 'Fontsize'; fs = 22;
-        lws = 'LineWidth'; lw = 5;
-        labs = [repmat('k = ', length(ks),1), num2str(ks')];
-        matr = reshape(v.errSol(:,2),Tl,kl);
-        matr(abs(matr) > 1) = 1;
-        figure;
-        for ki = 1:kl
-            semilogy(Ts, matr(:,ki), [l{ki} c(mod(ki-1,length(c))+1)], 'MarkerSize',10); hold on;
-        end
-        legend(labs);
-        xlabel('T','FontSize',fs);
-        ylabel('$|| \tilde{c}-$c$ ||/|| $c$ ||$','interpreter','latex',fss,fs);
-        set(gca,fss,fs);
+    fs = 27;
+    l = {'*', '+', 'o', '.', 'x', 's', 'd', '>', '<', 'p', 'h', 'v', '^'};
+    c = 'bgrcmk';
+    fss = 'Fontsize'; fs = 22;
+    lws = 'LineWidth'; lw = 5;
+    labs = [repmat('k = ', length(ks),1), num2str(ks')];
+    matr = reshape(v.errSol(:,2),Tl,kl);
+    matr(abs(matr) > 1) = 1;
+    figure;
+    for ki = 1:kl
+        semilogy(Ts, matr(:,ki), [l{ki} c(mod(ki-1,length(c))+1)], 'MarkerSize',10); hold on;
     end
+    legend(labs);
+    xlabel('T','FontSize',fs);
+    ylabel('$|| \tilde{c}-$c$ ||/|| $c$ ||$','interpreter','latex',fss,fs);
+    set(gca,fss,fs);
 else
     plotVal(struct(),A2);
     % Test using a block window.
     A3 = A1;
     A3(A2==0) = 0;
     v3 = validate(A1, A3, par, struct('perc', zeros(Tl*kl,2), 'errSol', zeros(Tl*kl,2+mti), 'mti', mti, 'avm', avm, 'taus', taus, ...
-        'rtests', rtests, 'errBCavm', zeros(Tl*kl,2+mti), 'timeSol', zeros(Tl*kl,2+mti), 'errBCcol', ...
-        zeros(Tl*kl,2+mti), 'compresErr', zeros(Tl*kl,2),  'ks', ks, 'errInt', zeros(Tl*kl,2+mti), 'conds', zeros(Tl*kl,2) ), ix)
+        'errBCavm', zeros(Tl*kl,2+mti), 'timeSol', zeros(Tl*kl,2+mti), 'errBCcol', zeros(Tl*kl,2+mti), 'compresErr', zeros(Tl*kl,2), ...
+        'ks', ks, 'errInt', zeros(Tl*kl,2+mti), 'conds', zeros(Tl*kl,2) ), ix)
     % Check the sizes of some contributions:
     b = par.bc(par.k,par.par(par.colltau));
     c1 = A1\b;

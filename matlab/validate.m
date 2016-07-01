@@ -100,8 +100,8 @@ else
     b2 = b;
     c2 = A2\b;
 end
-if isfield(v,'timeSol'), v.timeSol(ix,2) = toc-start; end
-if isfield(v,'errSol'), v.errSol(ix,2) = norm(c2-c1)/norm(c1); end
+if isfield(v, 'timeSol'), v.timeSol(ix,2) = toc-start; end
+if isfield(v, 'errSol'), v.errSol(ix,2) = norm(c2-c1)/norm(c1); end
 if isfield(v, 'errBCcol'), v.errBCcol(ix,2) = norm(A1*c2-b)/norm(b); end
 if isfield(v, 'compresErr'), v.compresErr(ix,2) = norm(A2*c1-b)/norm(b); end
 

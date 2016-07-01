@@ -79,29 +79,7 @@ public:
       sum += diff * diff;
     }
     CoordinateType distance = sqrt(sum);
-//Peter:
-	if (distance >= 2) {
-//		std::cerr << "Error, 2 <= distance =" << distance <<  std::endl;
-	}
-	CoordinateType wind = static_cast<CoordinateType>(1.0);
-//	CoordinateType cuto = static_cast<CoordinateType>(0.1);
-//	CoordinateType cutoSP = static_cast<CoordinateType>(0.3);
-//if (testGeomData.global(0) < -7) { // for test without window
-//	if (testGeomData.global(0) > 0.8) { // WRONG
-//	if (testGeomData.global(0) < -0.8) { // Hardcoded
-//	if (true) {
-//	if(false) {
-//		if (distance >= cuto*2) {
-//			wind = static_cast<CoordinateType>(0.0);
-//		}
-//		else if (distance >= cuto) {
-//			wind = exp(2*exp(-cuto/(distance-2*cuto) )/( (distance-2*cuto)/cuto-1) );
-//			std::cout << wind;
-//		} 
-//	}
-//throw std::logic_error("just for printing backtrace");
-//std::terminate();
-//	if(testGeomData.global(0) > 0
+    CoordinateType wind = static_cast<CoordinateType>(1.0);
     result[0](0, 0) = static_cast<CoordinateType>(1.0 / (4.0 * M_PI)) / distance * exp(-m_waveNumber * distance)*wind;
 
   }
@@ -110,7 +88,6 @@ public:
   template <template <typename T> class CollectionOf2dSlicesOfNdArrays>
   void evaluatePeter(std::string str, const ConstGeometricalDataSlice<CoordinateType> &testGeomData, const ConstGeometricalDataSlice<CoordinateType> &trialGeomData, CollectionOf2dSlicesOfNdArrays<ValueType> &result) const {
     const int coordCount = 3;
-//std::cout << "Entered evaluatePeter, str=" << str << std::endl;
     CoordinateType sum = 0;
     for (int coordIndex = 0; coordIndex < coordCount; ++coordIndex) {
       CoordinateType diff =
@@ -123,24 +100,16 @@ public:
 		std::cerr << "Error, 2 <= distance =" << distance <<  std::endl;
 	}
 	CoordinateType wind = static_cast<CoordinateType>(1.0);
-//	CoordinateType cuto = static_cast<CoordinateType>(0.1);
-//	CoordinateType cutoSP = static_cast<CoordinateType>(0.3);
 
-//	if (true) {
 	if ((str.at(0) == 'k') | (str.at(0) == 'b') ) { // 'f' means fixed windows multiplying matrix entries, 'k' fixed windows multiplying kernel
 		CoordinateType percDecay = static_cast<CoordinateType>(0.8);
 		std::string::size_type sz;   
 		CoordinateType b = std::stof(str.substr(2),&sz);		
 		CoordinateType a = (1-percDecay)*b;
-//		CoordinateType dist = std::sqrt( std::pow(testGeomData.global(1) - trialGeomData.global(1), 2.0) + std::pow(testGeomData.global(1) - trialGeomData.global(1), 2.0) );
 		CoordinateType dist = std::sqrt( std::pow(testGeomData.global(1) - trialGeomData.global(1), 2.0) + std::pow(testGeomData.global(2) - trialGeomData.global(2), 2.0) );
 
-//std::cout << dist << " = dist, b= " << b << "\n";
-		// Distance without x to include stationary points (but also shadow when coll in illuminated...)
-//	if ((m_testPos[testIndex].x < 0) || (m_trialPos[trialIndex].x > 0)) {
 		if (dist <= a) {
 			wind = static_cast<CoordinateType>(1.0);
-//			std::cout << "Window 1 for fixedWindows with x=" << m_testPos[testIndex].x << std::endl;
 		} else if (dist <= b) {
 			wind = exp(2*exp(-(b-a)/(dist-a) )/((dist-a)/(b-a) -1));
 		} else { 
@@ -158,28 +127,16 @@ public:
 		} else { 
 			wind = static_cast<CoordinateType>(0.0); 
 		}
-//		wind = std::max(wind, abs(testGeomData.global(0) + 0.15) );
 		if(wind < std::abs(testGeomData.global(0) + 0.15) ) {
 			wind = std::abs(testGeomData.global(0) + 0.15);
 		}
-//		if (testGeomData.global(0) < -0.95) {
 		if ((testGeomData.global(0) < -0.95) && (std::abs(trialGeomData.global(0) - testGeomData.global(0)) < 1e-13) ) {
-//		if ((testGeomData.global(0) < -0.95) &&(testGeomData.global(1) > 0.1) &&(testGeomData.global(2) > 0) && (std::abs(trialGeomData.global(0) - testGeomData.global(0)) < 1e-13) ) {
 			std::cerr << "\n str is j: " << str << "\n\n";
 		}
-//		if( (abs(wind) > 1e-13) && (dist > b) && (testGeomData.global(0) <= -0.15) ) {
 		if( (abs(wind) > 1e-13) && (trialGeomData.global(0) > b-0.15) && (testGeomData.global(0) <= -0.15) ) {
 			std::cerr << "\n err, window should be zero: " << a << "=a, dist=" << dist << "=dist, tgd0=" << testGeomData.global(0) << "\n";
 		}
 	}
-//	if (false) {
-//		if (distance >= cuto*2) {
-//			wind = static_cast<CoordinateType>(0.0);
-//		}
-//		else if (distance >= cuto) {
-//			wind = exp(2*exp(-cuto/(distance-2*cuto) )/( (distance-2*cuto)/cuto-1) );
-//		} 
-//	}
 	result[0](0, 0) = static_cast<CoordinateType>(1.0 / (4.0 * M_PI)) / distance * exp(-m_waveNumber * distance)*wind;
 }
 

@@ -41,13 +41,12 @@
 #include "assembly/general_elementary_singular_integral_operator.hpp"
 
 
-#include <math.h> //Peter
-#include "../../build/external/include/Trilinos/Thyra_BelosLinearOpWithSolve_def.hpp"//Peter
-#include "space/piecewise_polynomial_continuous_scalar_space.hpp" // Peter
-//#include <boost> //Peter: for higher order basises
-#include "../../build/external/include/boost/math/special_functions/bessel.hpp" //Peter: for sph_bessel
+#include <math.h>
+#include "../../build/external/include/Trilinos/Thyra_BelosLinearOpWithSolve_def.hpp"
+#include "space/piecewise_polynomial_continuous_scalar_space.hpp"
+#include "../../build/external/include/boost/math/special_functions/bessel.hpp" // for sph_bessel
 
-#define ARMA_USE_CXX11 // Peter: to be able to define arma::Mat asdf = { { ...}, {...} }
+#define ARMA_USE_CXX11 // to be able to define arma::Mat asdf = { { ...}, {...} }
 
 using namespace Bempp;
 

@@ -4,150 +4,152 @@
 %   c         - The solution vector to compute the correlations with
 %   Tcor      - The width of the windows
 %   pd        - The percentage of support of the windows with a decay
-%   [tim      - tim(1) is the number of seconds after which to print tim(2) + expected days for this method, assuming tic has been started]
+%   [tim      - If present and nonempty, tim(1) is the number of seconds after which 
+%                  to print tim(2) + expected days for this method, assuming tic has been started]
 %   [A        - If present, the system matrix to compute the correlations with]
 % Output
-%   rois      - The correlations where each row corresponds to par.colltau
-%   roit      - The locations of the windows, corresponding the columns of rois
+%   R         - The correlations where each row corresponds to par.colltau
+%   sigm      - The locations of the windows, corresponding the columns of R
 %   [obbounds - Additional information for multiple scattering obstacles]
-function [rois, roit, obbounds] = calcCorr(par, c, Tcor, pd, tim, A)
-
-fr = 1.5; % factor of number of columns over rows of rois
-if isfield(par, 'obsts')
-    roit = [];
-    obbounds = zeros(2,length(par.obsts));
-%     colLow = cell(length(par.obsts),1);
-%     rlow = par.r;
-    for obst = 1:length(par.obsts)
-        obbounds(1,obst) = length(roit)+1;
-        roit = [roit linspace(0,1,round(par.obsts(obst).N*fr) )];
-        obbounds(2,obst) = length(roit);
-%         colLow{obst} = par.obsts(obst).colltau;
-    end
-    %             roit = roit(1:end-1); % Exclude 1 from last obstacle
-    sr = length(roit);
-    rois = zeros(par.N,sr);
-else
-    rois = zeros(par.N,round(par.N*fr)); % Compute correlations on more than N points for possible accuracy.
-    roit = linspace(0,1,size(rois,2) );
+function [R, sigma, obbounds] = calcCorr(par, c, Tcor, pd, tim, A)
+if ~exist('tim','var') || isempty(tim)
+    tim = [inf, 0];
 end
-sr = size(rois,2);
+fr = 1.5; % factor of number of columns over rows of R
+if isfield(par, 'obsts')
+    sigma = [];
+    obbounds = zeros(2,length(par.obsts));
+    for obst = 1:length(par.obsts)
+        obbounds(1,obst) = length(sigma)+1;
+        sigma = [sigma linspace(0,1,round(par.obsts(obst).N*fr) )];
+        obbounds(2,obst) = length(sigma);
+    end
+    sr = length(sigma);
+    R = zeros(par.N,sr);
+else
+    R = zeros(par.N,round(par.N*fr));
+    sigma = linspace(0,1,size(R,2) );
+end
+sr = size(R,2);
 prevToc = toc;
 
 if exist('A','var') && isfield(par, 'obsts')
-    % We go over the columns of rois so that we can reuse j1, j2 and wi
+    % We go over the columns of R so that we can reuse j1, j2 and wi
     for roi = 1:sr
         if (toc-prevToc > tim(1) )
-            prevToc = toc;
-            display([num2str(roi/sr,'%7.3f') ' = rois-col%, now is ' datestr(now) ', estimated end on ' datestr(tim(2)+toc*(sr-roi)/roi/24/3600) ]);
+            prevToc = toc;            
+            display(['k=' num2str(par.k) ': ' num2str(roi/sr,'%7.3f')  '=R%, now=' datestr(now) ', est. # sec. left for R=' ...
+                num2str(toc*(sr-roi)/roi) ', est. end ' datestr(tim(2)+prevToc*sr/roi/24/3600)])
         end
         obsin = find((roi >= obbounds(1,:)) & (roi <= obbounds(2,:)));
-        T1 = roit(roi)-Tcor;
-        T2 = roit(roi)+Tcor;
+        T1 = sigma(roi)-Tcor;
+        T2 = sigma(roi)+Tcor;
         [j1loc, j2loc, noSplit] = bounds2Ind(par.obsts(obsin).colltau,T1,T2);
         j1 = j1loc+par.r(1,obsin)-1;
         j2 = j2loc+par.r(1,obsin)-1;
         if noSplit
-            wi = Cinf(par.obsts(obsin).colltau(j1loc:j2loc),T1, T1+pd*Tcor, T2-pd*Tcor, T2,0);
+            wi = chi(par.obsts(obsin).colltau(j1loc:j2loc),T1, T1+pd*Tcor, T2-pd*Tcor, T2,0);
             for i = 1:par.N
-                rois(i,roi) = (wi.*A(i,j1:j2))*c1(j1:j2);
+                R(i,roi) = (wi.*A(i,j1:j2))*c(j1:j2);
             end
         else
             wi1 = chi(par.obsts(obsin).colltau(j1loc:par.obsts(obsin).N),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1);
             wi2 = chi(par.obsts(obsin).colltau(1:j2loc),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1);
             for i = 1:par.N
-                rois(i,roi) = (wi1.*A(i,j1:par.r(2,obsin)))*c1(j1:par.r(2,obsin)) + (wi2.*A(i,par.r(1,obsin):j2))*c1(par.r(1,obsin):j2);
+                R(i,roi) = (wi1.*A(i,j1:par.r(2,obsin)))*c(j1:par.r(2,obsin)) + (wi2.*A(i,par.r(1,obsin):j2))*c(par.r(1,obsin):j2);
             end
         end
     end
+    return
 elseif exist('A','var')
-    % We go over the columns of rois so that we can reuse j1, j2 and wi
+    % We go over the columns of R so that we can reuse j1, j2 and wi
     for roi = 1:sr
         if (toc-prevToc > tim(1) )
             prevToc = toc;
-            display([num2str(roi/sr,'%7.3f') ' = rois-col%, now is ' datestr(now) ', estimated end on ' datestr(tim(2)+toc*(sr-roi)/roi/24/3600) ])
+            display(['k=' num2str(par.k) ': ' num2str(roi/sr,'%7.3f')  '=R%, now=' datestr(now) ', est. # sec. left for R=' ...
+                num2str(toc*(sr-roi)/roi) ', est. end ' datestr(tim(2)+prevToc*sr/roi/24/3600)])
         end
-        T1 = roit(roi)-Tcor;
-        T2 = roit(roi)+Tcor;
+        T1 = sigma(roi)-Tcor;
+        T2 = sigma(roi)+Tcor;
         [j1, j2, noSplit] = bounds2Ind(par.colltau,T1,T2);
         if noSplit
             wi = chi(par.colltau(j1:j2),T1, T1+pd*Tcor, T2-pd*Tcor, T2,0);
             for i = 1:par.N
-                rois(i,roi) = (wi.*A(i,j1:j2))*c1(j1:j2);
+                R(i,roi) = (wi.*A(i,j1:j2))*c(j1:j2);
             end
         else
             wi1 = chi(par.colltau(j1:par.N),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1);
             wi2 = chi(par.colltau(1:j2),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1);
             for i = 1:par.N
-                rois(i,roi) = (wi1.*A(i,j1:par.N))*c1(j1:par.N) + (wi2.*A(i,1:j2))*c1(1:j2);
+                R(i,roi) = (wi1.*A(i,j1:par.N))*c(j1:par.N) + (wi2.*A(i,1:j2))*c(1:j2);
             end
         end
     end
+    return
 end
 
 % Compute the correlations as an integral through a simple Riemann-sum without normalisation.
-% We could compute rois column by column because then the window around roit(roi) would be constant, so that we do not have to
+% We could compute R column by column because then the window around sigma(roi) would be constant, so that we do not have to
 % recompute the same window indices j1 and j2 for each row. But this would need to recompute the integrand with the
 % (expensive) Bessel function for each column.
-
 if ~isfield(par, 'obsts') % Single scattering obstacle without using A
     u = [par.t(end-par.dbf:end-1)-1, par.t, par.t(2:par.dbf+1)+1]; % the extended knots
-    c1ip = deboor(par.dbf, u, [c; c(1:par.dbf)], roit);
+    c1ip = deboor(par.dbf, u, [c; c(1:par.dbf)], sigma);
     
-    % Find the intervals of u where the respective roit lies.
-    % js = [arrayfun(@(roi) find(roi >= u, 1, 'last') - par.dbf - 1, roit), length(u) - 2*par.dbf - 2];
+    % Find the intervals of u where the respective sigma lies.
     for i = 1:par.N
         if (toc-prevToc > tim(1) )
             prevToc = toc;
-            display([num2str(toc*(par.N-i)/i) ' sec, tm2= ' datestr(tim(2))])
-            display([num2str(i/par.N,'%7.3f') ' = rois-row%, now is ' datestr(now) ', estimated end on ' datestr(tim(2)+toc*(par.N-i)/i/24/3600) ])
+            display(['k=' num2str(par.k) ': ' num2str(i/par.N,'%7.3f')  '=R%, now=' datestr(now) ', est. # sec. left for R=' ...
+                num2str(toc*(par.N-i)/i) ', est. end ' datestr(tim(2)+prevToc*par.N/i/24/3600)])
         end
         tc = par.colltau(i);
-        integrand = 1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(roit))) ...
-            -par.par(roit) ).^2, 1)) ).*c1ip.*par.gradnorm(roit);
+        integrand = 1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(sigma))) ...
+            -par.par(sigma) ).^2, 1)) ).*c1ip.*par.gradnorm(sigma);
         integrand(isnan(integrand)) = 0;
-        for roi = 1:size(rois,2)
-            [j1, j2, noSplit] = bounds2Ind(roit,roit(roi)-Tcor,roit(roi)+Tcor);
+        for roi = 1:size(R,2)
+            [j1, j2, noSplit] = bounds2Ind(sigma,sigma(roi)-Tcor,sigma(roi)+Tcor);
             if noSplit
-                wi = chi(roit(j1:j2),roit(roi)-Tcor, roit(roi)-(1-pd)*Tcor, roit(roi)+Tcor*(1-pd),roit(roi)+Tcor,0);
-                rois(i,roi) = sum(wi.*integrand(j1:j2) );
+                wi = chi(sigma(j1:j2),sigma(roi)-Tcor, sigma(roi)-(1-pd)*Tcor, sigma(roi)+Tcor*(1-pd),sigma(roi)+Tcor,0);
+                R(i,roi) = sum(wi.*integrand(j1:j2) );
             else
-                wi1 = chi(roit(j1:sr),roit(roi)-Tcor, roit(roi)-(1-pd)*Tcor, roit(roi)+Tcor*(1-pd),roit(roi)+Tcor,1);
-                wi2 = chi(roit(1:j2), roit(roi)-Tcor, roit(roi)-(1-pd)*Tcor, roit(roi)+Tcor*(1-pd),roit(roi)+Tcor,1);
-                rois(i,roi) = sum(wi1.*integrand(j1:sr) ) + sum(wi2.*integrand(1:j2) );
+                wi1 = chi(sigma(j1:sr),sigma(roi)-Tcor, sigma(roi)-(1-pd)*Tcor, sigma(roi)+Tcor*(1-pd),sigma(roi)+Tcor,1);
+                wi2 = chi(sigma(1:j2), sigma(roi)-Tcor, sigma(roi)-(1-pd)*Tcor, sigma(roi)+Tcor*(1-pd),sigma(roi)+Tcor,1);
+                R(i,roi) = sum(wi1.*integrand(j1:sr) ) + sum(wi2.*integrand(1:j2) );
             end
         end
     end
 end
 % Multiple scattering obstacle without using A
-clip = NaN*roit;
+c1ip = NaN*sigma;
 for obst = 1:length(par.obsts)
     u = [par.obsts(obst).t(end-par.obsts(obst).dbf:end-1)-1, par.obsts(obst).t, par.obsts(obst).t(2:par.obsts(obst).dbf+1)+1]; % the extended knots
     c1ip(obbounds(1,obst):obbounds(2,obst)) = deboor(par.obsts(obst).dbf, u, ...
-        [c(par.r(1,obst):par.r(2,obst)); c(par.r(1,obst):(par.r(1,obst) +par.obsts(obst).dbf-1))], roit(obbounds(1,obst):obbounds(2,obst)) );
+        [c(par.r(1,obst):par.r(2,obst)); c(par.r(1,obst):(par.r(1,obst) +par.obsts(obst).dbf-1))], sigma(obbounds(1,obst):obbounds(2,obst)) );
 end
 for i = 1:par.N
     if (toc-prevToc > tim(1) )
         prevToc = toc;
-        display([num2str(i/par.N,'%7.3f') ' = rois-row%, now is ' datestr(now) ', estimated end on ' datestr(tim(2)+toc*(par.N-i)/i/24/3600) ])
+            display(['k=' num2str(par.k) ': ' num2str(i/par.N,'%7.3f')  '=R%, now=' datestr(now) ', est. # sec. left for R=' ...
+                num2str(toc*(par.N-i)/i) ', est. end ' datestr(tim(2)+prevToc*par.N/i/24/3600)])
     end
     obsin = find((i >= par.r(1,:)) & (i <= par.r(2,:)));
     tc = par.obsts(obsin).colltau(i-par.r(1,obsin)+1);
     colx = par.obsts(obsin).par(tc);
     for obst = 1:length(par.obsts)
-        curoit = roit(obbounds(1,obst):obbounds(2,obst));
-        integrand = 1i/4.*besselh(0, 1, par.k*sqrt(sum((repmat(colx,1,length(curoit)) -par.obsts(obst).par(curoit) ).^2, 1)) ).*...
-            c1ip(obbounds(1,obst):obbounds(2,obst)).*par.obsts(obsin).gradnorm(curoit);
+        cusigma = sigma(obbounds(1,obst):obbounds(2,obst));
+        integrand = 1i/4.*besselh(0, 1, par.k*sqrt(sum((repmat(colx,1,length(cusigma)) -par.obsts(obst).par(cusigma) ).^2, 1)) ).*...
+            c1ip(obbounds(1,obst):obbounds(2,obst)).*par.obsts(obsin).gradnorm(cusigma);
         integrand(isnan(integrand)) = 0;
         for roi = obbounds(1,obst):obbounds(2,obst)
-            [j1, j2, noSplit] = bounds2Ind(curoit,roit(roi)-Tcor,roit(roi)+Tcor);
+            [j1, j2, noSplit] = bounds2Ind(cusigma,sigma(roi)-Tcor,sigma(roi)+Tcor);
             if noSplit
-                wi = chi(curoit(j1:j2),roit(roi)-Tcor, roit(roi)-(1-pd)*Tcor, roit(roi)+Tcor*(1-pd),roit(roi)+Tcor,0);
-                rois(i,roi) = sum(wi.*integrand(j1:j2) );
+                wi = chi(cusigma(j1:j2),sigma(roi)-Tcor, sigma(roi)-(1-pd)*Tcor, sigma(roi)+Tcor*(1-pd),sigma(roi)+Tcor,0);
+                R(i,roi) = sum(wi.*integrand(j1:j2) );
             else
-                wi1 = chi(curoit(j1:length(curoit)),roit(roi)-Tcor, roit(roi)-(1-pd)*Tcor, roit(roi)+Tcor*(1-pd),roit(roi)+Tcor,1);
-                wi2 = chi(curoit(1:j2), roit(roi)-Tcor, roit(roi)-(1-pd)*Tcor, roit(roi)+Tcor*(1-pd),roit(roi)+Tcor,1);
-                rois(i,roi) = sum(wi1.*integrand(j1:length(curoit)) ) + sum(wi2.*integrand(1:j2) );
+                wi1 = chi(cusigma(j1:length(cusigma)),sigma(roi)-Tcor, sigma(roi)-(1-pd)*Tcor, sigma(roi)+Tcor*(1-pd),sigma(roi)+Tcor,1);
+                wi2 = chi(cusigma(1:j2), sigma(roi)-Tcor, sigma(roi)-(1-pd)*Tcor, sigma(roi)+Tcor*(1-pd),sigma(roi)+Tcor,1);
+                R(i,roi) = sum(wi1.*integrand(j1:length(cusigma)) ) + sum(wi2.*integrand(1:j2) );
             end
         end
     end
@@ -161,10 +163,10 @@ function s = deboor(k, t, c, x)
 s = zeros(size(x));
 for in=1:length(x)
     % Determine the interval where x(in) lies
-    if x(in) == t(length(t)-k) % Case x=b
+    if x(in) == t(length(t)-k)
         j = length(t) - 2*k - 2;
     else
-        j = find(x(in)>=t, 1, 'last') - k - 1;
+        j = find(x(in) >= t, 1, 'last') - k - 1;
     end
     d=c(j-k+k+1:j+k+1);
     for r=1:k
@@ -178,4 +180,3 @@ for in=1:length(x)
 end
 
 end
-

@@ -8,7 +8,6 @@
 #include <memory>
 
 
-//Peter old:
 #include "../fiber/explicit_instantiation.hpp"
 #include "assembly_options.hpp"
 #include "discrete_dense_boundary_operator.hpp"
@@ -36,7 +35,6 @@
 #include <tbb/spin_mutex.h>
 #include <tbb/task_scheduler_init.h>
 
-//Peter:
 #include "../fiber/default_local_assembler_for_integral_operators_on_surfaces.hpp"
 #include "../fiber/quadrature_strategy.hpp"
 
@@ -99,9 +97,6 @@ public:
 			CoordinateType a = (1-percDecay)*b;
 			CoordinateType dist = std::sqrt( std::pow(m_testPos[testIndex].y-m_trialPos[trialIndex].y, 2.0) + std::pow(m_testPos[testIndex].z-m_trialPos[trialIndex].z, 2.0) ); // Distance without x to include stationary points (but also shadow when coll in illuminated...)
 			if (dist >= b) {
-//if( (trialIndex == 0)  ) {
-//	std::cout << testIndex << ", " << dist << ", b=" << b << "/";
-//}
 			   continue; // Window is zero
 			}
 			else if (dist > a) {
@@ -152,7 +147,7 @@ public:
 		           wind = exp(2*exp(-(b-thrp)/(dist-thrp) )/((dist-thrp)/(b-thrp) -1));
 			}
 		    } else {
-			throw 20; //error("wrong string");
+			throw 20;
 		    }
 		    const int testDofCount = m_testGlobalDofs[testIndex].size();
 		    for (int trialDof = 0; trialDof < trialDofCount; ++trialDof) {
@@ -392,7 +387,7 @@ assembleDetachedWeakFormPeter(std::string str, const Space<BasisFunctionType>& t
 	testIndices.resize(1);
 	testIndices[0] = testIndex;
 
-	CoordinateType percDecay = 0.65; //0.8;
+	CoordinateType percDecay = 0.8;
 
 	for(size_t trialIndex = 0; trialIndex != trialElementCount; ++trialIndex) {
 		assembler.evaluateLocalWeakFormsPeter(str,TEST_TRIAL, testIndices, trialIndex, ALL_DOFS, localResult);

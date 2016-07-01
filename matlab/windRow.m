@@ -5,20 +5,20 @@
 %   i              - Row number
 %   par            - The structure containing k,par and so on
 %   bounds         - Each column gives the lambda, rho, l-lambda and rho-r of the window, but these could overlap or be too small.
-%   [multElWind     - 0 when not multiplying the original matrix elements with the window function evaluated on the respective support]
-%   [multKernelWind - 0 when not multiplying the kernel with the window function]
-%	[collx         - Collocation point for when computing row in coupling matrix]
-%	[normRois      - rois(i,:) divided by the threshold, in case windows are computed using correlation 'distances']
-%	[ftz           - the factor below the threshold below which the window is zero, ftz=1 means block window, when correlation 'distances']
-%	[roit          - the scaling between rois and A2, when correlation 'distances']
+%   [multElWind     - nonzero when multiplying the original matrix elements with the window function evaluated on the respective support, default 1]
+%   [multKernelWind - nonzero when multiplying the kernel with the window function, default 0]
+%   [collx         - Collocation point for when computing row in coupling matrix]
+%   [normRois      - rois(i,:) divided by the threshold, in case windows are computed using correlation 'distances']
+%   [ftz           - the factor below the threshold below which the window is zero, ftz=1 means block window, when correlation 'distances']
+%   [roit          - the scaling between rois and A2, when correlation 'distances']
 % Output
 %   row            - a row of the collocation matrix
 function row = windRow(i,par,bounds,multElWind, multKernelWind, collx,normRois, ftz,roit)
-if ~exist('multElWind','var')
-    multElWind = 0;
+if ~exist('multElWind','var') || isempty(multElWind)
+    multElWind = 1;
 end
-if ~exist('multKernelWind','var')
-    multKernelWind = 1;
+if ~exist('multKernelWind','var') || isempty(multKernelWind)
+    multKernelWind = 0;
 end
 if ~exist('collx','var')
     collx = [];

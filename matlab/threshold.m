@@ -12,16 +12,10 @@ Tcor = 0.02;
 % If corrDist is nonzero, use the correlations iso the physical distance to determine the window. The value gives
 % the percentage below the threshold from where the window is identically zero.
 corrDist = 0;
-ks = 2^7;
-printtoc = 1.2;
-mti = 0;
-thrp = logspace(-4,-1,5);
-
-% ks = 2^10;
-% printtoc = 200;
-% mti = 2;
-% thrp = logspace(-5,0,20);
-
+ks = 2^10;
+printtoc = 30;
+mti = 2;
+thrp = logspace(-5,0,20);
 tl = length(thrp);
 
 avm = 100; % Number of random taus to average BC over
@@ -36,8 +30,6 @@ par.k = ks;
 par.N = par.ppw*par.k;
 par.t = linspace(0,1,par.N+1); % The knots of the periodic spline;
 par.colltau = par.t(1:par.N);
-
-expectedEnd = 0;
 
 %% Standard computation
 A1 = zeros(par.N); tic; prevToc = toc;
@@ -65,7 +57,7 @@ start = now;
 for ti = 1:tl
     idx = ti;
     %% Compute A2
-    A2 = zeros(par.N); %
+    A2 = zeros(par.N);
     curThr = thrp(ti)*max(max(abs(rois)));
     tic;
     prevToc = toc;
@@ -101,7 +93,7 @@ for ti = 1:tl
 end
 v
 
-%% Make figure
+%% Make the figure
 fss = 'Fontsize'; fs = 22;
 lws = 'LineWidth'; lw = 5;
 mss = 'MarkerSize'; ms = 15;
