@@ -9,7 +9,7 @@ percDecay = 0.5; % Percentage of the window for the C-inf decay: 0 means block w
 ks = 2.^(4:12);
 
 kl = length(ks);
-mti = 4; % gmres on A1\b, A2\b, A1\b with precond A2, A1\b with x0=A2\b
+mti = 2; % gmres on A1\b, A2\b, A1\b with precond A2, A1\b with x0=A2\b
 
 avm = 100; % Number of random taus to average the error on the BC over
 v = struct('conds', zeros(kl,2), 'mti', mti, 'avm', avm, 'taus', rand(avm,1), 'errBCavm', zeros(kl,2+mti),...

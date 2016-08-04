@@ -5,8 +5,8 @@
 %   i              - Row number
 %   par            - The structure containing k,par and so on
 %   bounds         - Each column gives the lambda, rho, l-lambda and rho-r of the window, but these could overlap or be too small.
-%   [multElWind     - nonzero when multiplying the original matrix elements with the window function evaluated on the respective support, default 1]
-%   [multKernelWind - nonzero when multiplying the kernel with the window function, default 0]
+%   [multElWind    - nonzero when multiplying the original matrix elements with the window function evaluated on the respective support, default 1]
+%   [multKernelWind- nonzero when multiplying the kernel with the window function, default 0]
 %   [collx         - Collocation point for when computing row in coupling matrix]
 %   [normRois      - rois(i,:) divided by the threshold, in case windows are computed using correlation 'distances']
 %   [ftz           - the factor below the threshold below which the window is zero, ftz=1 means block window, when correlation 'distances']

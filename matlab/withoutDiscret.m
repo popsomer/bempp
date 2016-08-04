@@ -114,7 +114,7 @@ end
 
 
 %% Plot the results and find least squares fit T = c k^e to get an approximately fixed error
-load withoutDiscret.mat
+% Possibly load withoutDiscret.mat
 myTol = 1e-5; % The error for the least squares fit
 klsq = zeros(kl,pl);
 Tlsq = zeros(kl,pl);

@@ -16,7 +16,7 @@ if ~exist('idxs','var')
     end
 end
 l = {'+', 'x', 'o', 'v', '*', 'h', 'd'}; 
-ll = {'-','--',':', '-.'};
+ll = {'-','--',':', '-.','-','--',':','-.'};
 c = 'brgcmy';
 
 solMeth = {'$A$\\textbackslash$b$','$\\tilde{A}$\\textbackslash$b$','GM $A$\\textbackslash$b$','GM $\\tilde{A}$\\textbackslash$b$',...

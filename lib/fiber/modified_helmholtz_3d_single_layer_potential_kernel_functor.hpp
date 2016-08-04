@@ -70,7 +70,6 @@ public:
                 const ConstGeometricalDataSlice<CoordinateType> &trialGeomData,
                 CollectionOf2dSlicesOfNdArrays<ValueType> &result) const {
     const int coordCount = 3;
-//std::cout << testGeomData.global(0) << " = test, trial = " << trialGeomData.global(0) << std::endl;
 
     CoordinateType sum = 0;
     for (int coordIndex = 0; coordIndex < coordCount; ++coordIndex) {

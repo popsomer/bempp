@@ -2,8 +2,8 @@
 % Input
 %   par		  - The structure containing k,N,par,gradnorm,corners,t,colltau
 %   x		  - Point where to evaluate
-%	sol		  - Solution vector
-%   comprSol  - 1 if the solution is compressed (for possibly adding the phase), else 0
+%   sol		  - Solution vector
+%   comprSol 	  - 1 if the solution is compressed (for possibly adding the phase), else 0
 % Output
 %   z		  - The scattered field
 function z = evalFieldQBF(par,x,sol,comprSol)

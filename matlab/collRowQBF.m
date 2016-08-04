@@ -1,11 +1,11 @@
 % Construct (part of) a row of the collocation matrix.
 % Input
-%   i       - Row number
+%   i		- Row number
 %   par		- The structure containing k,par, and so on
-%	[j1		- Start column index, can not be negative for windows like (-0.1,0.2)]
-%	[j2		- End column index]
-%	[wind	- @(tau) The window function, default ones]
-%	[collx	- Collocation point. If defined, we calculate part of the coupling matrix and assume no singularity]
+%   [j1		- Start column index, can not be negative for windows like (-0.1,0.2)]
+%   [j2		- End column index]
+%   [wind	- @(tau) The window function, default ones]
+%   [collx	- Collocation point. If defined, we calculate part of the coupling matrix and assume no singularity]
 % Output
 %   row		- (part of) a row of the collocation matrix
 function row = collRowQBF(i, par, j1, j2, wind, collx)

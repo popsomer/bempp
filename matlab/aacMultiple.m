@@ -11,7 +11,7 @@ thrType = 'l'; % Or 'g' for global threshold
 Tcor = 0.02;
 
 ks =  2.^(7:10);
-obsts = [5 6];
+obsts = [5 7 6];
 kl = length(ks);
 maxob = length(obsts);
 
@@ -26,14 +26,14 @@ v = struct('mti', mti, 'avm', avm, 'taus', rand(avm,1), 'errBCavm', zeros(maxob*
 for oi = 1:length(obsts)
 	obstacle = obsts(oi);
 	par = getObst(obstacle);
-    start = now;
+	start = now;
 	for ki = 1:kl
-        startk = now;
+		startk = now;
 		idx = (oi-1)*kl+ki;
 		par.k = ks(ki);
 		par.N = 0;
 		par.r = zeros(2,length(par.obsts)); % ranges
-        for obst = 1:length(par.obsts)
+	        for obst = 1:length(par.obsts)
 			par.obsts(obst).k = par.k;
 			par.obsts(obst).N = par.obsts(obst).ppw*par.k;
 			par.r(1,obst) = par.N+1;
@@ -42,7 +42,7 @@ for oi = 1:length(obsts)
 			
 			par.obsts(obst).t = linspace(0,1,par.obsts(obst).N+1); % The knots of the periodic spline;
 			par.obsts(obst).colltau = par.obsts(obst).t(1:par.obsts(obst).N);
-        end
+	        end
 		
 		%% Computating the full solution
 		A1 = zeros(par.N); tic;
@@ -66,30 +66,30 @@ for oi = 1:length(obsts)
 		end
 		c1 = A1\b;
         
-        %% Computing the correlations
-        if ki == 1
-            tic;
-            [R, sigma,obbounds] = calcCorr(par, c1, Tcor, percDecay); 
-            v.timeA(idx,4) = toc;
-            colLow = cell(length(par.obsts),1);
-            rlow = par.r;
-            for obst = 1:length(par.obsts)
-                colLow{obst} = par.obsts(obst).colltau;
-            end
-        end
+	        %% Computing the correlations
+        	if ki == 1
+	            tic;
+        	    [R, sigma,obbounds] = calcCorr(par, c1, Tcor, percDecay); 
+	            v.timeA(idx,4) = toc;
+        	    colLow = cell(length(par.obsts),1);
+	            rlow = par.r;
+        	    for obst = 1:length(par.obsts)
+	                colLow{obst} = par.obsts(obst).colltau;
+        	    end
+	        end
         
 		%% Computing A2
-        curThr = par.xi*max(abs(R));
+	        curThr = par.xi*max(abs(R));
 		A2 = zeros(par.N);
 		tic;
 		prevToc = toc;
 		for i = 1:par.N
 			obsin = find((i >= par.r(1,:)) & (i <= par.r(2,:)));
-            tc = par.obsts(obsin).colltau(i-par.r(1,obsin)+1);
+        		tc = par.obsts(obsin).colltau(i-par.r(1,obsin)+1);
 			collx = par.obsts(obsin).par(par.obsts(obsin).colltau(i-par.r(1,obsin)+1) );
-            [~, cli] = min(abs(colLow{obsin}-tc));
-            cli = cli + rlow(1,obsin)-1;
-            if thrType == 'l', curThr = par.xi*max(abs(R(cli,:))); end
+		        [~, cli] = min(abs(colLow{obsin}-tc));
+		        cli = cli + rlow(1,obsin)-1;
+		        if thrType == 'l', curThr = par.xi*max(abs(R(cli,:))); end
 			
 			for obst = 1:length(par.obsts)
 				rowt = R(cli,:);
@@ -112,11 +112,11 @@ for oi = 1:length(obsts)
 		end
 		v.timeA(idx,2) = toc;
 		v = validate(A1,A2,par,v,idx);
-        v.timeA(idx,3) = (now-startk)*24*3600;
-        save('aacMultiple.mat','v');
+	        v.timeA(idx,3) = (now-startk)*24*3600;
+        	save('aacMultiple.mat','v');
         
-        display([num2str(oi) ' = oi, ki = ' num2str(ki) ', now is ' datestr(now) ', expected end ' datestr(start + ...
-            (now-start)*sum(ks.^2)/sum(ks(1:ki).^2)*( length(obsts)-oi + 1) )  ]);
+	        display([num2str(oi) ' = oi, ki = ' num2str(ki) ', now is ' datestr(now) ', expected end ' datestr(start + ...
+        	    (now-start)*sum(ks.^2)/sum(ks(1:ki).^2)*( length(obsts)-oi + 1) )  ]);
 	end
 end
 
@@ -152,5 +152,5 @@ ylabel(hh,'min$(|r_{m,n}|,0.1)$', 'interpreter','latex', 'FontSize',fs);
 set(gca,'YDir','rev')
 
 %% Print table for article
-plotVal(v,0,{'Two circles', 'Three ellipses'})
+plotVal(v,0,{'Two circles', 'Near-inclusion and circle', 'Three ellipses'})
 

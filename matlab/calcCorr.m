@@ -9,7 +9,7 @@
 %   [A        - If present, the system matrix to compute the correlations with]
 % Output
 %   R         - The correlations where each row corresponds to par.colltau
-%   sigm      - The locations of the windows, corresponding the columns of R
+%   sigma     - The locations of the windows, corresponding the columns of R
 %   [obbounds - Additional information for multiple scattering obstacles]
 function [R, sigma, obbounds] = calcCorr(par, c, Tcor, pd, tim, A)
 if ~exist('tim','var') || isempty(tim)
@@ -42,22 +42,27 @@ if exist('A','var') && isfield(par, 'obsts')
                 num2str(toc*(sr-roi)/roi) ', est. end ' datestr(tim(2)+prevToc*sr/roi/24/3600)])
         end
         obsin = find((roi >= obbounds(1,:)) & (roi <= obbounds(2,:)));
-        T1 = sigma(roi)-Tcor;
-        T2 = sigma(roi)+Tcor;
-        [j1loc, j2loc, noSplit] = bounds2Ind(par.obsts(obsin).colltau,T1,T2);
-        j1 = j1loc+par.r(1,obsin)-1;
-        j2 = j2loc+par.r(1,obsin)-1;
-        if noSplit
-            wi = chi(par.obsts(obsin).colltau(j1loc:j2loc),T1, T1+pd*Tcor, T2-pd*Tcor, T2,0);
-            for i = 1:par.N
-                R(i,roi) = (wi.*A(i,j1:j2))*c(j1:j2);
-            end
-        else
-            wi1 = chi(par.obsts(obsin).colltau(j1loc:par.obsts(obsin).N),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1);
-            wi2 = chi(par.obsts(obsin).colltau(1:j2loc),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1);
-            for i = 1:par.N
-                R(i,roi) = (wi1.*A(i,j1:par.r(2,obsin)))*c(j1:par.r(2,obsin)) + (wi2.*A(i,par.r(1,obsin):j2))*c(par.r(1,obsin):j2);
-            end
+        [~, cliloc] = min(abs(par.obsts(obsin).colltau-sigma(roi))); % Index i in oldColl (=col idx of old A2) closest to roit(roi)
+        % Find range of indices in oldColl which correspond to nonzero A2(:,cliloc)
+        nzIdxs = find(A(:,cliloc+par.r(1,obsin)-1))';
+        if ~isempty(nzIdxs)
+            T1 = sigma(roi)-Tcor;
+            T2 = sigma(roi)+Tcor;
+            [j1loc, j2loc, noSplit] = bounds2Ind(par.obsts(obsin).colltau,T1,T2);
+            j1 = j1loc+par.r(1,obsin)-1;
+            j2 = j2loc+par.r(1,obsin)-1;
+            if noSplit
+                wi = chi(par.obsts(obsin).colltau(j1loc:j2loc),T1, T1+pd*Tcor, T2-pd*Tcor, T2,0);
+                for i = nzIdxs
+                    R(i,roi) = (wi.*A(i,j1:j2))*c(j1:j2);
+                end
+            else
+                wi1 = chi(par.obsts(obsin).colltau(j1loc:par.obsts(obsin).N),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1);
+                wi2 = chi(par.obsts(obsin).colltau(1:j2loc),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1);
+                for i = nzIdxs
+                    R(i,roi) = (wi1.*A(i,j1:par.r(2,obsin)))*c(j1:par.r(2,obsin)) + (wi2.*A(i,par.r(1,obsin):j2))*c(par.r(1,obsin):j2);
+                end
+             end
         end
     end
     return
@@ -69,19 +74,24 @@ elseif exist('A','var')
             display(['k=' num2str(par.k) ': ' num2str(roi/sr,'%7.3f')  '=R%, now=' datestr(now) ', est. # sec. left for R=' ...
                 num2str(toc*(sr-roi)/roi) ', est. end ' datestr(tim(2)+prevToc*sr/roi/24/3600)])
         end
-        T1 = sigma(roi)-Tcor;
-        T2 = sigma(roi)+Tcor;
-        [j1, j2, noSplit] = bounds2Ind(par.colltau,T1,T2);
-        if noSplit
-            wi = chi(par.colltau(j1:j2),T1, T1+pd*Tcor, T2-pd*Tcor, T2,0);
-            for i = 1:par.N
-                R(i,roi) = (wi.*A(i,j1:j2))*c(j1:j2);
-            end
-        else
-            wi1 = chi(par.colltau(j1:par.N),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1);
-            wi2 = chi(par.colltau(1:j2),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1);
-            for i = 1:par.N
-                R(i,roi) = (wi1.*A(i,j1:par.N))*c(j1:par.N) + (wi2.*A(i,1:j2))*c(1:j2);
+        [~, cliroi] = min(abs(par.colltau-sigma(roi))); % Index i in oldColl (=col idx of old A2) closest to roit(roi)
+        % Find range of indices in oldColl which correspond to A2(:,cli) nonzero
+        oldNzIdxs = find(A(:,cliroi))';
+        if ~isempty(oldNzIdxs)
+            T1 = sigma(roi)-Tcor;
+            T2 = sigma(roi)+Tcor;
+            [j1, j2, noSplit] = bounds2Ind(par.colltau,T1,T2);
+            if noSplit
+                wi = chi(par.colltau(j1:j2),T1, T1+pd*Tcor, T2-pd*Tcor, T2,0);
+                for i = oldNzIdxs
+                    R(i,roi) = (wi.*A(i,j1:j2))*c(j1:j2);
+                end
+            else
+                wi1 = chi(par.colltau(j1:par.N),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1);
+                wi2 = chi(par.colltau(1:j2),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1);
+                for i = oldNzIdxs
+                    R(i,roi) = (wi1.*A(i,j1:par.N))*c(j1:par.N) + (wi2.*A(i,1:j2))*c(1:j2);
+                end
             end
         end
     end
@@ -119,6 +129,7 @@ if ~isfield(par, 'obsts') % Single scattering obstacle without using A
             end
         end
     end
+    return
 end
 % Multiple scattering obstacle without using A
 c1ip = NaN*sigma;

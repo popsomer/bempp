@@ -4,12 +4,12 @@
 %   A2		- BEM matrix with compression
 %   par		- The structure containing k,N,par,gradnorm,corners,t,colltau, bc, dbf, ppw and xi
 %   v		- Validation data: 2 refers to A and A2=\tilde{A}, 2+mti to A\b, A2\b and the solutions of the iterative solver.
-%       conds(:,1:2) contains the condition numbers, errBCavm(:,1:2+mti) contains 1-norm errors on BC on random places given by v.taus, 
-%       errTrueF(:,1:2+mti) contains errors with respect to the true solution of the unit circle on v.rtests and v.taus, 
-%       nnz & perc(:,1) have the (fraction of) nonzeros, errSol(:,1:2+mti) the error wrt c1, errBCcol(:,1:2+mti) the error on the BC on 
-%       the coll pts (= A1*c-b), compresErr(:,1:2+mti) the error made by compressing A*c1-b, timeSol(:,1:2+mti) the time to compute x, 
-%       nbIter(:,1:nbGm) has the number of iterations of the iterative solver, timeA(:,1:2) the times taken to compute A previously and 
-%       field(ny,nx) the total field value at [v.xs(nx),v.ys(ny)]
+%		       conds(:,1:2) contains the condition numbers, errBCavm(:,1:2+mti) contains 1-norm errors on BC on random places given by v.taus, 
+%		       errTrueF(:,1:2+mti) contains errors with respect to the true solution of the unit circle on v.rtests and v.taus, 
+%		       nnz & perc(:,1) have the (fraction of) nonzeros, errSol(:,1:2+mti) the error wrt c1, errBCcol(:,1:2+mti) the error on the BC on 
+%		       the coll pts (= A1*c-b), compresErr(:,1:2+mti) the error made by compressing A*c1-b, timeSol(:,1:2+mti) the time to compute x, 
+%		       nbIter(:,1:nbGm) has the number of iterations of the iterative solver, timeA(:,1:2) the times taken to compute A previously and 
+%		       field(ny,nx) the total field value at [v.xs(nx),v.ys(ny)]
 %   ix		- The row-index where to update the validation data
 % Output
 %   v		- Updated validation data
@@ -51,8 +51,8 @@ exSolField = NaN;
 if isfield(v,'errTrueF')
     % Use a slight adjustment of the functions in withoutDiscret.m
     n = 0;
-	a = par.par(0);
-	a = a(1);
+    a = par.par(0);
+    a = a(1);
     osv = ones(size(v.rtests));
     prevTerm = osv;
     term = -besselj(n,par.k*a*ones(size(v.rtests)))./besselh(n,1,par.k*a*ones(size(v.rtests))).*besselh(n,1,par.k*v.rtests);
@@ -67,7 +67,7 @@ if isfield(v,'errTrueF')
     if (norm(term) +norm(prevTerm) > 1e-5) || isnan(norm(exSolField) )
         warning([num2str(n) ' = n, exact solution in the field did not converge at k = ' num2str(par.k) ]);
     end
-	n = 0;
+    n = 0;
     term = besselj(n,par.k*a*ones(par.N,1))./besselh(n,1,par.k*a*ones(par.N,1)).*par.k.*...
 		(besselh(n-1,1,par.k*a*ones(par.N,1)) -n/(par.k*a)*besselh(n,1,par.k*a*ones(par.N,1) ));
     % c3 is an interpolation of the solution.

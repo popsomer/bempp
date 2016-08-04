@@ -5,14 +5,14 @@ close all
 format longe
 set(0,'DefaultFigureWindowStyle','docked');
 
-varykT = 0; % If varykTs = 0 then plot sparsity structure for one k and T and try block window, else vary k and T.
+varykT = 1; % If varykTs = 0 then plot sparsity structure for one k and T and try block window, else vary k and T.
 factShad = 3; % Factor of the width of a window around a stationary point, although this is dependent on k.
 percDecay = 0.5; % Percentage of the window for the C-inf decay: 0 means a block window and 1 means not identically one on any interval.
 printtoc = 10; % Number of seconds after which to print progress information
-par = getObst(1);
+par = getObst(0);
 
 if varykT
-    ks = 2.^(4:10); Ts = linspace(0.001,0.15,20); mti = 2;
+    ks = 2.^(4:10); Ts = linspace(0.001,0.15,20); mti = 0;
 else % Only one k and T
     ks = 2^8; Ts = 0.08; mti = 0;
 end
@@ -22,7 +22,7 @@ avm = 100; % Number of random taus to average boundary conditions over
 taus = rand(avm,1); % Where to test the boundary conditions
 % v is for validation: 2 refers to A1 = A and A2 = \tilde{A}, 2+mti to A\b, A2\b and the solutions of the iterative solver
 if varykT
-    v = struct('conds', zeros(Tl*kl,2), 'mti', mti, 'avm', avm, 'taus', taus, 'errBCavm', zeros(Tl*kl,2+mti),...
+    v = struct('mti', mti, 'avm', avm, 'taus', taus, 'errBCavm', zeros(Tl*kl,2+mti),...
         'nnz', zeros(Tl*kl,2), 'perc', zeros(Tl*kl,2), 'errSol', zeros(Tl*kl,2+mti), 'errBCcol', ...
         zeros(Tl*kl,2+mti), 'compresErr', zeros(Tl*kl,2), 'timeSol', zeros(Tl*kl,2+mti), 'nbIter', zeros(Tl*kl,mti), 'timeA', ...
         zeros(Tl*kl,2), 'ks', ks, 'field', zeros(70), 'errInt', zeros(Tl*kl,2+mti) );
@@ -97,7 +97,7 @@ for ki = 1:kl
         (now-startAll)*sum(ks.^2)/sum(ks(1:ki).^2) ) ]);
     save('fixedWindows.mat','-regexp','^(?!(A1|A2)$).')
 end
-
+return
 %% Plots
 if varykT
     fs = 27;

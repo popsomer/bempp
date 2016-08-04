@@ -27,18 +27,18 @@ switch idx
 	case 3 % Near-inclusion
 		x = [0.7454 0.6947 0.5933 0.3836 0.2108 0.1440 0.2546 0.4597 0.5472 0.5219 0.3491 0.1694 0.2131 0.4366 0.6417 0.7200;...
 			0.5219 0.6506 0.7646 0.8904 0.8553 0.6857 0.6009 0.6272 0.5395 0.3348 0.3640 0.3319 0.1360 0.1038 0.1974 0.3787];
-        dbf = 1; ppw = 10; xi = 0.01;
+	        dbf = 1; ppw = 10; xi = 0.01;
 	case 4 % Near-convex
 		x = [ 0.6071  0.6141  0.6302  0.6233  0.5611  0.4965  0.4343  0.3906  0.3836  0.3975  0.4067  0.3952  0.3813  ...
 			0.4067  0.4712  0.5426  0.5887  0.6256  0.6141  0.6071; 0.5365  0.6272  0.7178  0.8173  0.8874  0.9020  0.8787  ...
 			0.8085  0.7120  0.6067  0.5073  0.4079  0.3056  0.2354  0.1827  0.1798  0.2149  0.2909  0.3845  0.4664];
-        dbf = 1; ppw = 7; xi = 0.04;
+	        dbf = 1; ppw = 7; xi = 0.04;
 	case 5 % Two circles
 		par = struct('obsts', [struct('par', @(t) repmat([-0.5;-0.5], 1, length(t)) + [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',...
 			@(t) pi*ones(size(t)), 'normal', @(t) [cos(2*pi*t); sin(2*pi*t)], 'corners', [], 'dbf', 1, 'ppw', 10) ...
 			struct('par', @(t) repmat([-0.5;1.5], 1, length(t)) + [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',...
 			@(t) pi*ones(size(t)), 'normal', @(t) [cos(2*pi*t); sin(2*pi*t)], 'corners', [], 'dbf', 1, 'ppw', 10)], ...
-            'bc', @(k,x) -1*exp(1i*k*(x')*[cos(0); sin(0)]), 'xi', 3e-3);
+        	    'bc', @(k,x) -1*exp(1i*k*(x')*[cos(0); sin(0)]), 'xi', 3e-3);
 		return
 	case 6 % Three ellipses
 		par = struct('obsts', [struct('par', @(t) repmat([0;0], 1, length(t)) + [0.3*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',...
@@ -50,18 +50,18 @@ switch idx
             'xi', 3e-3);
 		return
 	case 7 % Near-inclusion and circle
-        tmp = getObst(3);
-        tmp = rmfield(tmp,'bc');
-        tmp = rmfield(tmp,'xi');
-        tmp.ppw = 10;
+	        tmp = getObst(3);
+        	tmp = rmfield(tmp,'bc');
+	        tmp = rmfield(tmp,'xi');
+        	tmp.ppw = 10;
 		par = struct('obsts', [tmp struct('par', @(t) repmat([-0.5;-0.5], 1, length(t)) + [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',...
 			@(t) pi*ones(size(t)), 'normal', @(t) [cos(2*pi*t); sin(2*pi*t)], 'corners', [], 'dbf', 1, 'ppw', 10)], 'bc', @(k,x) -1*exp(1i*k*(x')*[cos(0); sin(0)]), ...
             'xi', 1e-3);
 		return
-    case 8 % Polygon
-        y = [1 -1 0 -1  1; ...
-             1 1  0 -1 -1];
-        dbf = 1; ppw = 9; xi = 0.04;
+	case 8 % Polygon
+        	y = [1 -1 0 -1  1; ...
+	             1 1  0 -1 -1];
+	        dbf = 1; ppw = 9; xi = 0.04;
 	otherwise
 		error(['Unknown index ' num2str(idx)]);
 end

@@ -13,7 +13,7 @@ Tcor = 0.02;
 % the percentage below the threshold from where the window is identically zero.
 corrDist = 0;
 ks = 2^10;
-printtoc = 30;
+printtoc = 300;
 mti = 2;
 thrp = logspace(-5,0,20);
 tl = length(thrp);

@@ -2,10 +2,10 @@
 % Input
 %   a		- The singularity on the collocation point
 %   b		- The next collocation point
-%	n		- Number of points, choose 7 for example
+%   n		- Number of points, choose 7 for example
 %   sigma	- The grading parameter, choose 0.15 for example
 %   mu		- Parameter controlling degree p, choose 1 for example
-%   minsize - Minimum size of the interval, choose 1e-10 for example
+%   minsize	- Minimum size of the interval, choose 1e-10 for example
 % Output
 %   x,w		- Nodes and weights
 % References:
@@ -42,13 +42,13 @@ while i >= 0
 	
 	% The following lines are gauss(N=p,ab)
 	J = zeros(p);
-    for n=1:p, J(n,n) = ab(n,1); end
-    for n=2:p % The input-n is not used in the main loop, so we can re-use it
-        J(n,n-1) = sqrt(ab(n,2));
-        J(n-1,n) = J(n,n-1);
-    end
+	for n=1:p, J(n,n) = ab(n,1); end
+	for n=2:p % The input-n is not used in the main loop, so we can re-use it
+	        J(n,n-1) = sqrt(ab(n,2));
+        	J(n-1,n) = J(n,n-1);
+	end
 	[V,D]=eig(J);
-    [D,I]=sort(diag(D));
+	[D,I]=sort(diag(D));
 	xw=[D ab(1,2)*V(1,I)'.^2];
 	
 	% Scale [-1,1] to [u,v]

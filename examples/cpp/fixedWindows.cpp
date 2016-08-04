@@ -1,9 +1,9 @@
 void fixedWindows() {
 
-arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,5,3));
+arma::Mat<RT> ks = arma::exp2(arma::linspace<arma::Mat<RT>>(3,4,2));
 const int kl = ks.size();
 
-arma::Mat<BFT> Ts = arma::linspace<arma::Mat<BFT>>(0.6,0.8,2);
+arma::Mat<BFT> Ts = arma::linspace<arma::Mat<BFT>>(0.03,2.0,10);
 
 const int Tl = Ts.size();
 

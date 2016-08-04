@@ -11,7 +11,7 @@ thrType = 'l'; % Or 'g' for global threshold
 Tcor = 0.02;
 corrDist = 0; % Nonzero then use correlation iso physical distance to determine window, value gives perc below thr where wind=0
 ks = 2.^(4:11);
-printtoc = 30; 
+printtoc = 300;
 obsts = [1 2 3 4 8];
 mti = 2;
 kl = length(ks);
@@ -28,6 +28,7 @@ for oi = 1:length(obsts)
 end
 
 startAll = now;
+powTime = 1.5;
 for oi = 1:length(obsts)
     obstacle = obsts(oi);
     par = getObst(obstacle);
@@ -57,12 +58,10 @@ for oi = 1:length(obsts)
         
         %% Compute correlations
         if ki == 1
-            tic
-            [R, sigma] = calcCorr(par, c1, Tcor, percDecay, [], A1);
-            v.timeA(idx,4) = toc;
-            colLow = par.colltau; % Save these for the higher freqency.
+	    % Re-use the full solution, also for computing R.
             A2 = A1;
             v.timeA(idx,2) = v.timeA(idx,1);
+            if oi == 1, expectedEnd = now; extf = 0; end
         else
             %% Compute A2
             A2 = zeros(par.N); % Could actually use a sparse matrix structure now because its structure is given by R
@@ -86,14 +85,14 @@ for oi = 1:length(obsts)
                 decay = repmat(Tcor*percDecay,1,size(bounds,2));
                 decay(1) = TcorN; % Increasingly smaller window for Green singularity
                 bounds = [(bounds + [-decay; decay]); [1;1]*decay];
-                A2(i,:) = windRow(i,par,bounds);
+                A2(i,:) = windRow(i,par,bounds,0,1);
             end % loop over row-indices i
             v.timeA(idx,2) = toc;
             warning on;
         end
         
-        %% Recompute correlations
-        if (ki ~= kl) && (ki ~= 1) % Compute the R to be used for the next ki
+        %% Compute correlations
+        if (ki ~= kl) % Compute the R to be used for the next ki
             tic
             [R, sigma] = calcCorr(par, A2\b, Tcor, percDecay, [printtoc,expectedEnd-...
                 (sum(v.timeA(:,4))/extf*(ppw(oi)*ks(ki)).^powTime)/24/3600], A2);
@@ -104,7 +103,6 @@ for oi = 1:length(obsts)
         save('recomprSingle.mat','-regexp','^(?!(A1|A2|R)$).')
         v.timeA(idx,3) = (now-startk)*24*3600;
         
-        powTime = 1.5;
         extf = sum(sum( (reshape(ppw(1:oi-1),oi-1,1)*ks).^powTime) ) + sum( (ppw(oi)*ks(1:ki)).^powTime);
         expectedEnd = startAll + (now - startAll)*sum(sum( (ppw*ks).^powTime ) )/extf;
         display(['Obstacle ' num2str(obstacle) ' at k = ' num2str(ks(ki)) ' took ' num2str(v.timeA(idx,3) ) ...

@@ -2,9 +2,9 @@
 % Input
 %   t                     - Abcis
 %   lambda < l < r < rho  - chiw is 0 for t not in (lambda, rho) and 1 for t in [l, r]
-%   firstCall			  - nonzero if windows might have to be added periodically
+%   firstCall		  - nonzero if windows might have to be added periodically
 % Output
-%   chiw                    - Window value
+%   chiw                  - Window value
 function chiw = chi(t, lambda, l, r, rho, firstCall)
 if firstCall
     chiw = chi(t, lambda, l, r, rho, 0) + chi(t-1, lambda, l, r, rho, 0) + chi(t+1, lambda, l, r, rho, 0);

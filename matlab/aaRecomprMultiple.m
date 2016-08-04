@@ -17,9 +17,9 @@ ks = 2.^(4:10);
 obsts = 5:7;
 kl = length(ks);
 maxob = length(obsts);
-printtoc = 30;
-mti = 0;
-v = struct('conds', zeros(maxob*kl,2), 'nbGm', mti, 'avm', avm, 'taus', taus, 'errBCavm', zeros(maxob*kl,2+mti),...
+printtoc = 300;
+mti = 2;
+v = struct('conds', zeros(maxob*kl,2), 'mti', mti, 'avm', avm, 'taus', taus, 'errBCavm', zeros(maxob*kl,2+mti),...
     'perc', zeros(maxob*kl,2), 'errSol', zeros(maxob*kl,2+mti), 'compresErr', zeros(maxob*kl,2),  'errInt', zeros(maxob*kl,2+mti), ...
     'timeSol', zeros(maxob*kl,2+mti), 'nbIter', zeros(maxob*kl,mti), 'timeA', zeros(maxob*kl,4), 'ks', ks);
 ppw = zeros(maxob,1); % Total N divided by k, for the time estimates
@@ -30,17 +30,18 @@ for oi = 1:length(obsts)
     end
 end
 startAll = now;
+powTime = 1.5;
 for oi = 1:length(obsts)
 	obstacle = obsts(oi);
 	par = getObst(obstacle);
 	for ki = 1:kl
-        startk = now;
+ 	       startk = now;
 		idx = (oi-1)*kl+ki;
-        TcorN = Tcor*(ks(1)/ks(ki));
+        	TcorN = Tcor*(ks(1)/ks(ki));
 		par.k = ks(ki);
 		par.N = 0;
 		par.r = zeros(2,length(par.obsts)); % ranges
-        for obst = 1:length(par.obsts)
+	        for obst = 1:length(par.obsts)
 			par.obsts(obst).k = par.k;
 			par.obsts(obst).N = par.obsts(obst).ppw*par.k;
 			par.r(1,obst) = par.N+1;
@@ -49,7 +50,7 @@ for oi = 1:length(obsts)
 			
 			par.obsts(obst).t = linspace(0,1,par.obsts(obst).N+1); % The knots of the periodic spline;
 			par.obsts(obst).colltau = par.obsts(obst).t(1:par.obsts(obst).N);
-        end
+        	end
 		
 		%% Computating full solution
 		A1 = zeros(par.N); tic; prevToc = toc;
@@ -79,17 +80,10 @@ for oi = 1:length(obsts)
 		c1 = A1\b;
         
         if ki == 1
-            %% Computing full correlations
-            tic;
-            [R, sigma,obbounds] = calcCorr(par, c1, Tcor, percDecay, [],A1); 
-            v.timeA(idx,4) = toc;
-            colLow = cell(length(par.obsts),1);
-            rlow = par.r;
-            for obst = 1:length(par.obsts)
-                colLow{obst} = par.obsts(obst).colltau;
-            end
+            % The full solution is already computed: re-use it, also for computing the correlations
             A2 = A1;
             v.timeA(idx,2) = v.timeA(idx,1);
+            if oi == 1, expectedEnd = now; extf = 0; end
         else
             %% Computing A2
             curThr = par.xi*max(max(abs(R)));
@@ -122,21 +116,21 @@ for oi = 1:length(obsts)
                         decay = repmat(Tcor*percDecay,1,size(bounds,2));
                         decay(1) = TcorN;
                         bounds = [(bounds + [-decay; decay]); [1;1]*decay];
-                        A2(i,par.r(1,obsin):par.r(2,obsin)) = windRow(i-par.r(1,obsin)+1,par.obsts(obsin),bounds);
+                        A2(i,par.r(1,obsin):par.r(2,obsin)) = windRow(i-par.r(1,obsin)+1,par.obsts(obsin),bounds,0,1);
                     elseif (numel(I) > 1)
                         bounds = [sigma(I(ini(1:(length(ini)-1) )+1)); sigma(I(ini(2:length(ini))))];
                         decay = repmat(Tcor*percDecay,1,size(bounds,2));
                         decay(1) = TcorN;
                         bounds = [(bounds + [-decay; decay]); [1;1]*decay];
-                        A2(i,par.r(1,obst):par.r(2,obst)) = windRow('error', par.obsts(obst), bounds,[],[],collx);
+                        A2(i,par.r(1,obst):par.r(2,obst)) = windRow('error', par.obsts(obst), bounds,0,1,collx);
                     end
                 end
             end
             v.timeA(idx,2) = toc;
         end
         
-        %% Recomputing correlations
-        if (ki ~= 1) && (ki ~= kl) % Compute the R to be used for the next ki
+        %% Computing correlations
+        if (ki ~= kl) % Compute the R to be used for the next ki
             tic;
             [R, sigma,obbounds] = calcCorr(par, A2\b, Tcor, percDecay, [printtoc,expectedEnd-...
                 (sum(v.timeA(:,4))/extf*(ppw(oi)*ks(ki)).^powTime)/24/3600],A2);
@@ -151,7 +145,6 @@ for oi = 1:length(obsts)
         save('recomprMultiple.mat','-regexp','^(?!(A1|A2|R)$).')
         v.timeA(idx,3) = (now-startk)*24*3600; % Also has the time for validation
         
-        powTime = 1.5;
         extf = sum(sum( (reshape(ppw(1:oi-1),oi-1,1)*ks).^powTime) ) + sum( (ppw(oi)*ks(1:ki)).^powTime);
         expectedEnd = startAll + (now - startAll)*sum(sum( (ppw*ks).^powTime ) )/extf;
         display(['Obstacle ' num2str(obstacle) ' at k = ' num2str(ks(ki)) ' took ' num2str(v.timeA(idx,3) ) ...
