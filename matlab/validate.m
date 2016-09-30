@@ -94,14 +94,26 @@ end
 start = toc;
 if isfield(par, 'fco') % One can add this field to par when the phase is known and N can be reduced
     b2 = par.bc(par.k,par.par(par.fco));
-    c2 = A2\b2;
-    figure; plot(par.fco, [real(c2) imag(c2)])
+    if 1
+        c2 = A2\b2;
+    else
+       c2 = -par.k*2i.*cos(2*pi*par.fco').*(par.fco' > 0.25).*(par.fco' < 0.75); % plane wave on a circle
+    end
+    figure; plot(par.fco, [real(c2) imag(c2)]); legend('Re(c2) using fco','Im(c2) using fco')
 else
     b2 = b;
     c2 = A2\b;
 end
 if isfield(v, 'timeSol'), v.timeSol(ix,2) = toc-start; end
-if isfield(v, 'errSol'), v.errSol(ix,2) = norm(c2-c1)/norm(c1); end
+if isfield(v, 'errSol')
+    if isfield(par, 'phase')
+%         v.errSol(ix,2) = norm(interp1(par.fco, c2, par.colltau').*exp(1i*par.k*par.phase(par.colltau) )-c1)/norm(c1);  
+%         v.errSol(ix,2) = norm(interp1(par.fco, c2, par.colltau').*transpose(exp(1i*par.k*par.phase(par.colltau) ))-c1)/norm(c1);
+        v.errSol(ix,2) = norm(interp1([par.fco (par.fco(1)+1)], [c2; c2(1)], par.colltau').*transpose(exp(1i*par.k*par.phase(par.colltau) ))-c1)/norm(c1);
+    else
+        v.errSol(ix,2) = norm(c2-c1)/norm(c1); 
+    end
+end
 if isfield(v, 'errBCcol'), v.errBCcol(ix,2) = norm(A1*c2-b)/norm(b); end
 if isfield(v, 'compresErr'), v.compresErr(ix,2) = norm(A2*c1-b)/norm(b); end
 

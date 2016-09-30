@@ -53,6 +53,20 @@ elseif comprSol && isfield(par,'difase')
 			.* gnvals((i-1)*istep+1:(i-1)*istep+length(qbf_w)));
 	end
 	z = z/fN;
+elseif comprSol && isfield(par,'phase')
+    fN = length(par.fco);
+	tau = ((0:fN*istep-1)*step -dbf)/fN;
+	% Add points to the right using periodicity.
+	tau2 = [tau tau(1:dbf*istep + 1)];
+	
+	kernelvals = 1i/4*besselh(0,1,par.k*sqrt(sum((repmat(x,1,size(tau2,2))-par.par(tau2) ).^2, 1)));
+	gnvals = par.gradnorm(tau2).*exp(1i*par.k*par.phase(tau2));
+	z = 0;
+	for i=1:fN
+		z = z + sol(i) * sum(qbf_w .* kernelvals((i-1)*istep+1:(i-1)*istep+length(qbf_w)) ...
+			.* gnvals((i-1)*istep+1:(i-1)*istep+length(qbf_w)));
+	end
+	z = z/fN;
 else
 	tau = ((0:par.N*istep-1)*step -dbf)/par.N;
 	% Add points to the right using periodicity.

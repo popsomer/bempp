@@ -14,8 +14,12 @@ if ~exist('j1','var'), j1 = 1; end
 if ~exist('j2','var'), j2 = par.N; end
 
 if ~exist('wind','var') || isempty(wind)
-    if isfield(par, 'difase') % One can include phase information in difase which is exploited here.
+    if isfield(par, 'difase') % One can include phase information in difase which is interpolated and exploited here.
         wind = @(taut) exp(2i*pi*par.k*interp1(par.Tase,par.difase,taut, 'spline', 'extrap'));
+    elseif isfield(par, 'phase') % One can include exact phase information in phase which is exploited here.
+%         wind = @(taut) arrayfun(@(tautest) exp(1i*par.k*par.phase(tautest)), taut);
+        wind = @(taut) exp(1i*par.k*par.phase(taut));
+%         wind = @(taut) exp(-1i*par.k*phase(taut));
     else
         wind = @(taut) ones(size(taut));
     end
