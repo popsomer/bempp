@@ -16,11 +16,15 @@ Tcor = 0.02;
 % the percentage below the threshold from where the window is identically zero.
 corrDist = 0; 
 
-ks = 2.^7;
+% ks = 2.^7;
 % ks = 2.^(7:10);
-obsts = 2;
-mti = 0;
+ks = 2^7;
+obsts = 1;
+% obsts = 9;
+bc = 1;
 
+mti = 0;
+printtoc = 3;
 kl = length(ks);
 nbOb = length(obsts);
 
@@ -33,7 +37,7 @@ v = struct('mti', mti, 'avm', avm, 'taus', rand(avm,1), 'errBCavm', zeros(nbOb*k
 for oi = 1:length(obsts)
 	obstacle = obsts(oi);
 	par = getObst(obstacle);   
-    
+        
 	start = now;
 %     fN = par.ppw*20;
 %     fN = par.ppw*64;
@@ -44,18 +48,33 @@ for oi = 1:length(obsts)
 	for ki = 1:kl
 		idx = (oi-1)*kl+ki;
         par = getObst(obstacle); % Reset par
+%     par.ppw = 10;
 		par.k = ks(ki);
 		par.N = par.ppw*par.k;
         par.t = linspace(0,1,par.N+1); % The knots of the periodic spline;
         par.colltau = par.t(1:par.N);
+        if bc == 2
+            par.bc = @(k,x)-1*exp(1i*k*(x')*[cos(-pi/4);sin(-pi/4)]);
+        elseif bc == 1
+            par.bc = @(k,x)-1*exp(1i*k*(x')*[cos(0);sin(0)]);
+        end
+        
         if isfield(par,'phase')
             par = rmfield(par, 'phase'); % no phase when computing A1
+%             par = rmfield(par, 'quadR'); % don't need additional points when computing A1
         end
+        qr1 = 12;
+%         par.quadR = qr1; % Seems to give oscillations of c1 in the shadow region
         
 		%% Computating full solution
 		A1 = zeros(par.N); tic;
-		for i = 1:par.N
-		% 	parfor i=1:par.N % Instead of a sequential loop
+        prevToc = toc;
+        for i = 1:par.N
+            % 	parfor i=1:par.N % Instead of a sequential loop
+            if (toc-prevToc > printtoc)
+                prevToc = toc;
+                display([num2str(par.k), '=k, ' num2str( (i-1)/par.N,'%7.3f'), '=A1%, est. # sec. left for A1=' num2str(toc*(par.N-i+1)/(i-1)) ])
+            end
 			A1(i,:) = collRowQBF(i,par);
 		end
         v.timeA(idx,1) = toc;
@@ -63,7 +82,8 @@ for oi = 1:length(obsts)
         c1 = A1\b; % The solution is needed for computing the correlations.
         
         %% Computing correlations
-        if ki == 1 % Re-use the R that is computed here at higher frequencies.
+%         if ki == 1 % Re-use the R that is computed here at higher frequencies.
+        if 0 % Re-use the R that is computed here at higher frequencies.
             tic
 %             [R, sigma] = calcCorr(par, c1, Tcor, percDecay); % Don't use A1, but the integral.
             [R, sigma] = calcCorr(par, c1, Tcor, percDecay, [], A1);
@@ -72,11 +92,12 @@ for oi = 1:length(obsts)
         end
 		%% Compute A2
 %         par.phase = @(t) transpose(par.par(t) )*[cos(0);sin(0)]; % For incident plane wave in x-direction; only set phase after computing A1
-        if obstacle <= 1
+        if bc == 1 %obstacle <= 1
             par.phase = @(t) transpose(transpose(par.par(t) )*[cos(0);sin(0)]); % For incident plane wave in x-direction; only set phase after computing A1
-        elseif obstacle == 2
+        elseif bc == 2 %obstacle == 2
             par.phase = @(t) transpose(transpose(par.par(t) )*[cos(-pi/4); sin(-pi/4)]); % For incident plane wave in x-direction; only set phase after computing A1
         end
+%         A2 = nan*zeros(par.N);
         if 0
             A2 = zeros(par.N); % We could actually use a sparse matrix structure now because its structure is given by R.
             curThr = par.xi*max(max(abs(R)));
@@ -98,14 +119,23 @@ for oi = 1:length(obsts)
                 end
             end % loop over row-indices i
             v.timeA(idx,2) = toc;
-        else
+        elseif 1
             fact = 2^(1/4);
             %             for iter = 1:log(par.k/8)/log(fact)
             %                 fN = round(8*par.ppw*fact^iter);
-            for iter = 1:log(par.k/24)/log(fact)
-                fN = round(24*par.ppw*fact^iter);
+            for iter = 1:1%log(par.k/24)/log(fact)
+%                 fN = round(24*par.ppw*fact^iter);
+
+                %% Setting up compression
+                fN = 48; %round(par.N/32);
                 ft = linspace(0,1,fN+1); % The knots of the periodic spline;
                 fco = ft(1:fN);
+                
+%                 par.quadR = max(2, round(par.N/fN) );
+%                 par.quadR = max(2, par.quadR*round(par.N/fN) );
+%                 par.quadR = max(2, qr1*round(par.N/fN) );
+                par.quadR = max(2, 6*round(par.N/fN) );
+%                 par.quadR = 20;
                 
                 A2 = zeros(fN);
                 tN = par.N;
@@ -118,6 +148,10 @@ for oi = 1:length(obsts)
                 tic;
                 prevToc = toc;
                 for i = 1:fN
+                    if (toc-prevToc > printtoc)
+                        prevToc = toc;
+                        display([num2str(par.k), ' = k, ' num2str( (i-1)/fN,'%7.3f'), ' = A2%, est. # sec. left for A2 = ' num2str(toc*(fN-i+1)/(i-1)) ])
+                    end
                     tc = par.colltau(i);
                     %                 A2(i,:) = collRowQBF(i,par,1,par.N);
                     A2(i,:) = collRowQBF(i,par);
@@ -139,7 +173,12 @@ for oi = 1:length(obsts)
 %                 c2 = +b2*par.k*2i.*cos(2*pi*fco').*(fco' > 0.25).*(fco' < 0.75);
 %                 c2 = -par.k*2i.*cos(2*pi*fco').*(fco' > 0.25).*(fco' < 0.75);
                 erSol = norm(interp1([par.fco (par.fco(1)+1)], [c2; c2(1)], par.colltau').*transpose(exp(1i*par.k*par.phase(par.colltau) ))-c1)/norm(c1);
-                figure; plot(par.fco, [real(c2) imag(c2)]); legend('Re(c2) using fco','Im(c2) using fco')
+                
+                %% finishing
+%                 figure; plot(par.fco, [real(c2) imag(c2)]); legend('Re(c2) using fco','Im(c2) using fco')
+                figure; plot(par.colltau, par.phase(par.colltau)); title('Phase')
+                figure; spectrogram(c1, round(length(c1)/16),[],[], 1/(par.colltau(2)-par.colltau(1)), 'centered'); title('Spectrogram')
+                figure; plot(par.colltau, [real(c1) imag(c1)]); legend('Re(c1) using fco','Im(c1) using fco')
                 %                 v = validate(A1,A2,par,v,idx);
                 %                 erSol = v.errSol(ki,2);
                 display([num2str(ks(ki)) ' = k, iter = ' num2str(iter) ', fN = ' num2str(fN) ' and erSol = ' num2str(erSol) ])
@@ -159,12 +198,12 @@ for oi = 1:length(obsts)
             secondfco = fco;
             secondc2 = c2;
         end
-        v = validate(A1,A2,par,v,idx);
+        v = validate(A1,A2,par,v,idx)
         display([num2str(oi) ' = oi, ki = ' num2str(ki) ', now is ' datestr(now) ', expected end ' datestr(start + ...
             (now-start)*sum(ks.^2)/sum(ks(1:ki).^2)*( length(obsts)-oi + 1) )  ]);
 	end
 end
-v
+% v
 return
 
 if 0
@@ -249,4 +288,99 @@ end
 % figure; plot(abs(Rpl));
 % figure; plot(angle(Rpl)-dist);
 figure; plot(transpose([phase; phIll]));
+
+%% Short-time averages
+rad = 38;
+rad = 58;
+dtau = 2*par.colltau(rad);
+c3 = nan*c1;
+for i = (rad+1):par.N-rad
+    c3(i) = sum(exp(-1i*par.k*par.phase(par.colltau((i-rad):(i+rad))))*c1((i-rad):(i+rad)))/(2*rad+1);
+end
+figure; plot(par.colltau, [real(c3) imag(c3)]); title('c3');
+c4 = c1-c3.*transpose(exp(-1i*par.k*par.phase(par.colltau)));
+figure; plot(par.colltau, [real(c4) imag(c4)]); title('c4');
+
+tesph = @(t) sqrt(sum( (par.par(t) - par.par(0.4-t)).^2,1));
+c5 = nan*c1;
+for i = (rad+1):par.N-rad
+%     c5(i) = sum(exp(-1i*par.k*tesph(par.colltau((i-rad):(i+rad))))*c1((i-rad):(i+rad)))/(2*rad+1);
+    c5(i) = sum(exp(-1i*par.k*tesph(par.colltau((i-rad):(i+rad))))*c4((i-rad):(i+rad)))/(2*rad+1);
+end
+figure; plot(par.colltau, [real(c5) imag(c5)]); title('c5');
+
+%% Fourier transform removal HF
+% length(fft)/2 = alternating +-1 and we have ppw samples per period
+% cut = ceil(par.ppw/4);
+cut = ceil(length(c1)/par.ppw/4);
+tmp = c1.*transpose(exp(-1i*par.k*par.phase(par.colltau)));
+ffttmp = fft(tmp);
+ffttmp((cut+1):(end-cut)) = 0;
+c3 = ifft(ffttmp);
+figure; plot(par.colltau, [real(c3) imag(c3)]); title('c3');
+% c4 = c1-c3.*transpose(exp(-1i*par.k*par.phase(par.colltau)));
+c4 = c1-c3.*transpose(exp(1i*par.k*par.phase(par.colltau)));
+figure; plot(par.colltau, [real(c4) imag(c4)]); title('c4');
+figure; spectrogram(c4, round(length(c4)/16),[],[], 1/(par.colltau(2)-par.colltau(1)), 'centered');
+
+%% Find phase by 'ray tracing'
+sp = zeros(par.N,2);
+ph = zeros(par.N,2);
+z = par.par(linspace(0,1,100)); figure; plot(z(1,:), z(2,:))
+for i = round(par.N*0.2):round(par.N*0.4)
+%     sp(i) = 0.4;
+    spi = round(par.N*0.4);
+    phix = 1;
+    sgn = 1;
+    while (phix < 3) && (spi < round(par.N*0.6) )
+        dif = par.par(par.colltau(spi)) - par.par(par.colltau(i));
+        alpha = atan2(dif(2), dif(1) );
+        norma = par.normal(par.colltau(spi));
+        beta = atan2(norma(2), norma(1));
+%         delta = beta-pi+alpha
+        if sgn*(mod(2*beta-pi+alpha, 2*pi) - pi) > 0
+            sp(i, phix) = par.colltau(spi);
+%             ph(i, phix) = norm(par.colltau(i)-par.colltau(spi));
+%             ph(i, phix) = norm(par.colltau(i)-par.colltau(spi)) + [1, 0]*par.par(par.colltau(spi)); % Add phase of incident wave at sp
+            ph(i, phix) = norm(par.colltau(i)-par.colltau(spi)) - [1, 0]*par.par(par.colltau(spi)); % Add phase of incident wave at sp
+            phix = phix + 1;
+            sgn = -sgn;
+        end
+        spi = spi + 1;
+    end
+end
+for i = round(par.N*0.4):round(par.N*0.6)
+    spi = round(par.N*0.4);
+    phix = 1;
+    sgn = -1;
+    while (phix < 3) && (spi > round(par.N*0.2) )
+        dif = par.par(par.colltau(spi)) - par.par(par.colltau(i));
+        alpha = atan2(dif(2), dif(1) );
+        norma = par.normal(par.colltau(spi));
+        beta = atan2(norma(2), norma(1));
+%         delta = beta-pi+alpha
+        if sgn*(mod(2*beta-pi+alpha, 2*pi) - pi) > 0
+            sp(i, phix) = par.colltau(spi);
+%             ph(i, phix) = norm(par.colltau(i)-par.colltau(spi));
+%             ph(i, phix) = norm(par.colltau(i)-par.colltau(spi)) + [1, 0]*par.par(par.colltau(spi)); % Add phase of incident wave at sp
+            ph(i, phix) = norm(par.colltau(i)-par.colltau(spi)) - [1, 0]*par.par(par.colltau(spi)); % Add phase of incident wave at sp
+            phix = phix + 1;
+            sgn = -sgn;
+        end
+        spi = spi - 1;
+    end
+end
+figure; plot(par.colltau, sp);
+
+%% remove from already removed inc phase
+ixph = 2;
+sgn = 1;
+tmp = c4.*exp(-sgn*1i*par.k*ph(:,ixph));
+ffttmp = fft(tmp);
+ffttmp((cut+1):(end-cut)) = 0;
+c5 = ifft(ffttmp);
+figure; plot(par.colltau, [real(c5) imag(c5)]); title('c5');
+c6 = c4-c5.*exp(sgn*1i*par.k*ph(:,ixph) );
+figure; plot(par.colltau, [real(c6) imag(c6)]); title('c6');
+figure; spectrogram(c6, round(length(c6)/16),[],[], 1/(par.colltau(2)-par.colltau(1)), 'centered');
 

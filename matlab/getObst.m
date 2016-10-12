@@ -2,7 +2,7 @@
 % par.t (knots of the periodic spline) and par.colltau (the collocation points) should be set.
 % Input
 %	idx	- Index for which obstacle: 0 circle (cubic), 1 circle (linear as are the following), 2 ellipse, 3 near-inclusion, 
-%         4 almost convex, 5 two circles, 6 three ellipses, 7 near-inclusion and circle
+%         4 almost convex, 5 two circles, 6 three ellipses, 7 near-inclusion and circle, 8 nonconvex polygon, 9 one selfreflection
 % Output
 %	par - The par structure, containing par (the parametrization), gradnorm, normal, corners, bc (the boundary condition), dbf (degree
 %         of the basis functions), ppw (number of points per wavelength) and xi (threshold percentage). For multiple scattering obstacles,
@@ -62,6 +62,14 @@ switch idx
         	y = [1 -1 0 -1  1; ...
 	             1 1  0 -1 -1];
 	        dbf = 1; ppw = 9; xi = 0.04;
+	case 9 % One self-reflection
+		x = [1 -1 0 -1  1; ...
+	         1 1  0 -1 -1];
+	        dbf = 1; ppw = 15; xi = 0.04;
+	case 10 % One self-reflection line pieces
+		par = struct('par', @(t) onePar, 'gradnorm', @(t) oneGrad(t), 'corners', [], 'bc', @(k,x) -1*exp(1i*k*(x')*[cos(0); sin(0)]), ...
+            'dbf', 1, 'ppw', 15, 'xi', 0.04);
+		return
 	otherwise
 		error(['Unknown index ' num2str(idx)]);
 end
@@ -163,6 +171,15 @@ function g = gradPolygon(t)
             g(:,ti) = (y(:,l+2)-y(:,l+1))*ny;
         end
     end
+end
+
+function p = onePar(t)
+    p = nan*zeros(2, length(t));
+    ix = (t >= 0.2) && (t <= 0.45);
+    p(:,ix) = 5*t(ix)*[1; -1];
+    ix = (t >= 0.55) && (t <= 0.8);
+    p(:,ix) = 5*t(ix)*[-1; 1];
+%     if (t >= 0.2) && (t <= 0.45)
 end
 
 end % function getObst

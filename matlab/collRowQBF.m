@@ -6,9 +6,10 @@
 %   [j2		- End column index]
 %   [wind	- @(tau) The window function, default ones]
 %   [collx	- Collocation point. If defined, we calculate part of the coupling matrix and assume no singularity]
+%   [shift  - Shift with respect to colltau(i)]
 % Output
 %   row		- (part of) a row of the collocation matrix
-function row = collRowQBF(i, par, j1, j2, wind, collx)
+function row = collRowQBF(i, par, j1, j2, wind, collx, shift)
 
 if ~exist('j1','var'), j1 = 1; end
 if ~exist('j2','var'), j2 = par.N; end
@@ -26,24 +27,40 @@ if ~exist('wind','var') || isempty(wind)
 end
 
 if par.dbf == 1
-    qbf_x = [  -1.00000000000000  -0.50000000000000                  0   0.50000000000000   1.00000000000000];
-    qbf_w = [   0.01666666666667   0.26666666666667   0.43333333333333   0.26666666666667   0.01666666666667];
-    % Step distance between quadrature points
-    step = 1/2; istep = 1/step;
+    if isfield(par, 'quadR')
+        % Use a simple Riemann sum with the given number of points per collocation points interval to compute the integral. 
+        % Using the middle sum avoids points of nonanalyticity.
+        qbf_x = linspace(-1, 1, par.quadR*2+1);
+        step = qbf_x(2)-qbf_x(1);
+        qbf_x = qbf_x(1:end-1) + step/2;
+%         qbf_w = [linspace(0, 1, par.quadR), linspace(1, 0, par.quadR)]; % /par.N already included
+        qbf_w = (1-abs(qbf_x))/sum(1-abs(qbf_x));
+        istep = round(1/step);
+    else
+        qbf_x = [  -1.00000000000000  -0.50000000000000                  0   0.50000000000000   1.00000000000000];
+        qbf_w = [   0.01666666666667   0.26666666666667   0.43333333333333   0.26666666666667   0.01666666666667];
+        % Step distance between quadrature pointsfor qbf
+        step = 1/2; istep = 1/step;
+    end
     A = -1;
     dbf = 1;
 elseif par.dbf== 3 % Weights computed in iepack/basis/make_bfinfo_periodic_spline_equi.m using quad_sf with lo_d = sqrt(2)/16*[1 4 6 4 1]
+    if isfield(par, 'quadR')
+        error('Not implemented')
+    end
     qbf_x = (-4:4)/2;
     qbf_w = [  0.000022045855379   0.009876543209876   0.084744268077601  0.238447971781305   0.333818342151675  ...
         0.238447971781305  0.084744268077601   0.009876543209877   0.000022045855379];
     step = 4/(length(qbf_w)-1);
     istep = round(1/step);
+    
     A = -2;
     dbf = 3;
 end
 % The size of the row
 Lj = j2-j1+1;
 
+% if isfield(par, 'quadR')
 % Total number of points in one row: there are istep additional points per element and 4+1 points for the first element,
 % minus the istep already counted. Leave out D = 2 around the collocation point for the regular part.
 Nj = Lj*istep + (length(qbf_w) - istep);
@@ -51,8 +68,11 @@ tau = (A+(j1-1):step:A+(j1-1)+(Nj-1)*step)/par.N;
 
 if exist('collx','var') && ~isempty(collx)
     kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((repmat(collx,1,length(tau))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
+% else
+%     kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
 else
     tc = par.colltau(i);
+    if exist('shift', 'var'),     tc = par.colltau(i) + shift; end
     kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
 end
 row = zeros(1,Lj); % We could adjust A here, but that would not allow using parfor in the loop over i and might cause copying A.
@@ -68,6 +88,7 @@ for l=1:Lj
             kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((repmat(collx,1,length(tau))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
         else
             tc = par.colltau(i);
+            if exist('shift', 'var'),     tc = par.colltau(i) + shift; end
             kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
         end
         row(1) = qbf_w * kernelVals.'/par.N;
@@ -116,7 +137,12 @@ for j=-1:dbf % Removes NaN due to singularity
         % Calculate an element using hp-type quadrature on each (possibly singular but) smooth part of a piecewise smooth and singular integrand.
         sigma = 0.15;
         mu = 1;
-        n = 7;
+        if isfield(par, 'quadR')
+            n = 7 + par.quadR;
+        else
+            n = 7;
+        end
+%         n = 7;
         minsize = 1e-10;
         q = mod([par.corners tc]-tau1,1)+tau1;
         

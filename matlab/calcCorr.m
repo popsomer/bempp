@@ -164,6 +164,7 @@ for i = 1:par.N
             end
         end
     end
+    debug = 1;
 end
 
 end

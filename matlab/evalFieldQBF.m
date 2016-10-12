@@ -13,8 +13,34 @@ if isfield(par,'obsts')
 end
 
 if par.dbf == 1
-	qbf_w = [   0.01666666666667   0.26666666666667   0.43333333333333   0.26666666666667   0.01666666666667];
-	step = 1/2; istep = 1/step;
+    if isfield(par, 'quadR') && isfield(par, 'fco')
+        % Use a simple Riemann sum with the given number of points per collocation points interval to compute the integral.
+        % Using the middle sum avoids points of nonanalyticity.
+        if comprSol
+            qbf_x = linspace(-1, 1, par.quadR*2+1);
+        else
+            qbf_x = linspace(-1, 1, round(par.quadR*length(par.fco)/par.N)*2+1);
+        end
+        step = qbf_x(2)-qbf_x(1);
+        qbf_x = qbf_x(1:end-1) + step/2;
+%         qbf_w = [linspace(0, 1, par.quadR), linspace(1, 0, par.quadR)]; % /par.N already included
+        qbf_w = (1-abs(qbf_x))/sum(1-abs(qbf_x));
+        istep = round(1/step);
+    elseif isfield(par, 'quadR') && isfield(par, 'obsts') && isfield(par.obsts(1), 'fco')
+        if comprSol
+            qbf_x = linspace(-1, 1, par.quadR*2+1);
+        else
+            qbf_x = linspace(-1, 1, round(par.quadR*length(par.obsts(1).fco)/par.obsts(1).N)*2+1);
+        end
+        step = qbf_x(2)-qbf_x(1);
+        qbf_x = qbf_x(1:end-1) + step/2;
+%         qbf_w = [linspace(0, 1, par.quadR), linspace(1, 0, par.quadR)]; % /par.N already included
+        qbf_w = (1-abs(qbf_x))/sum(1-abs(qbf_x));
+        istep = round(1/step);
+    else
+        qbf_w = [   0.01666666666667   0.26666666666667   0.43333333333333   0.26666666666667   0.01666666666667];
+        step = 1/2; istep = 1/step;
+    end
     dbf = 1;
 elseif par.dbf == 3  % Weights computed in iepack/basis/make_bfinfo_periodic_spline_equi.m using quad_sf with lo_d = sqrt(2)/16*[1 4 6 4 1]
 	qbf_w = [  0.000022045855379   0.009876543209876   0.084744268077601  0.238447971781305   0.333818342151675  ...
@@ -23,8 +49,26 @@ elseif par.dbf == 3  % Weights computed in iepack/basis/make_bfinfo_periodic_spl
 	istep = round(1/step);
     dbf = 3;
 end
-if isfield(par,'obsts') % Multiple scattering
+if isfield(par,'obsts') && isfield(par.obsts(1), 'phase') && comprSol
 	z = 0;
+	for obst = 1:length(par.obsts)
+		tau = ((0:par.obsts(obst).fN*istep-1)*step -dbf)/par.obsts(obst).fN;
+		% Add points to the right using periodicity.
+		tau2 = [tau tau(1:dbf*istep + 1)];
+        
+		kernelvals = 1i/4*besselh(0,1,par.k*sqrt(sum((repmat(x,1,size(tau2,2))-par.obsts(obst).par(tau2) ).^2, 1)));
+		gnvals = par.obsts(obst).gradnorm(tau2).*exp(1i*par.k*par.obsts(obst).phase(tau2) );
+		zt = 0;
+		for i=1:par.obsts(obst).fN
+% 			zt = zt + sol(i+par.r(1,obst)-1) * sum(qbf_w .* kernelvals((i-1)*istep+1:(i-1)*istep+length(qbf_w)) ...
+			zt = zt + sol(i+par.fr(1,obst)-1) * sum(qbf_w .* kernelvals((i-1)*istep+1:(i-1)*istep+length(qbf_w)) ...
+				.* gnvals((i-1)*istep+1:(i-1)*istep+length(qbf_w)));
+		end
+		z = z + zt/par.obsts(obst).fN;
+	end
+elseif isfield(par,'obsts') % Ordinary multiple scattering
+	z = 0;
+    if length(sol) ~= par.N, error('sizes should be compatible for ordinary multiple scattering'); end
 	for obst = 1:length(par.obsts)
 		tau = ((0:par.obsts(obst).N*istep-1)*step -dbf)/par.obsts(obst).N;
 		% Add points to the right using periodicity.

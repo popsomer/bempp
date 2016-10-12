@@ -100,6 +100,16 @@ if isfield(par, 'fco') % One can add this field to par when the phase is known a
        c2 = -par.k*2i.*cos(2*pi*par.fco').*(par.fco' > 0.25).*(par.fco' < 0.75); % plane wave on a circle
     end
     figure; plot(par.fco, [real(c2) imag(c2)]); legend('Re(c2) using fco','Im(c2) using fco')
+elseif isfield(par, 'obsts') && isfield(par.obsts(1), 'fco')
+    b2t = nan*zeros(size(A2,1),1);
+    for obst = 1:length(par.obsts)
+%         b2t(2*(par.r(1,obst):par.r(2,obst))-1) = par.bc(par.k,par.obsts(obst).par(par.obsts(obst).colltau));
+%         b2t(2*(par.r(1,obst):par.r(2,obst))) = par.bc(par.k,par.obsts(obst).par(par.obsts(obst).colltau + par.obsts(obst).hs));
+        % Above for two phases, below for one
+%         b2t(par.r(1,obst):par.f(2,obst)) = par.bc(par.k,par.obsts(obst).par(par.obsts(obst).colltau));
+        b2t(par.fr(1,obst):par.fr(2,obst)) = par.bc(par.k,par.obsts(obst).par(par.obsts(obst).fco));
+    end
+    c2 = A2\b2t;
 else
     b2 = b;
     c2 = A2\b;
@@ -110,6 +120,14 @@ if isfield(v, 'errSol')
 %         v.errSol(ix,2) = norm(interp1(par.fco, c2, par.colltau').*exp(1i*par.k*par.phase(par.colltau) )-c1)/norm(c1);  
 %         v.errSol(ix,2) = norm(interp1(par.fco, c2, par.colltau').*transpose(exp(1i*par.k*par.phase(par.colltau) ))-c1)/norm(c1);
         v.errSol(ix,2) = norm(interp1([par.fco (par.fco(1)+1)], [c2; c2(1)], par.colltau').*transpose(exp(1i*par.k*par.phase(par.colltau) ))-c1)/norm(c1);
+    elseif isfield(par, 'obsts') && isfield(par.obsts(1), 'phase')
+        c2ip = nan*c1;
+        for obst = 1:length(par.obsts)
+            c2ip(par.r(1,obst):par.r(2,obst)) = interp1([par.obsts(obst).fco (par.obsts(obst).fco(1)+1)], [c2(par.fr(1,obst):par.fr(2,obst) ); ...
+                c2(par.fr(1,obst) )], par.obsts(obst).colltau').*transpose(exp(1i*par.k*par.obsts(obst).phase(par.obsts(obst).colltau) ));
+            debug = 1; % any(isnan(c2ip(par.r(1,obst):par.r(2,obst)) ))
+        end
+        v.errSol(ix,2) = norm(c2ip-c1)/norm(c1);
     else
         v.errSol(ix,2) = norm(c2-c1)/norm(c1); 
     end
@@ -201,25 +219,31 @@ end, end
 
 if isfield(v,'field')
     % Compute the field in a region around the obstacle for plotting.
-	nd = size(v.field,1);
-	if isfield(par,'obsts')
-		v.parametr = cell(length(par.obsts),1);
-		mi = [Inf; Inf];
-		ma = [-Inf; -Inf];
-		for obst = 1:length(par.obsts)
-			vp = par.obsts(obst).par(linspace(0,1,round(nd/length(par.obsts))));
-			mi = min([mi,vp], [], 2);
-			ma = max([ma,vp], [], 2);
-			v.parametr{obst} = vp;
-		end
-	else
-		v.parametr = par.par(linspace(0,1,nd));
-		mi = min(v.parametr,[],2);
-		ma = max(v.parametr,[],2);
-	end
-	siz = 1.1*max(ma-mi);
-	v.xs = (mi(1)+ma(1))/2 +linspace(-siz,siz,nd+1);
-	v.ys = (mi(2)+ma(2))/2 +linspace(-siz,siz,nd);
+    nd = size(v.field,1);
+    if isfield(par,'obsts')
+        v.parametr = cell(length(par.obsts),1);
+        mi = [Inf; Inf];
+        ma = [-Inf; -Inf];
+        for obst = 1:length(par.obsts)
+            vp = par.obsts(obst).par(linspace(0,1,round(nd/length(par.obsts))));
+            mi = min([mi,vp], [], 2);
+            ma = max([ma,vp], [], 2);
+            v.parametr{obst} = vp;
+        end
+    else
+        v.parametr = par.par(linspace(0,1,nd));
+        mi = min(v.parametr,[],2);
+        ma = max(v.parametr,[],2);
+    end
+    if 1
+        siz = 1.1*max(ma-mi);
+        v.xs = (mi(1)+ma(1))/2 +linspace(-siz,siz,nd+1);
+        v.ys = (mi(2)+ma(2))/2 +linspace(-siz,siz,nd);
+    else
+        siz = 0.6*(ma-mi);
+        v.xs = (mi(1)+ma(1))/2 +linspace(-siz(1), siz(1), nd+1);
+        v.ys = (mi(2)+ma(2))/2 +linspace(-siz(2), siz(2), nd);
+    end
 	for nx = 1:nd+1, for ny = 1:nd
 		v.field(ny,nx) = evalFieldQBF(par,[v.xs(nx); v.ys(ny)],c1,0) - par.bc(par.k,[v.xs(nx); v.ys(ny)]); % BC = -Inc field
 	end, end
