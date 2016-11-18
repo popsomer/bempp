@@ -110,6 +110,7 @@ elseif isfield(par, 'obsts') && isfield(par.obsts(1), 'fco')
         b2t(par.fr(1,obst):par.fr(2,obst)) = par.bc(par.k,par.obsts(obst).par(par.obsts(obst).fco));
     end
     c2 = A2\b2t;
+    warning('b2t might not be the expected rhs.');
 else
     b2 = b;
     c2 = A2\b;

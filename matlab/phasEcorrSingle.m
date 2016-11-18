@@ -16,10 +16,10 @@ Tcor = 0.02;
 % the percentage below the threshold from where the window is identically zero.
 corrDist = 0; 
 
-% ks = 2.^7;
+ks = 2.^7;
 % ks = 2.^(7:10);
-ks = 2^7;
-obsts = 1;
+% ks = 2^5;
+obsts = 3;
 % obsts = 9;
 bc = 1;
 
@@ -36,8 +36,7 @@ v = struct('mti', mti, 'avm', avm, 'taus', rand(avm,1), 'errBCavm', zeros(nbOb*k
 %% Computations
 for oi = 1:length(obsts)
 	obstacle = obsts(oi);
-	par = getObst(obstacle);   
-        
+% 	par = getObst(obstacle);   
 	start = now;
 %     fN = par.ppw*20;
 %     fN = par.ppw*64;
@@ -48,6 +47,7 @@ for oi = 1:length(obsts)
 	for ki = 1:kl
 		idx = (oi-1)*kl+ki;
         par = getObst(obstacle); % Reset par
+%         par.ppw = par.ppw*4; % For testing
 %     par.ppw = 10;
 		par.k = ks(ki);
 		par.N = par.ppw*par.k;
@@ -383,4 +383,137 @@ figure; plot(par.colltau, [real(c5) imag(c5)]); title('c5');
 c6 = c4-c5.*exp(sgn*1i*par.k*ph(:,ixph) );
 figure; plot(par.colltau, [real(c6) imag(c6)]); title('c6');
 figure; spectrogram(c6, round(length(c6)/16),[],[], 1/(par.colltau(2)-par.colltau(1)), 'centered');
+
+
+%% EVD of A1 to get phase indep of inc wave (for selfreflecting obstacles?)
+[Vb, Db, Wb] = eig(A1);
+figure; plot( abs(diag(Db))); title('abs eig A1');
+% figure; plot(par.colltau, [real(Vb(:,1)) imag(Vb(:,1))]); title('Vb(:,1)')
+figure; plot(par.colltau, real(Vb(:,1:10)) ); legend(num2str((1:10)'))
+figure; plot(par.colltau, imag(Vb(:,1:10)) ); legend(num2str((1:10)'))
+% figure; plot(par.colltau, [real(Vb(:,1)) -0.1*cos(2*pi*15*par.colltau')]); title('Vb(:,1)')
+% figure; plot(par.colltau, [real(Vb(:,1)) 0.025*cos(2*pi*61*par.colltau')]); title('Vb(:,1)')
+
+%% fft
+% fftv = fft(Vb(:,1));
+% figure; plot(real(fftv));
+% ns = (1:10)';
+% ns = (1:100)';
+% ns = (20:30)';
+ns = (1:2)'
+% ixm = ns'*nan;
+ixm = zeros(3,length(ns));
+figure;
+for i = 1:length(ns)
+    n = ns(i);
+%     plot(real(fft(Vb(:,n)))); hold on;
+    fv = abs(fft(Vb(:,n)));
+    [ma, ixma] = max(fv(1:end/2));
+%     ixm(n) = ixma;
+    ixm(1,i) = ixma;
+    ixm(2,i) = ma;
+    ixm(3,i) = abs(Db(n,n));
+    plot(fv); hold on;
+end
+legend(num2str(ns));
+ixm
+
+%% Plot obst
+zs = [par.colltau; par.colltau];
+% ys = xs;
+figure; hold on;
+for i = 1:par.N
+    zs(:,i) = par.par(par.colltau(i));
+    if mod(i,round(par.N/33)) == 2
+        text(zs(1,i), zs(2,i), 'x')
+        text(zs(1,i), 0.03+zs(2,i), ['\tau = ' num2str(par.colltau(i))])
+    end
+end
+plot(zs(1,:), zs(2,:) );
+
+%% Take out parts
+% obstacle == 3: top and bottom 'convex' subparts
+
+if 0
+    it = round(0.33*par.N):round(0.42*par.N);
+    ib = round(0.61*par.N):round(0.69*par.N);
+    A11 = A1(it,it);
+    A21 = A1(it,ib);
+    A12 = A1(ib,it);
+    A22 = A1(ib,ib);
+else
+    ks = 2.^7;
+    par = getObst(3); % Reset par
+    par.k = ks(ki);
+    par.N = par.ppw*par.k;
+    par.t = linspace(0,1,par.N+1); % The knots of the periodic spline;
+    par.colltau = par.t(1:par.N);
+    if 1
+        it = round(0.45*par.N):round(0.48*par.N);
+        bigm = zeros(length(it), length(it));
+        tic;
+        prevToc = toc;
+        for i = 1:length(it)
+            if (toc-prevToc > printtoc)
+                prevToc = toc;
+                display([num2str(par.k), '=k, ' num2str( (i-1)/length(it),'%7.3f'), '=A11%, est. # sec. left for A11=' num2str(toc*(length(it)-i+1)/(i-1)) ])
+            end
+            bigm(i,:) = collRowQBF(it(i),par, it(1), it(end) );
+        end
+    
+    else
+    it = round(0.33*par.N):round(0.42*par.N);
+    ib = round(0.61*par.N):round(0.69*par.N);
+    A11 = zeros(length(it), length(it));
+    A21 = zeros(length(it), length(ib));
+    A12 = zeros(length(ib), length(it));
+    A22 = zeros(length(ib), length(ib));
+    tic;
+    prevToc = toc;
+    for i = 1:length(it)
+        if (toc-prevToc > printtoc)
+            prevToc = toc;
+            display([num2str(par.k), '=k, ' num2str( (i-1)/length(it),'%7.3f'), '=A11%, est. # sec. left for A11=' num2str(toc*(length(it)-i+1)/(i-1)) ])
+        end
+        A11(i,:) = collRowQBF(it(i),par, it(1), it(end) );
+        A21(i,:) = collRowQBF(it(i),par, ib(1), ib(end) );
+    end
+    tic; prevToc = toc;
+    for i = 1:length(ib)
+        if (toc-prevToc > printtoc)
+            prevToc = toc;
+            display([num2str(par.k), '=k, ' num2str( (i-1)/length(ib),'%7.3f'), '=A22%, est. # sec. left for A22=' num2str(toc*(length(ib)-i+1)/(i-1)) ])
+        end
+        A12(i,:) = collRowQBF(ib(i),par, it(1), it(end) );
+        A22(i,:) = collRowQBF(ib(i),par, ib(1), ib(end) );
+    end
+    end
+end
+
+% bigm = A11\A21*(A22\A12);
+display(['Starting EVD of matrix of size ' num2str(size(bigm))]);
+[Vb, Db, Wb] = eig(bigm);
+display(['Ended EVD of matrix of size ' num2str(size(bigm))]);
+figure; plot(par.colltau(it), [real(Vb(:,1)) imag(Vb(:,1))]); legend(['Re Vb, k=' num2str(ks)], 'Im Vb');
+figure; plot(abs(diag(Db))); title('abs eig A1');
+% figure; plot(par.colltau(it), [real(Vb(:,1)) imag(Vb(:,1))]); legend('Re Vb', 'Im Vb');
+
+%% Zero curvature
+% x = [0.7454 0.6947 0.5933 0.3836 0.2108 0.1440 0.2546 0.4597 0.5472 0.5219 0.3491 0.1694 0.2131 0.4366 0.6417 0.7200;...
+%     0.5219 0.6506 0.7646 0.8904 0.8553 0.6857 0.6009 0.6272 0.5395 0.3348 0.3640 0.3319 0.1360 0.1038 0.1974 0.3787];
+% N = size(x,2);
+% fx = fft(x(1,:))/N;
+% fy = fft(x(2,:))/N;
+% if mod(N,2) == 0
+%     n = [0:N/2, -N/2+1:-1];
+% else
+%     n = [0:floor(N/2), -floor(N/2):-1];
+% end
+tzerCur = fsolve(@(t) par.cur(t), 0.362)
+quot = @(z) z(1)/z(2);
+% difc = @(ts) quot(par.grad(ts(1)))*
+sel = @(a,b) a(b);
+[tsst, fval] = fsolve(@(ts) [ (quot(par.grad(ts(1))) - quot(par.grad(ts(2)))), (quot(par.grad(ts(1)))*(sel(par.par(ts(1)), 1) - sel(par.par(ts(2)), 1) ) ...
+    +(sel(par.par(ts(1)), 2) - sel(par.par(ts(2)), 2) ))], [0.33, 0.72])
+%     -(sel(par.par(ts(1)), 2) - sel(par.par(ts(2)), 2) ))], [0.33, 0.72])
 

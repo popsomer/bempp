@@ -2,12 +2,14 @@
 % par.t (knots of the periodic spline) and par.colltau (the collocation points) should be set.
 % Input
 %	idx	- Index for which obstacle: 0 circle (cubic), 1 circle (linear as are the following), 2 ellipse, 3 near-inclusion, 
-%         4 almost convex, 5 two circles, 6 three ellipses, 7 near-inclusion and circle, 8 nonconvex polygon, 9 one selfreflection
+%         4 almost convex, 5 two circles, 6 three ellipses, 7 near-inclusion and circle, 8 nonconvex polygon, 9 one selfreflection, 11 two
+%         ellipses
+%   [rx - the radius in the x-direction for the two ellipses]
 % Output
 %	par - The par structure, containing par (the parametrization), gradnorm, normal, corners, bc (the boundary condition), dbf (degree
 %         of the basis functions), ppw (number of points per wavelength) and xi (threshold percentage). For multiple scattering obstacles,
 %         these are combined in an 'obsts' field.
-function par = getObst(idx)
+function par = getObst(idx, rx)
 switch idx
 	case 0 % Circle with cubic basis functions
 		par = struct('par', @(t) repmat([0;0], 1, length(t)) + [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm', @(t) pi*ones(size(t)), ...
@@ -70,6 +72,13 @@ switch idx
 		par = struct('par', @(t) onePar, 'gradnorm', @(t) oneGrad(t), 'corners', [], 'bc', @(k,x) -1*exp(1i*k*(x')*[cos(0); sin(0)]), ...
             'dbf', 1, 'ppw', 15, 'xi', 0.04);
 		return
+    case 11 % Two ellipses
+		par = struct('obsts', [struct('par', @(t) repmat([-0.5;-0.5], 1, length(t)) + [rx*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',...
+			@(t) 2*pi*sqrt(rx^2+1/4)*ones(size(t)), 'corners', [], 'dbf', 1, 'ppw', 10) ...
+			struct('par', @(t) repmat([-0.5;1.5], 1, length(t)) + [rx*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',...
+			@(t) 2*pi*sqrt(rx^2+1/4)*ones(size(t)), 'corners', [], 'dbf', 1, 'ppw', 10)], ...
+        	    'bc', @(k,x) -1*exp(1i*k*(x')*[cos(0); sin(0)]), 'xi', 3e-3);
+		return
 	otherwise
 		error(['Unknown index ' num2str(idx)]);
 end
@@ -89,7 +98,7 @@ if exist('x','var')
     
     par = struct('par', @(t) parS(t), 'gradnorm', @(t) sqrt(sum(gradS(t).^2, 1)), ...
         'normal', @(t) [1 0; 0 -1]*flipud(gradS(t))./repmat(sqrt(sum(gradS(t).^2, 1)),2,1), ...
-        'corners', [] );
+        'grad', @(t) gradS(t),'cur', @(t) curS(t), 'corners', [] );
 elseif exist('y','var')
     ny = size(y,2);
     
@@ -125,6 +134,40 @@ function p = parS(t) % parametrisation of a smooth obstacle through interpolatio
 	end
 end
 
+function p = curS(t) % Curvature of a smooth obstacle through interpolation
+	p = zeros(4, length(t));
+	L = length(t);
+	
+	A = 1i*2*pi*repmat(n',1,L).*exp(1i*2*pi*repmat(n',1,L).*repmat(t,N,1));
+    
+    if mod(N,2) == 1
+        p(1,:) = sum( repmat(fx.', 1, L) .* A, 1);
+        p(2,:) = sum( repmat(fy.', 1, L) .* A, 1);
+        p(3,:) = sum( repmat(fx.', 1, L).*2i.*pi.*repmat(n',1,L).*A, 1);
+        p(4,:) = sum( repmat(fy.', 1, L).*2i.*pi.*repmat(n',1,L).*A, 1);
+    else
+        M = N/2;
+        p(1,:) = sum( repmat(fx(1:M).', 1, L) .* A(1:M,:), 1);
+        p(2,:) = sum( repmat(fy(1:M).', 1, L) .* A(1:M,:), 1);
+        p(3,:) = sum( repmat(fx(1:M).', 1, L).*2i.*pi.*repmat(n(1:M)',1,L).*A(1:M,:), 1);
+        p(4,:) = sum( repmat(fy(1:M).', 1, L).*2i.*pi.*repmat(n(1:M)',1,L).*A(1:M,:), 1);
+        
+        p(1,:) = p(1,:) + sum( repmat(fx(M+2:N).', 1, L) .* A(M+2:N,:), 1);
+        p(2,:) = p(2,:) + sum( repmat(fy(M+2:N).', 1, L) .* A(M+2:N,:), 1);
+        p(3,:) = p(3,:) + sum( repmat(fx(M+2:N).', 1, L).*2i.*pi.*repmat(n(M+2:N)',1,L).*A(M+2:N,:), 1);
+        p(4,:) = p(4,:) + sum( repmat(fy(M+2:N).', 1, L).*2i.*pi.*repmat(n(M+2:N)',1,L).*A(M+2:N,:), 1);
+        
+        p(1,:) = p(1,:) - fx(M+1)*2*pi*n(M+1)*sin(2*pi*n(M+1)*t);
+        p(2,:) = p(2,:) - fy(M+1)*2*pi*n(M+1)*sin(2*pi*n(M+1)*t);
+        p(3,:) = p(3,:) - fx(M+1)*(2*pi*n(M+1))^2*cos(2*pi*n(M+1)*t);
+        p(4,:) = p(4,:) - fy(M+1)*(2*pi*n(M+1))^2*cos(2*pi*n(M+1)*t);
+    end
+    if sum(abs(imag(t))) == 0
+        p = real(p);
+    end
+    p = (p(1,:).*p(4,:) - p(2,:).*p(3,:) )./(p(1,:).^2+p(2,:).^2).^(3/2);
+end
+
 function g = gradS(t)
 	g = zeros(2, length(t));
 	if mod(N,2) == 1
@@ -142,8 +185,10 @@ function g = gradS(t)
 			g(2,:) = g(2,:) + fyd(1+j)*exp(1i*2*pi*n(1+j)*t);
 			g(2,:) = g(2,:) + fyd(M+1+j)*exp(1i*2*pi*n(M+1+j)*t);
 		end
-		g(1,:) = g(1,:) - imag(fxd(M+1))*sin(2*pi*n(M+1)*t);
-		g(2,:) = g(2,:) - imag(fyd(M+1))*sin(2*pi*n(M+1)*t);
+% 		g(1,:) = g(1,:) - imag(fxd(M+1))*sin(2*pi*n(M+1)*t); % Old
+% 		g(2,:) = g(2,:) - imag(fyd(M+1))*sin(2*pi*n(M+1)*t); % Old
+		g(1,:) = g(1,:) - fx(M+1)*2*pi*n(M+1)*sin(2*pi*n(M+1)*t);
+		g(2,:) = g(2,:) - fy(M+1)*2*pi*n(M+1)*sin(2*pi*n(M+1)*t);
 	end
 	if sum(abs(imag(t))) == 0
 		g = real(g);

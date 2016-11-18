@@ -221,7 +221,7 @@ figure; plot(coll2, tau1s);
 % end
 
 
-if 0
+if 1
     phas = exp(1i*ks(ki)*sqrt( sum( (par.obsts(1).par(colltau) - repmat(par.obsts(2).par(3/4), 1, length(colltau) ) ).^2, 1) ));
     tmp = c1sp.*transpose(1./phas);
     figure; plot([real(tmp) imag(tmp)]); title([num2str(ks(ki)) ' = k, tmp, ki = ' num2str(ki)]);

@@ -1,5 +1,5 @@
 % Compute the solution of multiple scattering obstacles using a known phase.
-
+if 0
 %% Initialising
 clearvars
 close all
@@ -42,6 +42,7 @@ for oi = 1:length(obsts)
             
             par.obsts(obst).t = linspace(0,1,par.obsts(obst).N+1); % The knots of the periodic spline;
             par.obsts(obst).colltau = par.obsts(obst).t(1:par.obsts(obst).N);
+            par.obsts(obst).hs = (par.obsts(obst).colltau(2) -par.obsts(obst).colltau(1) )/2;
         end
         
         if bc == 4
@@ -58,9 +59,14 @@ for oi = 1:length(obsts)
             par = rmfield(par, 'phase'); % no phase when computing A1
             %             par = rmfield(par, 'quadR'); % don't need additional points when computing A1
         end
+        overs1 = 1;
         
         %% Computating full solution
-        A1 = zeros(par.N); tic;
+%         A1 = zeros(par.N); tic;
+%         A1 = zeros(overs1*par.N); 
+        A1 = zeros(overs1*par.N, par.N); 
+        b1 = zeros(overs1*par.N,1);
+        tic
         prevToc = toc;
         for i = 1:par.N
             if (toc-prevToc > printtoc)
@@ -69,11 +75,24 @@ for oi = 1:length(obsts)
             end
             obsin = find((i >= par.r(1,:)) & (i <= par.r(2,:)));
             collx = par.obsts(obsin).par(par.obsts(obsin).colltau(i-par.r(1,obsin)+1) );
+            
+            collxos = zeros(2,overs1);
+            for os = 1:overs1
+                collxos(:,os) = par.obsts(obsin).par(par.obsts(obsin).colltau(i-par.r(1,obsin)+1) + par.obsts(obsin).hs*2/overs1*(os-1));
+            end
             for obst = 1:length(par.obsts)
                 if obst == obsin
-                    A1(i,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N);
+                     for os = 1:overs1
+                        A1(overs1*i-overs1+os,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N, [], [], ...
+                            par.obsts(obst).hs*2/overs1*(os-1) );
+                        b1(overs1*i -overs1+os) = par.bc(par.k, collxos(:,os));
+                    end
+%                     A1(i,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N);
                 else
-                    A1(i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N,  [], collx);
+                    for os = 1:overs1
+                        A1(overs1*i-overs1+os,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxos(:,os) );
+                    end
+%                     A1(i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N,  [], collx);
                 end
             end
         end
@@ -82,9 +101,12 @@ for oi = 1:length(obsts)
         for obst = 1:length(par.obsts)
             b(par.r(1,obst):par.r(2,obst)) = par.bc(par.k,par.obsts(obst).par(par.obsts(obst).colltau));
         end
-        c1 = A1\b; % The solution is needed for computing the correlations.
+%         c1 = A1\b; % The solution is needed for computing the correlations.
+        c1 = A1\b1; % The solution is needed for computing the correlations.
+        return
         
         % [R, sigma,obbounds] = calcCorr(par, c1, Tcor, percDecay); 
+        % [R, sigma,obbounds] = calcCorr(par, c1, 0.1, 1, [10, now], A1); 
         
         %% Compute A2
 %         fN = 48;
@@ -101,12 +123,15 @@ for oi = 1:length(obsts)
 %         end
         if obstacle == 5 && bc == 1
             nrPh = 2; % Number of phases
+%             overs = 2;
+            overs = 7;
         elseif obstacle == 5 && bc == 3
             nrPh = 1;
         elseif obstacle == 5 && bc == 4
             nrPh = 1;
-        end        
-        A2 = zeros(length(par.obsts)*nrPh*fN);
+        end
+%         A2 = zeros(length(par.obsts)*nrPh*fN);
+        A2 = zeros(length(par.obsts)*overs*fN,length(par.obsts)*nrPh*fN);
         
         tmp = par;
         par.N = 0;
@@ -148,23 +173,56 @@ for oi = 1:length(obsts)
             end
             obsin = find((i >= par.r(1,:)) & (i <= par.r(2,:)));
             collx = par.obsts(obsin).par(par.obsts(obsin).colltau(i-par.r(1,obsin)+1) );
+            collxsh4 = par.obsts(obsin).par(par.obsts(obsin).colltau(i-par.r(1,obsin)+1) + par.obsts(obsin).hs/2);
             collxsh = par.obsts(obsin).par(par.obsts(obsin).colltau(i-par.r(1,obsin)+1) + par.obsts(obsin).hs);
+            collxsh34 = par.obsts(obsin).par(par.obsts(obsin).colltau(i-par.r(1,obsin)+1) + par.obsts(obsin).hs*3/2);
+            collxos = zeros(2,overs);
+            for os = 1:overs
+                collxos(:,os) = par.obsts(obsin).par(par.obsts(obsin).colltau(i-par.r(1,obsin)+1) + par.obsts(obsin).hs*2/overs*(os-1));
+            end
             for obst = 1:length(par.obsts)
                 if obst == obsin && nrPh == 1
                     A2(i,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N);
                     b2(i) = par.bc(par.k, collx);
-                elseif obst == obsin && nrPh == 2
-                    A2(2*i-1,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N);
-%                     A2(2*i,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N);
-                    A2(2*i,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N, [], [], par.obsts(obst).hs);
-                    b2(2*i - 1) = par.bc(par.k, collx);
-                    b2(2*i) = par.bc(par.k, collxsh);
+%                 elseif obst == obsin && nrPh == 2
+                elseif obst == obsin
+                    for os = 1:overs
+                        A2(overs*i-overs+os,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N, [], [], ...
+                            par.obsts(obst).hs*2/overs*(os-1) );
+                        b2(overs*i -overs+os) = par.bc(par.k, collxos(:,os));
+                    end
+%                 elseif obst == obsin && overs == 2
+%                     A2(2*i-1,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N);
+% %                     A2(2*i,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N);
+%                     A2(2*i,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N, [], [], par.obsts(obst).hs);
+%                     b2(2*i - 1) = par.bc(par.k, collx);
+%                     b2(2*i) = par.bc(par.k, collxsh);
+%                 elseif obst == obsin && overs == 4
+%                     A2(4*i-3,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N);
+%                     A2(4*i-2,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N, [], [], par.obsts(obst).hs/2);
+%                     A2(4*i-1,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N, [], [], par.obsts(obst).hs);
+%                     A2(4*i,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N, [], [], par.obsts(obst).hs*3/2);
+%                     b2(4*i - 3) = par.bc(par.k, collx);
+%                     b2(4*i - 2) = par.bc(par.k, collxsh4);
+%                     b2(4*i - 1) = par.bc(par.k, collxsh);
+%                     b2(4*i) = par.bc(par.k, collxsh34);
                 elseif nrPh == 1
                     A2(i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collx);
                 else
-                    A2(2*i-1,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collx);
-                    A2(2*i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxsh);
-%                     A2(nN + i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxsh);
+                    for os = 1:overs
+                        A2(overs*i-overs+os,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxos(:,os) );
+                    end
+%                 elseif overs == 2
+%                     A2(2*i-1,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collx);
+%                     A2(2*i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxsh);
+% %                     A2(nN + i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxsh);
+%                 elseif overs == 4
+%                     A2(4*i-3,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collx);
+%                     A2(4*i-2,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxsh4);
+%                     A2(4*i-1,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxsh);
+%                     A2(4*i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxsh34);
+%                 else
+%                     error('Check overs.');
                 end
             end
         end
@@ -193,22 +251,44 @@ for oi = 1:length(obsts)
                 collxsh = par.obsts(obsin).par(par.obsts(obsin).colltau(i-par.r(1,obsin)+1) + par.obsts(obsin).hs);
                 for obst = 1:length(par.obsts)
                     if obst == obsin
-                        A2(2*i-1, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N);
-                        A2(2*i, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N, [], [], par.obsts(obst).hs);
+                        for os = 1:overs
+                            A2(overs*i-overs+os, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N, [], [], ...
+                                par.obsts(obst).hs*2/overs*(os-1) );
+                        end
                     else
-                        A2(2*i-1, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collx);
-                        A2(2*i, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxsh);
-                        %                     A2(nN + i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxsh);
+                        for os = 1:overs
+                            A2(overs*i-overs+os, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxos(:,os) );
+                        end
                     end
+%                     if (obst == obsin) && overs == 2
+%                         A2(2*i-1, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N);
+%                         A2(2*i, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N, [], [], par.obsts(obst).hs);
+%                     elseif (obst == obsin) && (overs == 4)
+%                         A2(4*i-3, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N);
+%                         A2(4*i-2, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N, [], [], par.obsts(obst).hs/2);
+%                         A2(4*i-1, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N, [], [], par.obsts(obst).hs);
+%                         A2(4*i, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N, [], [], par.obsts(obst).hs*3/2);
+%                     elseif overs == 2
+%                         A2(2*i-1, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collx);
+%                         A2(2*i, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxsh);
+%                         %                     A2(nN + i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxsh);
+%                     elseif overs == 4
+%                         A2(4*i-3, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collx);
+%                         A2(4*i-2, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxsh4);
+%                         A2(4*i-1, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxsh);
+%                         A2(4*i, nN + (par.r(1,obst):par.r(2,obst))) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collxsh34);
+%                     else
+%                         error('Check overs');
+%                     end
                 end
             end
-            
-            b2t = nan*zeros(size(A2,1),1);
-            for obst = 1:length(par.obsts)
-                b2t(2*(par.r(1,obst):par.r(2,obst))-1) = par.bc(par.k,par.obsts(obst).par(par.obsts(obst).colltau));
-                %             b(nN + par.r(1,obst):par.r(2,obst)) = par.bc(par.k,par.obsts(obst).par(par.obsts(obst).colltau + par.obsts(obst).hs));
-                b2t(2*(par.r(1,obst):par.r(2,obst))) = par.bc(par.k,par.obsts(obst).par(par.obsts(obst).colltau + par.obsts(obst).hs));
-            end
+%             
+%             b2t = nan*zeros(size(A2,1),1);
+%             for obst = 1:length(par.obsts)
+%                 b2t(2*(par.r(1,obst):par.r(2,obst))-1) = par.bc(par.k,par.obsts(obst).par(par.obsts(obst).colltau));
+%                 %             b(nN + par.r(1,obst):par.r(2,obst)) = par.bc(par.k,par.obsts(obst).par(par.obsts(obst).colltau + par.obsts(obst).hs));
+%                 b2t(2*(par.r(1,obst):par.r(2,obst))) = par.bc(par.k,par.obsts(obst).par(par.obsts(obst).colltau + par.obsts(obst).hs));
+%             end
         else
 %             b2 = b;
         end
@@ -247,6 +327,7 @@ for oi = 1:length(obsts)
         figure; plot( [real(c2) imag(c2)]); legend('Re(c2) using fco','Im(c2) using fco')
         v = validate(A1,A2,par,v,idx)
 %         plotVal(v)
+        return
 
         %% angle of part where only phase indep of inc wave
         collsignal = par.obsts(2).colltau((length(par.obsts(2).colltau)*0.8-1):end);
@@ -327,7 +408,7 @@ for oi = 1:length(obsts)
         (now-start)*sum(ks.^2)/sum(ks(1:ki).^2)*( length(obsts)-oi + 1) )  ]);
 end
 
-return
+% return
 
 %% Construct c3 from presumed c2
 c3 = 0*c1;
@@ -470,15 +551,168 @@ figure; plot([real(V(:,end)) imag(V(:,end))])
 figure; plot([real(W(:,1)) imag(W(:,1))])
 
 %% Remove components
-rem = 2000;
-c2f = c2;
+rem = 100;
+% rem = 4700;
+% c2f = c2;
+b2f = b2;
 for ri = 1:rem
-    c2f = c2f - V(:,end-ri+1)*(transpose(V(:,end-ri+1))*c2);
+%     c2f = c2f - V(:,end-ri+1)*(transpose(V(:,end-ri+1))*c2);
 %     c2f = c2f - V(:,end-ri+1)*(transpose(V(:,end-ri+1))*c2f);
+    b2f = b2f - V(:,end-ri+1)*(transpose(V(:,end-ri+1))*b2);
 end
 % eigenvectors normal but not orthogonal wrt each other?
-[norm(c2), norm(c2f), norm(c2t), rem]
+% [norm(c2), norm(c2f), norm(c2t), rem]
+display([num2str(rem) ' components are removed'])
+c2f = A2\b2f;
+figure; plot([real(c2f) imag(c2f)]); title('c2f');
 
 
+%% Ray tracing by partitioned block 
+A11 = A1(1:size(A1,1)/2, 1:size(A1,2)/2);
+A21 = A1(1:size(A1,1)/2, (1+size(A1,2)/2):end); % Action of density of obst 2 on location of obst 1
+A12 = A1((size(A1,1)/2+1):end, 1:size(A1,2)/2);
+A22 = A1((size(A1,1)/2+1):end, (1+size(A1,2)/2):end);
 
+c1true1 = c1(1:length(c1)/2);
+c1true2 = c1(length(c1)/2+1:end);
+
+nbrefl = 8;
+bsl1 = zeros(size(A1,1)/2, nbrefl);
+bsl2 = zeros(size(A1,1)/2, nbrefl);
+csl1 = zeros(size(A1,2)/2, nbrefl);
+csl2 = zeros(size(A1,2)/2, nbrefl);
+
+bsl1(:,1) = b(1:size(A1,1)/2);
+bsl2(:,1) = b((size(A1,1)/2+1):end);
+csl1(:,1) = A11\bsl1(:,1);
+csl2(:,1) = A22\bsl2(:,1);
+
+resid = cell(2,nbrefl);
+resid{1,1} = c1true1 - sum(csl1,2);
+figure;
+plot(par.obsts(1).colltau, real(csl1(:,1))/norm(csl1(:,1)) ); title('csl1 refl normal')
+% plot(par.obsts(1).colltau, real(resid{1,1})); title('resid')
+% plot(par.obsts(1).colltau, real(sum(csl1,2))); title('sum')
+hold on
+
+for refl = 2:nbrefl
+%     for refl = 1:size(csl1,2);
+%     if refl == 1
+%         bsl1(:,1) = b(1:size(A1,1)/2);
+%         bsl2(:,1) = b((size(A1,1)/2+1):end);
+%     else
+%     bsl1(:,refl) = A21*csl2(:,refl-1);
+%     bsl2(:,refl) = A12*csl1(:,refl-1);
+    bsl1(:,refl) = -A21*csl2(:,refl-1);
+    bsl2(:,refl) = -A12*csl1(:,refl-1);
+    csl1(:,refl) = A11\bsl1(:,refl); % Or coupling matrices?
+    csl2(:,refl) = A22\bsl2(:,refl);
+    
+    resid{1,refl} = c1true1 - sum(csl1,2);
+    figure; plot(par.obsts(1).colltau, real(csl1(:,refl))/norm(csl1(:,refl)) );
+%     plot(par.obsts(1).colltau, real(resid{1,refl}));
+%     plot(par.obsts(1).colltau, real(sum(csl1,2)));
+end
+legend(num2str((1:nbrefl)'));
+% figure; plot(real(csl1))
+% resid = cell(2);
+% resid{1} = c1true1 - sum(csl1,2);
+% figure; plot(par.obsts(1).colltau, [real(resid{1}) imag(resid{1})]);
+% hold on;
+% resid{1} = c1true1 - csl1(:,1);
+% plot(par.obsts(1).colltau, [real(resid{1}) imag(resid{1})]);
+
+%% Eigenvalues big reflection matrix
+
+bigm = A11\A21*(A22\A12);
+[Vb, Db, Wb] = eig(bigm);
+% [V1, D1, W1] = eig(A1);
+figure; semilogy(abs(diag(Db)))
+figure; plot(par.obsts(1).colltau, [real(Vb(:,1)) imag(Vb(:,1))])
+figure; plot(par.obsts(1).colltau, [real(Wb(:,1)) imag(Wb(:,1))])
+
+cnor = sqrt(sum(abs(csl1).^2, 1))
+ratcnor = cnor(1:end-1)./cnor(2:end)
+
+% load('c1OneCirc.mat', 'c1sin'); % see phasCircle.m
+
+% c1slice = c1(1:length(c1)/2);
+% evd = V(:,1:8)\c1slice
+% evd = Vb(:,1:8)\c1sp
+
+%% Project eigenvectors of bigm onto assumed phase
+obst = 1;
+phbigm = exp(1i*par.k*sqrt( sum( (par.obsts(obst).par(par.obsts(obst).colltau) - repmat(par.obsts(3-obst).par((2*obst-1)/4), 1, ...
+    length(par.obsts(obst).colltau) ) ).^2, 1) ) );
+lfbm = Vb(:,1)./transpose(phbigm);
+figure; plot(par.obsts(1).colltau, [real(lfbm) imag(lfbm)])
+
+end % if 0 at begin
+
+%% project c1 onto osc basis fcts  with low fN
+% fN = 55;
+fN = 300;
+nrPh = 3;
+A = zeros(size(c1,1), nrPh*fN*length(par.obsts));
+
+ft = linspace(0,1,fN+1); % The knots of the periodic spline;
+fco = ft(1:fN);
+hco = fco(2)-fco(1);
+
+phi = @(tau, i) (tau > fco(max(1,i-1)) ).*(tau <= fco(i) ).*(tau-fco(max(1,i-1)))/hco + (tau > fco(i)).*(tau < fco(min(fN,i+1)) ).*(1+(fco(i)-tau)/hco) + ...
+    (tau > fco(end) ).*(i == 1).*(tau-fco(end))/hco + (tau > fco(end) ).*(i == fN).*(1+(fco(end)-tau)/hco);
+% test = par.obsts(1).colltau*nan;
+i = fN;
+% for j = 1:length(test)
+%     test(j) = phi(par.obsts(1).colltau(j), i);
+% end
+test = phi(par.obsts(1).colltau, i);
+% figure; plot(par.obsts(1).colltau, test);
+
+for obst = 1:length(par.obsts)
+%     for obi = 1:length(par.obsts)
+        for i = 1:fN
+%             A(:,(obst-1)*fN+i) = exp(1i*par.k*[1,0]*par.obsts(obst).par( );
+%             A(length(par.obsts(obi).colltau)*(obi-1)+1:length(par.obsts(obi).colltau)*obi ,(obst-1)*fN+i) = ...
+%                 exp(1i*par.k*[1,0]*par.obsts(obst).par(par.obsts(obi).colltau) );
+%             A(length(par.obsts(obst).colltau)*(obst-1)+1:length(par.obsts(obst).colltau)*obst, (obst-1)*fN+i) = ...
+%                 exp(1i*par.k*[1,0]*par.obsts(obst).par(par.obsts(obst).colltau) );
+            A(length(par.obsts(obst).colltau)*(obst-1)+1:length(par.obsts(obst).colltau)*obst, (obst-1)*fN+i) = ...
+                phi(par.obsts(obst).colltau, i).*exp(1i*par.k*[1,0]*par.obsts(obst).par(par.obsts(obst).colltau) );
+        end
+%     end
+end
+% now second phase:
+for obst = 1:length(par.obsts)
+    for i = 1:fN
+        A(length(par.obsts(obst).colltau)*(obst-1)+1:length(par.obsts(obst).colltau)*obst, (length(par.obsts)+obst-1)*fN+i) = ...
+            exp(1i*par.k*sqrt( sum( (par.obsts(obst).par(par.obsts(obst).colltau) - repmat(par.obsts(3-obst).par((5-2*obst)/4), 1, ...
+            length(par.obsts(obst).colltau) ) ).^2, 1) ) ).*phi(par.obsts(obst).colltau, i);
+%             exp(1i*par.k*sqrt( sum( (par.obsts(obst).par(par.obsts(obst).colltau) - repmat(par.obsts(3-obst).par((2*obst-1)/4), 1, ...
+%             length(par.obsts(obst).colltau) ) ).^2, 1) ) ).*phi(par.obsts(obst).colltau, i);
+%             length(par.obsts(obst).colltau) ) ).^2, 1) ) );
+    end
+end
+sel = @(x,s) x(s);
+phasFirRefl = zeros(length(par.obsts(1).colltau),4);
+if nrPh > 2
+    for obst = 1:length(par.obsts)
+        cot = par.obsts(obst).colltau;
+%             A(length(cot)*(obst-1)+1:length(cot)*obst, (length(par.obsts)*2+obst-1)*fN+i) = ...
+        for coi = 1:length(cot)
+            pt = par.obsts(obst).par(cot(coi)); % Find minimal distance from source to pt via other obst
+%             [tauOth, phasi] = fminbnd( @(tau) sel(par.obsts(3-obst).par(tau),1) + sum( (pt - par.obsts(3-obst).par(tau) ).^2, 1), (2*obst-2)/4, (2*obst-0)/4);
+            [tauOth, phasi] = fminbnd( @(tau) sel(par.obsts(3-obst).par(tau),1) + sum( (pt - par.obsts(3-obst).par(tau) ).^2, 1), (4-2*obst)/4, (6-2*obst)/4);
+            phasFirRefl(coi,obst) = phasi;
+            phasFirRefl(coi,obst+2) = tauOth;
+%             phasi = par.obsts(3-obst).par(tauOth) + ; 
+            % phasi is x-coord at other obst + dist from there to pt
+            for i = 1:fN
+                A(length(cot)*(obst-1)+coi, (length(par.obsts)*2+obst-1)*fN+i) = exp(1i*par.k*phasi).*phi(cot(coi), i);
+            end
+        end
+    end
+end
+proj = A\c1;
+figure; plot([real(proj) imag(proj)]); title('proj');
 
