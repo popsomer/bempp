@@ -1,4 +1,6 @@
-% Compute the solution of multiple scattering obstacles using a known phase.
+% Two circlesS
+
+% %Compute the solution of multiple scattering obstacles using a known phase.
 
 %% Initialising
 clearvars
@@ -7,6 +9,7 @@ format longe
 set(0,'DefaultFigureWindowStyle','docked');
 
 ks = 2^9;
+% ks = 2^7;
 obsts = 5;
 % obsts = 11;
 % rx = 0.1;
@@ -198,11 +201,13 @@ phi = sqrt( (c1x-c2x+r1*cos(2*pi*par.obsts(1).colltau)-r1*cos(2*pi*tau2) ).^2 + 
 %% Extract phase from angle
 collsignal = par.obsts(1).colltau;
 % signal = Vb(:,1);
+% load Vb1k9; 
 signal = Vb1k9;
 % signal = Vb(:,1)./abs(Vb(:,1));
 % figure; plot(collsignal, [real(signal) imag(signal)]);
 l = length(signal)/2;
 ph = zeros(size(signal));
+obst = 1;
 tryph = transpose(sqrt( sum( (par.obsts(obst).par(par.obsts(obst).colltau) - repmat(par.obsts(3-obst).par((5-2*obst)/4), 1, ...
     length(par.obsts(obst).colltau) ) ).^2, 1) ) );
 % tryph = transpose(2.1618/2*(cos(4*pi*par.obsts(obst).colltau)-1));
@@ -222,12 +227,112 @@ end
 closest = find(abs(collsignal-0.25) == min(abs(collsignal-0.25)));
 ph = ph + 1*ks(ki) - ph(closest);
 % figure; plot(collsignal, [ph/ks(ki) tryph]); legend('phase from angle', 'try phase');
-figure; plot(collsignal, [ph/ks(ki) tryph transpose(phi)]); legend('phase from angle', 'try phase', '\phi from closest \tau_2');
-figure; plot(collsignal, ph/ks(ki)-(tryph+transpose(phi))/2); legend('phase from angle - average');
-norm(ph(500:2000)/ks(ki)-(tryph(500:2000)+transpose(phi(500:2000)))/2)/norm(ph(500:2000)/ks(ki)) % for ks = 2^9
+% figure; plot(collsignal, [ph/ks(ki) tryph transpose(phi)]); legend('phase from angle', 'try phase', '\phi from closest \tau_2');
+% figure; plot(collsignal, ph/ks(ki)-(tryph+transpose(phi))/2); legend('phase from angle - average');
+% norm(ph(500:2000)/ks(ki)-(tryph(500:2000)+transpose(phi(500:2000)))/2)/norm(ph(500:2000)/ks(ki)) % for ks = 2^9
 % figure; plot(collsignal(1:end-1), (ph(2:end)-ph(1:end-1))/(collsignal(2)-collsignal(1))/ks(ki)); legend('der phase from angle');
 % figure; plot(collsignal, [real(signal.*exp(1i*par.k*tryph)) imag(signal.*exp(1i*par.k*tryph))]); legend('real LF
+% figure; plot(collsignal(1:l), [ph(1:l)/ks(ki) tryph(1:l) transpose(phi(1:l))]);
+% legend({'$\tilde{\phi}$', '$\zeta$', '$\xi$'}, 'interpreter', 'latex', 'FontSize', 15);
+% xlabel('\tau_1')
 
+figure; plot(collsignal(1:l), ph(1:l)/ks(ki), 'g'); hold on
+plot(collsignal(1:l), tryph(1:l), 'b');
+plot(collsignal(1:l), transpose(phi(1:l)), 'r');
+legend({'$\tilde{\phi}$', '$\zeta$', '$\xi$'}, 'interpreter', 'latex', 'FontSize', 15);
+xlabel('\tau_1')
+
+%% Relative error wrt phtilde = ph/k
+% symbTay = 1 + sqrt(2)*pi^2*(collsignal(1:l)-1/4).^2 -11/12*sqrt(2)*pi^4*(collsignal(1:l)-1/4).^4 ...
+%     + 2783/2520/sqrt(2)*pi^6*(collsignal(1:l)-1/4).^6 -358021/205632*sqrt(2)*pi^8*(collsignal(1:l)-1/4).^8;
+t1m = transpose(collsignal(1:l)-1/4);
+symbTay = 1 + sqrt(2)*pi^2*t1m.^2 -11/12*sqrt(2)*pi^4*t1m.^4 ...
+    + 2783/2520/sqrt(2)*pi^6*t1m.^6 -358021/205632*sqrt(2)*pi^8*t1m.^8;
+% Symbolic $c_i$ & $1$  & $\sqrt{2}\pi^2$ & $\frac{-11}{12}\sqrt{2}\pi^4$ & $\frac{2783\pi^6}{2520\sqrt{2}}$ & $\frac{-358021}{205632}\sqrt{2}\pi^8$ \\
+
+figure; plot(collsignal(1:l)-1/4, signal(1:l), 'g'); hold on
+plot(collsignal(1:l)-1/4, (tryph(1:l)-ph(1:l)/ks(ki))./(ph(1:l)/ks(ki)), 'b');
+plot(collsignal(1:l)-1/4, (transpose(phi(1:l))-ph(1:l)/ks(ki))./(ph(1:l)/ks(ki)), 'r');
+plot(collsignal(1:l)-1/4, (symbTay-ph(1:l)/ks(ki))./(ph(1:l)/ks(ki)), 'k');
+legend({'Re($V_{j,1}$)', '$(\zeta-\tilde{\phi})/\tilde{\phi}$', '$(\xi-\tilde{\phi})/\tilde{\phi}$',...
+    '$(-\tilde{\phi}+\sum_{i=0}^8 c_i (\tau_1-1/4)^i)/\tilde{\phi}$'}, 'interpreter', 'latex', 'FontSize', 15);
+xlabel('\tau_1')
+
+%% Test formula for tilde{phi}
+phtest = angle(signal)/ks(ki);
+for i = 2:length(signal)
+%     if abs(angle(signal(i) - signal(i-1) )) > 5
+    if abs(angle(signal(i)) - angle(signal(i-1) ) ) > 5
+%         phtest(i) = phtest(i) -2*pi*round( (phtest(i)-phtest(i-1))/2/pi);
+        display(['branch cut passed at i = ' num2str(i)]);
+%         phtest(i) = phtest(i) -2*pi/ks(ki)*round( angle(signal(i)-signal(i-1))/2/pi);
+        phtest(i) = phtest(i) -2*pi/ks(ki)*round( angle(signal(i)) -angle(signal(i-1))/2/pi);
+    end
+end
+phtest = phtest + 1 - phtest(closest);
+phtest(closest+[-10:10])-ph(closest+[-10:10])/ks
+norm(phtest-ph/ks(ki))
+figure; plot(collsignal(1:l), [ph(1:l)/ks phtest(1:l)]);
+
+%% test formula for tilde phi: Start from sp
+phtest = nan*ph;
+% phtest(closest) = ks(ki);
+phtest(closest) = 1;
+for i = 1:l/2
+%     phtest(closest+i) = phtest(closest+i-1) + angle(signal(closest+i))/2/pi - angle(signal(closest+i-1))/2/pi;
+%     phtest(closest+i) = phtest(closest+i-1) + angle(signal(closest+i))/2/pi/ks(ki) - angle(signal(closest+i-1))/2/pi/ks(ki);
+%     phtest(closest+i) = phtest(closest+i-1) + angle(signal(closest+i)-signal(closest+i-1))/ks(ki);
+%     phtest(closest+i) = phtest(closest+i-1) + (angle(signal(closest+i))-angle(signal(closest+i-1)) )/ks(ki);
+    phtest(closest+i) = phtest(closest+i-1) + (angle(signal(closest+i))-angle(signal(closest+i-1)) )/ks(ki) ...
+        -2*pi/ks(ki)*round( (angle(signal(closest+i)) -angle(signal(closest+i-1)))/2/pi);
+%     if abs(angle(signal(closest+i)) - angle(signal(closest+i-1)) ) > 5
+% %     if abs(signal(closest+i) - signal(closest+i-1)) > 5
+%         display(['left branch cut passed at i = ' num2str(i)]);
+% %         phtest(closest+i) = phtest(closest+i) -round( (signal(closest+i)-signal(closest+i-1))/2/pi);
+%         phtest(closest+i) = phtest(closest+i) -2*pi/ks(ki)*round( (angle(signal(closest+i)) -angle(signal(closest+i-1)))/2/pi);
+%     end
+%     phtest(closest+i) = phtest(closest+i) -2*pi/ks(ki)*round( (angle(signal(closest+i)) -angle(signal(closest+i-1)))/2/pi);
+    phtest(closest-i) = phtest(closest-i+1) + angle(signal(closest-i))/ks(ki) - angle(signal(closest-i+1))/ks(ki)...
+        -2*pi/ks(ki)*floor( (angle(signal(closest-i)) -angle(signal(closest-i+1)))/2/pi);
+%         -2*pi/ks(ki)*round( (angle(signal(closest-i)) -angle(signal(closest-i+1)))/2/pi);
+%     if abs(angle(signal(closest-i)) - angle(signal(closest-i+1))) > 5
+%         display(['right branch cut passed at i = ' num2str(i)]);
+%         phtest(closest-i) = phtest(closest-i) -2*pi/ks(ki)*round( (angle(signal(closest-i)) -angle(signal(closest-i+1)))/2/pi);
+%     end
+end
+% phtest = phtest/ks(ki);
+figure; plot(collsignal(1:l), [ph(1:l)/ks phtest(1:l)]);
+phtest(closest+[-10:10])-ph(closest+[-10:10])/ks
+norm(phtest(1:l)-ph(1:l)/ks(ki))
+
+
+
+%% Basic fitting
+% figure; plot(collsignal(1:l) -0.25, ph(1:l)/ks(ki)); legend('phase from angle'); %-> D268 Basic fitting
+% datc2 = [9.725, 12.85, 13.72, 13.911, 13.951]; figure; plot(datc2); hold on;
+% datc2 = [0, -58.312, -99.94, -117.2, -122.69]; figure; plot(datc2); hold on; % Actually c4
+datc2 = [-eps, -58.312, -99.94, -117.2, -122.69]; figure; plot(datc2); hold on; % Actually c4
+% datc2 = [-58.312, -99.94, -117.2, -122.69]; figure; plot(datc2); hold on; % Actually c4
+datc2 = [488.41, 966.1, 1231.7]; figure; plot(datc2); hold on; % Actually c6
+% mat = [ones(length(datc2),1) 1./transpose(1:length(datc2))];
+sgn = sign(datc2(1));
+if norm(sgn-sign(datc2)) ~= 0, error('Signs not equal'); end
+if 0
+    deg = -3;
+    mat = [ones(length(datc2),1) transpose(1:length(datc2)).^deg];
+    lsq = mat\transpose(datc2)
+    hold on; 
+    plot(lsq(1) + lsq(2).*(1:length(datc2)).^deg)
+% figure; plot(collsignal(1:l) -0.25, tryph(1:l)); legend('tau2 = 3/4');
+% figure; plot(collsignal(1:l) -0.25, transpose(phi(1:l))); legend('ray perpendicular to \Gamma_2');
+end
+% sol = lsqnonlin(@(abc) abc(3) + exp(abc(1)-(1:length(datc2))*abc(2)) -datc2, [1,1,14])
+sol = lsqnonlin(@(abc) abc(3) -sgn*exp(abc(1)-(1:length(datc2))*abc(2)) -datc2, [1,1,14])
+% sol = lsqnonlin(@(abc) abc(3) - abc(1)*abc(2).^(-(1:length(datc2))) -datc2, [1,1,14])
+abc = sol;
+% plot(abc(3) + exp(abc(1)-(1:length(datc2))*abc(2)))
+plot(abc(3) -sgn* exp(abc(1)-(1:length(datc2))*abc(2)))
+% plot(abc(3) -sgn*abc(1)*abc(2).^(-(1:length(datc2) ) ) )
 % return
 %% Determine tau2 from ph as a distance
 t2d = zeros(l,3);
@@ -314,7 +419,8 @@ r1 = rx; r2 = 0.5;
 h = cl1(2)-cl1(1);
 % sel = @(y,z) y(z);
 % d = -2*norm(par.obsts(1).par(0.25) - par.obsts(2).par(0.75));
-d = 0;
+% d = 0;
+d = 1;
 % clos = @(phi, tau2, shft) arrayfun(@(t2) phi(find( abs(cl1-t2) == min(abs(cl1-t2)))+shft), tau2);
 clos = @(phi,tau2, shft) interp1(cl1-shft*h, phi, tau2);
 dist = @(tau2) sqrt( (c1x-c2x+r1*cos(2*pi*cl1)-r1*cos(2*pi*tau2) ).^2 + (c1y-c2y+r2*sin(2*pi*cl1)-r2*sin(2*pi*tau2) ).^2 );
@@ -335,4 +441,93 @@ trph = sqrt( sum( (par.obsts(obst).par(cl1) - repmat(par.obsts(2).par(0.75), 1, 
 figure; plot(cl1, X(1:nr)- trph); title('diff \phi')
 figure; plot(cl1, X((nr+1):end)); title('\tau_2')
 % figure; plot(cl1, [X(1:100); trph]); title('\phi')
+
+%% Iterative solve
+figure; subplot(1,2,1); plot(x0(1:nr)); hold on; subplot(1,2,2); plot(x0(nr+1:end)); hold on;
+x = F(x0); subplot(1,2,1); plot(x(1:nr)); subplot(1,2,2); plot(x(nr+1:end));
+x = F(x); subplot(1,2,1); plot(x(1:nr)); subplot(1,2,2); plot(x(nr+1:end));
+x = F(x); subplot(1,2,1); plot(x(1:nr)); subplot(1,2,2); plot(x(nr+1:end));
+title('\tau_2'); legend('x0','x1', 'x2', 'x3'); 
+subplot(1,2,1); title('\phi(\tau_1)'); legend('x0','x1', 'x2', 'x3');
+
+
+%% Load Vb1k9 etc, compute phitilde
+clearvars
+close all
+format longe
+set(0,'DefaultFigureWindowStyle','docked');
+
+ks = 2^9;
+obsts = 5;
+
+kl = length(ks);
+nbOb = length(obsts);
+
+oi = 1;
+obstacle = obsts(oi);
+ki = 1;
+idx = (oi-1)*kl+ki;
+par = getObst(obstacle); % Reset par
+rx = 0.5;
+par.k = ks(ki);
+par.N = 0;
+par.r = zeros(2,length(par.obsts)); % ranges
+for obst = 1:length(par.obsts)
+    par.obsts(obst).k = par.k;
+    par.obsts(obst).N = par.obsts(obst).ppw*par.k;
+    par.r(1,obst) = par.N+1;
+    par.N = par.N + par.obsts(obst).N;
+    par.r(2,obst) = par.N;
+    
+    par.obsts(obst).t = linspace(0,1,par.obsts(obst).N+1); % The knots of the periodic spline;
+    par.obsts(obst).colltau = par.obsts(obst).t(1:par.obsts(obst).N);
+    par.obsts(obst).hs = (par.obsts(obst).colltau(2) -par.obsts(obst).colltau(1) )/2;
+end
+c1x = -0.5; c1y = -0.5; c2x = -0.5; c2y = 1.5; r1 = rx; r2 = 0.5; d = 1;
+nr = floor(length(par.obsts(1).colltau)/2);
+collsignal = par.obsts(1).colltau(1:nr);
+load Vb1k9; 
+signal = Vb1k9(1:nr);
+
+l = find(abs(collsignal-0.25) == min(abs(collsignal-0.25)));
+phitilde = zeros(size(signal));
+phitilde(l) = d;
+for i = (l-1):-1:1
+    phitilde(i) = phitilde(i+1) +(angle(signal(i))-angle(signal(i+1)))/ks(ki) -2*pi*round( (angle(signal(i))-angle(signal(i+1)))/2/pi)/ks(ki);
+end
+for i = (l+1):length(signal)
+    phitilde(i) = phitilde(i-1) +(angle(signal(i))-angle(signal(i-1)))/ks(ki) -2*pi*round( (angle(signal(i))-angle(signal(i-1)))/2/pi)/ks(ki);
+end
+figure; plot(collsignal, phitilde);
+
+%% Use phi to get tau2(tau1) out of A and check with B
+cl1 = transpose(collsignal);
+h = cl1(2)-cl1(1);
+
+clos = @(phi,tau2, shft) interp1(cl1-shft*h, phi, tau2);
+dist = @(tau2) sqrt( (c1x-c2x+r1*cos(2*pi*cl1)-r1*cos(2*pi*tau2) ).^2 + (c1y-c2y+r2*sin(2*pi*cl1)-r2*sin(2*pi*tau2) ).^2 );
+
+% F = @(x) (signal(1:nr)-dist(x)-clos(signal(1:nr), x-1/2, 0)-d );
+F = @(x) (phitilde-dist(x)-clos(phitilde, x-1/2, 0)-d );
+% F = @(x) ((clos(x(1:nr),x(nr+1:end)-1/2, 1)-clos(x(1:nr),x(nr+1:end)-1/2, 0))/h + ...
+%     2*pi*(r1*sin(2*pi*x(nr+1:end) ).*(c1x-c2x+r1*cos(2*pi*cl1)-r1*cos(2*pi*x(nr+1:end))) ...
+%     -r2*cos(2*pi*x(nr+1:end)).*(c1y-c2y+r2*sin(2*pi*cl1)+r2*sin(2*pi*x(nr+1:end))) )./dist(x(nr+1:end) ) );
+
+x0 = 0.75*ones(size(cl1));
+% x0 = 0.6+0.2*rand(1,nr);
+opto = optimoptions('fsolve', 'Display', 'iter-detailed', 'FunctionTolerance', 1e-2, 'OptimalityTolerance', 1e-3, 'StepTolerance', 1e-12);
+% opto = optimoptions('fsolve', 'Algorithm', 'levenberg-marquardt', 'Display', 'iter-detailed', 'FunctionTolerance', 1e-2*norm(F(x0)),...
+%     'OptimalityTolerance', 1e-3, 'StepTolerance', 1e-3);
+[XA, FVAL] = fsolve(F, x0, opto);
+
+G = @(x) (clos(phitilde,x-1/2, 1)-clos(phitilde,x-1/2, 0))/h + (dist(x-1/2+h)-dist(x-1/2))/h ;
+[norm(F(XA))/norm(F(x0)), norm(G(XA))/norm(G(x0))]
+
+
+%% B check A
+% [XB, FVAL] = fsolve(G, x0, opto);
+[XB, FVAL] = fsolve(G, XA, opto);
+[norm(F(XB))/norm(F(x0)), norm(G(XB))/norm(G(x0))]
+
+figure; plot(cl1, [XA, XB]); ylabel('\tau_2'); xlabel('\tau_1'); legend('XA','XB');
 

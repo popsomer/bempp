@@ -36,9 +36,11 @@ switch idx
 			0.8085  0.7120  0.6067  0.5073  0.4079  0.3056  0.2354  0.1827  0.1798  0.2149  0.2909  0.3845  0.4664];
 	        dbf = 1; ppw = 7; xi = 0.04;
 	case 5 % Two circles
-		par = struct('obsts', [struct('par', @(t) repmat([-0.5;-0.5], 1, length(t)) + [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',...
+		%par = struct('obsts', [struct('par', @(t) repmat([-0.5;-0.5], 1, length(t)) + [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',... % Article asyCompr
+		par = struct('obsts', [struct('par', @(t) [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',... % Article limitcycle
 			@(t) pi*ones(size(t)), 'normal', @(t) [cos(2*pi*t); sin(2*pi*t)], 'corners', [], 'dbf', 1, 'ppw', 10) ...
-			struct('par', @(t) repmat([-0.5;1.5], 1, length(t)) + [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',...
+			%struct('par', @(t) repmat([-0.5;1.5], 1, length(t)) + [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',... % Article asyCompr
+			struct('par', @(t) repmat([0; 2], 1, length(t)) + [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',...% Article limitCycle with d = 1 = 2r
 			@(t) pi*ones(size(t)), 'normal', @(t) [cos(2*pi*t); sin(2*pi*t)], 'corners', [], 'dbf', 1, 'ppw', 10)], ...
         	    'bc', @(k,x) -1*exp(1i*k*(x')*[cos(0); sin(0)]), 'xi', 3e-3);
 		return

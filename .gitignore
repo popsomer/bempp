@@ -25,3 +25,4 @@ external/
 meshes/sphere6.msh
 meshes/sphere7.msh
 *.mat
+!matlab/Vb1k9.mat
