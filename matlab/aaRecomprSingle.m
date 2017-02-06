@@ -13,6 +13,7 @@ corrDist = 0; % Nonzero then use correlation iso physical distance to determine 
 ks = 2.^(4:11);
 printtoc = 300;
 obsts = [1 2 3 4 8];
+obsts = 4; % For sparsity pattern
 mti = 2;
 kl = length(ks);
 maxob = length(obsts);
@@ -100,7 +101,7 @@ for oi = 1:length(obsts)
             colLow = par.colltau; % Save these for higher freqencies.
         end
         v = validate(A1,A2,par,v,idx);
-        save('recomprSingle.mat','-regexp','^(?!(A1|A2|R)$).')
+%         save('recomprSingle.mat','-regexp','^(?!(A1|A2|R)$).') % Don't save results when plotting sparsity pattern
         v.timeA(idx,3) = (now-startk)*24*3600;
         
         extf = sum(sum( (reshape(ppw(1:oi-1),oi-1,1)*ks).^powTime) ) + sum( (ppw(oi)*ks(1:ki)).^powTime);
@@ -109,6 +110,10 @@ for oi = 1:length(obsts)
             ' sec and now is ' datestr(now) ', expected end ' datestr(expectedEnd)]);
     end
 end
+
+% plotVal(v,A2); % plot sparsity pattern
+plotVal(struct(),A2); % plot sparsity pattern
+return % When plotting sparsity pattern
 
 %% Print a table of the error on the boundary conditions
 plotVal(v, 0, {'Circle', 'Ellipse', 'Near-inclusion','Nearly convex', 'Nonconvex polygon'});

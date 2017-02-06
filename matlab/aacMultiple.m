@@ -134,9 +134,12 @@ ylabel('i'); xlabel('j');
 set(gca,'FontSize',fs);
 
 %% Plot R for article
+[R, sigma] = calcCorr(par, c1, Tcor, percDecay, [5, now()], A1);
+
 fs = 20;
 figure; 
-pcolor(min(abs(R),0.1) );
+% pcolor(min(abs(R),0.1) );
+pcolor(max(log(abs(R)),-3) );
 hold on
 shading interp; 
 xlabel('n'); 
@@ -145,10 +148,11 @@ set(gca,'FontSize',fs);
 
 h = text(size(R,2)*5/6+2-40, -100, '$\mathbf{p}$', 'interpreter', 'latex');
 set(h,'FontSize',fs, 'color', 'r');
-plot(size(R,2)*5/6+2*ones(2,1), [-50; size(R,2)+120], 'r', 'LineWidth', 3);
+plot(size(R,2)*5/6+2*ones(2,1), [-50; size(R,2)+120], '--r', 'LineWidth', 3);
 
 hh = colorbar(); 
-ylabel(hh,'min$(|r_{m,n}|,0.1)$', 'interpreter','latex', 'FontSize',fs); 
+ylabel(hh,'max$(\log|R_{m,n}|,-3)$', 'interpreter','latex', 'FontSize',fs); 
+% ylabel(hh,'min$(|r_{m,n}|,0.1)$', 'interpreter','latex', 'FontSize',fs); 
 set(gca,'YDir','rev')
 
 %% Print table for article

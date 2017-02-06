@@ -19,22 +19,24 @@ ts = linspace(0,1,mnr)';
 parametr = par.par(ts');
 fs = 25;
 
-leftb = 0.365;
-lefte = 0.27;
-rightb = 0.665;
-righte = 0.73;
+
+leftb = 0.27;
+rightb = 0.73;
+
+% Do not take T large here when bounds(1:2,:) are fixed
+T = 0.02;
 
 figure;
 plot(parametr(1,:),parametr(2,:),'k', 'LineWidth',3);
 hold on;
-tsSight = ts((ts >= leftb) & (ts <= rightb) )';
+tsSight = ts((ts >= leftb-T) & (ts <= rightb) )';
 pSight = par.par(tsSight)-0.008*par.normal(tsSight);
 plot(pSight(1,:),pSight(2,:),'b','LineWidth',5);
 
-tsRoloff = ts((ts >= lefte) & (ts < leftb+0.05) )';
+tsRoloff = ts((ts >= lefte) & (ts < leftb +T) )';
 pRol = par.par(tsRoloff)-0.008*par.normal(tsRoloff);
 plot(pRol(1,:),pRol(2,:),'b:','LineWidth',5);
-tsRoloff = ts((ts > rightb-0.05) & (ts <= righte))';
+tsRoloff = ts((ts > rightb -T) & (ts <= righte))';
 pRol = par.par(tsRoloff)-0.008*par.normal(tsRoloff);
 plot(pRol(1,:),pRol(2,:),'b:','LineWidth',5);
 col = par.par(0.5);
@@ -66,8 +68,6 @@ end
 
 %% Computations for compressed matrix
 A2 = zeros(par.N);
-% Do not take T large here when bounds(1:2,:) are fixed
-T = 0.02;
 tic;
 prevToc = toc;
 for i = 1:par.N
@@ -81,7 +81,7 @@ for i = 1:par.N
 	elseif tc < 0.3
 		bounds = [min(tc-T*1.1,0.27);max(0.25,tc+T*1.1);T;T];
 	elseif tc < 0.7
-		bounds = [0.28-T;0.72+T;T;T];
+		bounds = [leftb-T; rightb+T; T; T];
 	elseif tc < 0.8
 		bounds = [min(0.75,tc-T*1.1); max(tc+T*1.1,0.73);T;T];
 	else
@@ -92,5 +92,7 @@ end % loop over row-indices i
 
 %% Show the results
 plotVal(struct(),A2) % Show the structure of the compressed matrix
-v = validate(A1,A2,par,struct('perc', zeros(1,2), 'errSol', zeros(1,2), 'conds', zeros(1,2) ),1)
-
+% v = validate(A1,A2,par,struct('perc', zeros(1,2), 'errSol', zeros(1,2), 'conds', zeros(1,2) ),1)
+avm = 100;
+v = validate(A1,A2,par,struct('perc', zeros(1,2), 'errSol', zeros(1,2), 'conds', zeros(1,2), ...
+    'avm', avm, 'taus', rand(avm,1), 'errBCavm', zeros(1,2) ),1)

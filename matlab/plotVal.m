@@ -26,8 +26,11 @@ if iscell(idxs) && (A == 0) % Print a LaTeX table of results for all obstacles.
     no = length(idxs);
     kl = length(v.ks);
     nbs = 2;
-    if isfield(v,'nbGm')
-        nbs = 2+v.nbGm;
+%     if isfield(v,'nbGm')
+%         nbs = 2+v.nbGm;
+%     end
+    if isfield(v,'mti')
+        nbs = 2+v.mti;
     end
     fprintf('\\begin{table}[h] \n')
     fprintf('\\centering \n')
@@ -99,6 +102,15 @@ if iscell(idxs) && (A == 0) % Print a LaTeX table of results for all obstacles.
         for oi = 1:no
             for ng = 1:v.nbGm
                 str = sprintf('%d & ',v.iterGm(kl*(oi-1)+(1:kl),ng)');
+                fprintf([idxs{oi} ' \\# GMRES it. ' solMeth{2+ng} ' & ' str(1:end-2) '\\\\ \n']);
+            end
+        end
+        fprintf('\\hline \n');
+    end
+    if isfield(v, 'nbIter')
+        for oi = 1:no
+            for ng = 1:v.mti
+                str = sprintf('%d & ',v.nbIter(kl*(oi-1)+(1:kl),ng)');
                 fprintf([idxs{oi} ' \\# GMRES it. ' solMeth{2+ng} ' & ' str(1:end-2) '\\\\ \n']);
             end
         end

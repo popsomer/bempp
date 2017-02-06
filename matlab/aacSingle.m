@@ -87,19 +87,40 @@ for oi = 1:length(obsts)
 end
 return
 %% Show the correlations of the near-inclusion
-figure; surf(abs(R), 'EdgeColor','none'); xlabel('n'); ylabel('m'); 
+[R, sigma] = calcCorr(par, c1, Tcor, percDecay, [5, now()], A1);
+% figure; surf(abs(R), 'EdgeColor','none'); xlabel('n'); ylabel('m'); 
 
 fs = 20;
 figure; 
-pcolor(min(abs(R),0.1) );
+% pcolor(abs(R) );
+% pcolor(log(abs(R)) );
+pcolor(max(log(abs(R)),-3) );
+% pcolor(max(log(abs(R)),0) );
+% pcolor(min(abs(R),0.1) );
+% pcolor(min(abs(R),0.6) );
+% pcolor(min(abs(R),1.4) );
 hold on
 shading interp;
 xlabel('n'); 
 ylabel('m'); 
 set(gca,'FontSize',fs);
+lw = 2; co = '--r';
+h = text(round(size(R,2)*0.35)+2-40, -100, '$\mathbf{q}$', 'interpreter', 'latex');
+set(h,'FontSize',fs, 'color', 'r');
+plot(round(size(R,2)*0.35)+2*ones(2,1), [-50; size(R,2)+120], co, 'LineWidth', lw);
+
+h = text(round(size(R,2)*0.5)+2-40, -100, '$\mathbf{r}$', 'interpreter', 'latex');
+set(h,'FontSize',fs, 'color', 'r');
+plot(round(size(R,2)*0.5)+2*ones(2,1), [-50; size(R,2)+120], co, 'LineWidth', lw);
+
+h = text(round(size(R,2)*0.65)+2-40, -100, '$\mathbf{s}$', 'interpreter', 'latex');
+set(h,'FontSize',fs, 'color', 'r');
+plot(round(size(R,2)*0.65)+2*ones(2,1), [-50; size(R,2)+120], co, 'LineWidth', lw);
 
 hh = colorbar(); 
-ylabel(hh,'min$(|r_{m,n}|,0.1)$', 'interpreter','latex', 'FontSize',fs); 
+% ylabel(hh,'min$(|r_{m,n}|,0.1)$', 'interpreter','latex', 'FontSize',fs); 
+ylabel(hh,'max$(\log|R_{m,n}|,-3)$', 'interpreter','latex', 'FontSize',fs); 
+% ylabel(hh,'$\log|r_{m,n}|$', 'interpreter','latex', 'FontSize',fs); 
 set(gca,'YDir','rev')
 
 %% Print the table for the polygon

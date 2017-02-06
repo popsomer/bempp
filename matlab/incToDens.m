@@ -38,12 +38,14 @@ for j = 1:maxOrder
 %     Omx(j) = sum((1:j).*gamy(2:(j+1)).*(j:-1:1).*gamy((j+1):-1:2));
 end
 for j=1:maxOrder-1
-    zeta(j,1) = (Omx(j+1)+Omy(j+1))/(Omx(1)+Omy(1));
+    zeta(1,j) = (Omx(j+1)+Omy(j+1))/(Omx(1)+Omy(1));
+%     zeta(j,1) = (Omx(j+1)+Omy(j+1))/(Omx(1)+Omy(1));
 end
 
 for n=2:maxOrder
     for i=1:maxOrder-1
-        zeta(i,n) = sum(zeta(1:i,1).*zeta(i:-1:1,n-1) );
+        zeta(n,i) = sum(zeta(1,1:i).*zeta(n-1,i:-1:1) );
+%         zeta(i,n) = sum(zeta(1:i,1).*zeta(i:-1:1,n-1) );
     end
 end
 % d = ones(size(gamx));
@@ -51,7 +53,8 @@ d = zeros(size(gamx));
 d(1) = 1;
 for n = 2:maxOrder
     for i=1:(n-1)%n
-        d(n) = d(n) + binom(1/2,n-i)*zeta(i,n-i);
+%         d(n) = d(n) + binom(1/2,n-i)*zeta(i,n-i);
+        d(n) = d(n) + binom(1/2,n-i)*zeta(n-i,i);
     end
 end
 d = d*sqrt(Omx(1)+Omy(1)) %Should be [pi; 0; 0; ...] for obst=1

@@ -498,17 +498,62 @@ end
 for i = (l+1):length(signal)
     phitilde(i) = phitilde(i-1) +(angle(signal(i))-angle(signal(i-1)))/ks(ki) -2*pi*round( (angle(signal(i))-angle(signal(i-1)))/2/pi)/ks(ki);
 end
-figure; plot(collsignal, phitilde);
+% figure; plot(collsignal, phitilde); xlabel('\tau_1'); ylabel('$\tilde{\phi}$', 'interpreter','latex');
+
+%% Plot
+zeta = transpose(sqrt( sum( (par.obsts(1).par(collsignal) - repmat(par.obsts(2).par(3/4), 1, length(collsignal) ) ).^2, 1) ) );
+tau2Xi = (c1y-c2y+r2*sin(2*pi*collsignal) )./sqrt((c1y-c2y)^2+2*r1*sin(2*pi*collsignal)*(c1y-c2y) + r1^2);
+tau2Xi = (-1).^(abs(collsignal-0.5) < 0.25).*asin(tau2Xi)/2/pi+1 -0.5*(abs(collsignal-0.5) < 0.25);
+xi = sqrt( (c1x-c2x+r1*cos(2*pi*collsignal)-r1*cos(2*pi*tau2Xi) ).^2 + (c1y-c2y+r2*sin(2*pi*collsignal)-r2*sin(2*pi*tau2Xi) ).^2 );
+
+t1m = transpose(collsignal-1/4);
+symbTay0 = t1m.^0;
+symbTay2 = 1 + sqrt(2)*pi^2*t1m.^2;
+symbTay4 = 1 + sqrt(2)*pi^2*t1m.^2 -11/12*sqrt(2)*pi^4*t1m.^4;
+% symbTay6 = 1 + sqrt(2)*pi^2*t1m.^2 -11/12*sqrt(2)*pi^4*t1m.^4 + 2783/2520/sqrt(2)*pi^6*t1m.^6;
+symbTay6 = 1 + sqrt(2)*pi^2*t1m.^2 -11/12*sqrt(2)*pi^4*t1m.^4 + 2783/2520*sqrt(2)*pi^6*t1m.^6;
+symbTay = 1 + sqrt(2)*pi^2*t1m.^2 -11/12*sqrt(2)*pi^4*t1m.^4 ...
+    + 2783/2520*sqrt(2)*pi^6*t1m.^6 -358021/205632*sqrt(2)*pi^8*t1m.^8;
+%     + 2783/2520/sqrt(2)*pi^6*t1m.^6 -358021/205632*sqrt(2)*pi^8*t1m.^8;
+stot = symbTay0 + sqrt(2)*pi^2*t1m.^2.*(sqrt(2)*pi^2*t1m.^2 < 1) + -11/12*sqrt(2)*pi^4*t1m.^4.*(11/12*sqrt(2)*pi^4*t1m.^4 < sqrt(2)*pi^2*t1m.^2)...
+    +2783/2520*sqrt(2)*pi^6*t1m.^6.*(2783/2520*sqrt(2)*pi^6*t1m.^6 < 11/12*sqrt(2)*pi^4*t1m.^4) ...%optimal truncation
+    -358021/205632*sqrt(2)*pi^8*t1m.^8.*(358021/205632*sqrt(2)*pi^8*t1m.^8 < 2783/2520*sqrt(2)*pi^6*t1m.^6);
+stot = symbTay0 + (sqrt(2)*pi^2*t1m.^2 < 1).*(sqrt(2)*pi^2*t1m.^2 + (11/12*sqrt(2)*pi^4*t1m.^4 < sqrt(2)*pi^2*t1m.^2).*(-11/12*sqrt(2)*pi^4*t1m.^4 ...
+    +(2783/2520*sqrt(2)*pi^6*t1m.^6 < 11/12*sqrt(2)*pi^4*t1m.^4).*(2783/2520*sqrt(2)*pi^6*t1m.^6 ...%optimal truncation
+    +(358021/205632*sqrt(2)*pi^8*t1m.^8 < 2783/2520*sqrt(2)*pi^6*t1m.^6).*(-358021/205632*sqrt(2)*pi^8*t1m.^8) ) ) );
+% Symbolic $c_i$ & $1$  & $\sqrt{2}\pi^2$ & $\frac{-11}{12}\sqrt{2}\pi^4$ & $\frac{2783\pi^6}{2520\sqrt{2}}$ & $\frac{-358021}{205632}\sqrt{2}\pi^8$ \\
+
+figure; semilogy(collsignal-1/4, (zeta-phitilde)./phitilde, 'b'); hold on;
+semilogy(collsignal-1/4, (phitilde-transpose(xi))./phitilde, 'r');
+semilogy(collsignal-1/4, (phitilde-symbTay0)./phitilde, 'g');
+% semilogy(collsignal-1/4, (symbTay2-phitilde)./phitilde, 'm'); % Small region around SP 0.25 where negative...
+semilogy(collsignal-1/4, abs(symbTay2-phitilde)./phitilde, 'm'); % Small region around SP 0.25 where negative...
+semilogy(collsignal-1/4, (phitilde-symbTay4)./phitilde, 'c');
+% semilogy(collsignal-1/4, (symbTay6-phitilde)./phitilde, 'r');
+semilogy(collsignal-1/4, abs(symbTay6-phitilde)./phitilde, 'y');
+% semilogy(collsignal-1/4, (phitilde-symbTay6)./phitilde, 'y');
+semilogy(collsignal-1/4, (phitilde-symbTay)./phitilde, 'k');
+% semilogy(collsignal-1/4, (phitilde-stot)./phitilde, 'r:', 'LineWidth', 2);
+legend({'$(\zeta-\tilde{\phi})/\tilde{\phi}$', '$(\tilde{\phi}-\xi)/\tilde{\phi}$','$(\tilde{\phi}-c_0)/\tilde{\phi}$'...
+    '$|c_0+c_2 \tau_1^2 - \tilde{\phi}|/\tilde{\phi}$', '$(\tilde{\phi}-\sum_{i=0}^4 c_i \tau_1^i)/\tilde{\phi}$', ...
+     '$|\tilde{\phi}-\sum_{i=0}^4 c_i \tau_1^i|/\tilde{\phi}$', ...
+    '$(\tilde{\phi}-\sum_{i=0}^8 c_i \tau_1^i)/\tilde{\phi}$'},...%,'Optimal truncation'},...%'$(\tilde{\phi}-\sum_{i=0}^T c_i \tau_1^i)/\tilde{\phi}$'}, ...
+    'interpreter', 'latex', 'FontSize', 15);
+%'$(c_0+c_2 \tau_1^2 - \tilde{\phi})/\tilde{\phi}$',%'$(\tilde{\phi}-\sum_{i=0}^6 c_i \tau_1^i)/\tilde{\phi}$',
+xlabel('\tau_1'); ylabel('Relative error');
+
 
 %% Use phi to get tau2(tau1) out of A and check with B
 cl1 = transpose(collsignal);
 h = cl1(2)-cl1(1);
 
-clos = @(phi,tau2, shft) interp1(cl1-shft*h, phi, tau2);
+% clos = @(phi,tau2, shft) interp1(cl1-shft*h, phi, tau2);
+clos = @(phi,tau2, shft) interp1(cl1 + shft*h, phi, tau2);
 dist = @(tau2) sqrt( (c1x-c2x+r1*cos(2*pi*cl1)-r1*cos(2*pi*tau2) ).^2 + (c1y-c2y+r2*sin(2*pi*cl1)-r2*sin(2*pi*tau2) ).^2 );
 
 % F = @(x) (signal(1:nr)-dist(x)-clos(signal(1:nr), x-1/2, 0)-d );
-F = @(x) (phitilde-dist(x)-clos(phitilde, x-1/2, 0)-d );
+% F = @(x) (phitilde-dist(x)-clos(phitilde, x-1/2, 0)-d );
+F = @(x) (phitilde-dist(x)-clos(phitilde, x-1/2, 0)+d );
 % F = @(x) ((clos(x(1:nr),x(nr+1:end)-1/2, 1)-clos(x(1:nr),x(nr+1:end)-1/2, 0))/h + ...
 %     2*pi*(r1*sin(2*pi*x(nr+1:end) ).*(c1x-c2x+r1*cos(2*pi*cl1)-r1*cos(2*pi*x(nr+1:end))) ...
 %     -r2*cos(2*pi*x(nr+1:end)).*(c1y-c2y+r2*sin(2*pi*cl1)+r2*sin(2*pi*x(nr+1:end))) )./dist(x(nr+1:end) ) );
@@ -523,11 +568,52 @@ opto = optimoptions('fsolve', 'Display', 'iter-detailed', 'FunctionTolerance', 1
 G = @(x) (clos(phitilde,x-1/2, 1)-clos(phitilde,x-1/2, 0))/h + (dist(x-1/2+h)-dist(x-1/2))/h ;
 [norm(F(XA))/norm(F(x0)), norm(G(XA))/norm(G(x0))]
 
-
-%% B check A
+% B check A
 % [XB, FVAL] = fsolve(G, x0, opto);
 [XB, FVAL] = fsolve(G, XA, opto);
 [norm(F(XB))/norm(F(x0)), norm(G(XB))/norm(G(x0))]
+%Symbolic $a_{i+1}$ & $\frac{-1}{2\sqrt{2}+3}$ & $7\pi^2(17\sqrt{2}-24)$ & & & \\ 
+%a5 == 1/84*pi^4*(1205811*sqrt(2) - 1705312), a7 == 1/128520*pi^6*(289615597399*sqrt(2) - 409578202752)
+symba1 = -1/(2*sqrt(2)+3)*(cl1-1/4);
+symba3 = -1/(2*sqrt(2)+3)*(cl1-1/4) +7*pi^2*(17*sqrt(2)-24)*(cl1-1/4).^3;
+symba5 = -1/(2*sqrt(2)+3)*(cl1-1/4) +7*pi^2*(17*sqrt(2)-24)*(cl1-1/4).^3 +1/84*pi^4*(1205811*sqrt(2) - 1705312)*(cl1-1/4).^5;
+symba7 = -1/(2*sqrt(2)+3)*(cl1-1/4) +7*pi^2*(17*sqrt(2)-24)*(cl1-1/4).^3 ...
+    +pi^4/84*(1205811*sqrt(2) - 1705312)*(cl1-1/4).^5 + pi^6/128520*(289615597399*sqrt(2) - 409578202752)*(cl1-1/4).^7;
+% figure; plot(cl1, [XA, XB, transpose(tau2Xi)]); ylabel('\tau_2'); xlabel('\tau_1'); legend('XA','XB', '\tau_{2,\Xi}');
+figure; plot(cl1, [XA-3/4, XB-3/4, transpose(tau2Xi)-3/4, symba1, symba3, symba5, symba7]); ylabel('\tau_2'); xlabel('\tau_1'); 
+legend({'$X_A$','$X_B$', '$\tau_{2,\Xi}$', '$a_1\tau_1$', '$a_1\tau_1 + a_3\tau_1^3$', '$\sum_{i=1}^5 a_i\tau_i$', ...
+    '$\sum_{i=1}^7 a_i\tau_i$'}, 'interpreter', 'latex');
 
-figure; plot(cl1, [XA, XB]); ylabel('\tau_2'); xlabel('\tau_1'); legend('XA','XB');
+
+Xav = (XA+XB)/2;
+[norm(F(Xav))/norm(F(x0)), norm(G(Xav))/norm(G(x0))]
+
+figure; semilogy(cl1, abs([F(x0), F(XA), F(XB), G(x0), G(XA), G(XB)])); ylabel('Residu'); xlabel('\tau_1'); 
+legend('F(x0)', 'F(XA)', 'F(XB)', 'G(x0)', 'G(XA)', 'G(XB)');
+
+
+%% Fill series into continuous equation
+Fs = [(symbTay0 -dist(3/4) - 1 +1), (symbTay2 - dist(3/4+symba1) -sqrt(2)*pi^2*symba1.^2), ...
+    (symbTay4 - dist(3/4+symba3) -sqrt(2)*pi^2*symba3.^2+11/12*sqrt(2)*pi^4*symba3.^4),...
+    (symbTay6 - dist(3/4+symba5) -sqrt(2)*pi^2*symba5.^2+11/12*sqrt(2)*pi^4*symba5.^4 - 2783/2520*sqrt(2)*pi^6*symba5.^6),...
+    (symbTay - dist(3/4+symba7) -sqrt(2)*pi^2*symba7.^2+11/12*sqrt(2)*pi^4*symba7.^4 ...
+       - 2783/2520*sqrt(2)*pi^6*symba7.^6+ 358021/205632*sqrt(2)*pi^8*symba7.^8)];
+%        - 2783/2520/sqrt(2)*pi^6*symba7.^6+ 358021/205632*sqrt(2)*pi^8*symba7.^8)];
+% tau_2(tau_1) -> tau2(tau-1/4)-1/2
+% distc = @(tau2) sqrt( (c1x-c2x+r1*cos(2*pi*(cl1+h))-r1*cos(2*pi*tau2) ).^2 + (c1y-c2y+r2*sin(2*pi*(cl1+h))-r2*sin(2*pi*tau2) ).^2 );
+% Gs = [(distc(3/4)+1-dist(3/4)-1)/h, (distc(3/4+symba1) +sqrt(2)*pi^2*(symba1+h)^2 -dist(3/4
+h = 1e-7;
+Gs = [(dist(3/4+h)+1-dist(3/4)-1)/h, (dist(3/4+symba1+h) +sqrt(2)*pi^2*(symba1+h).^2 -dist(3/4+symba1) -sqrt(2)*pi^2*symba1.^2)/h,....
+    (dist(3/4+symba3+h) -dist(3/4+symba3) +sqrt(2)*pi^2*((symba3+h).^2-symba3.^2) -11/12*sqrt(2)*pi^4*((symba3+h).^4-symba3.^4))/h,...
+    (dist(3/4+symba5+h) -dist(3/4+symba5) +sqrt(2)*pi^2*((symba5+h).^2-symba5.^2) -11/12*sqrt(2)*pi^4*((symba5+h).^4-symba5.^4) ...
+       + 2783/2520*sqrt(2)*pi^6*((symba5+h).^6-symba5.^6))/h,...
+    (dist(3/4+symba7+h) -dist(3/4+symba7) +sqrt(2)*pi^2*((symba7+h).^2-symba7.^2) -11/12*sqrt(2)*pi^4*((symba7+h).^4-symba7.^4) ...
+       + 2783/2520*sqrt(2)*pi^6*((symba7+h).^6-symba7.^6) -358021/205632*sqrt(2)*pi^8*((symba7+h).^8-symba7.^8) )/h];
+%        + 2783/2520/sqrt(2)*pi^6*((symba7+h).^6-symba7.^6) -358021/205632*sqrt(2)*pi^8*((symba7+h).^8-symba7.^8) )/h];
+% symbTay = 1 + sqrt(2)*pi^2*t1m.^2 -11/12*sqrt(2)*pi^4*t1m.^4 ...
+%     + 2783/2520*sqrt(2)*pi^6*t1m.^6 -358021/205632*sqrt(2)*pi^8*t1m.^8;
+% figure; plot(cl1-1/4, Fs); legend('c_0', 'c_2','c_4', 'c_6','c_8'); xlabel('\tau_1'); ylabel('Error on F')
+% figure; plot(cl1-1/4, Gs); legend('c_0', 'c_2','c_4', 'c_6','c_8'); xlabel('\tau_1'); ylabel('Error on G')
+figure; loglog(abs(cl1-1/4), abs(Fs)); legend('c_0', 'c_2','c_4', 'c_6','c_8'); xlabel('\tau_1'); ylabel('Absolute error on F')
+figure; loglog(abs(cl1-1/4), abs(Gs)); legend('c_0', 'c_2','c_4', 'c_6','c_8'); xlabel('\tau_1'); ylabel('Absolute error on G')
 
