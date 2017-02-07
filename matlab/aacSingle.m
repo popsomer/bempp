@@ -94,7 +94,8 @@ fs = 20;
 figure; 
 % pcolor(abs(R) );
 % pcolor(log(abs(R)) );
-pcolor(max(log(abs(R)),-3) );
+pcolor(log(max(abs(R),1e-2)) );
+% pcolor(max(log(abs(R)),-3) );
 % pcolor(max(log(abs(R)),0) );
 % pcolor(min(abs(R),0.1) );
 % pcolor(min(abs(R),0.6) );
@@ -119,7 +120,8 @@ plot(round(size(R,2)*0.65)+2*ones(2,1), [-50; size(R,2)+120], co, 'LineWidth', l
 
 hh = colorbar(); 
 % ylabel(hh,'min$(|r_{m,n}|,0.1)$', 'interpreter','latex', 'FontSize',fs); 
-ylabel(hh,'max$(\log|R_{m,n}|,-3)$', 'interpreter','latex', 'FontSize',fs); 
+% ylabel(hh,'max$(\log|R_{m,n}|,-3)$', 'interpreter','latex', 'FontSize',fs); 
+ylabel(hh,'$\log(\max(|R_{m,n}|,10^{-2}))$', 'interpreter','latex', 'FontSize',fs); 
 % ylabel(hh,'$\log|r_{m,n}|$', 'interpreter','latex', 'FontSize',fs); 
 set(gca,'YDir','rev')
 

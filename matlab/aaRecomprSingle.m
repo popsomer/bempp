@@ -145,3 +145,56 @@ xlabel('k',fss,fs);
 set(gca,fss,fs);
 legend({'Circle', 'Ellipse', 'Near-inclusion','Nearly convex', 'Nonconvex polygon', ...
     '2 Circles','Circle and 2 ellipses', 'Near-inclusion and circle','$\mathcal{O}(k^{-1/2})$'}, 'interpreter', 'latex', fss, 19);
+
+%% Make plot of condition numbers
+
+figure; 
+
+% idx = 1;
+% loglog(vsing.ks, vsing.conds(2*sl+1:3*sl,idx), 'g-.', lws, lw); 
+% hold on;
+% loglog(vsing.ks, vsing.conds(3*sl+1:4*sl,idx), 'k:', lws, lw); 
+% loglog(vsing.ks, vsing.conds(4*sl+1:5*sl,idx), 'c--', lws, lw); 
+% 
+% loglog(v.ks, v.conds(1:kl,idx), 'm:', lws, lw); 
+% loglog(v.ks, v.conds(kl+1:2*kl,idx), 'b-.', lws, lw); 
+% loglog(v.ks, v.conds(2*kl+1:3*kl,idx), 'k-', lws, lw); 
+% loglog([vsing.ks(2), vsing.ks(end)], max(max(v.conds))*[vsing.ks(2)/vsing.ks(end), 1].^(2), 'r-', lws, lw); 
+% xlabel('k',fss,fs); 
+% set(gca,fss,fs);
+% legend({'Near-inclusion','Nearly convex', 'Nonconvex polygon', ...
+%     '2 Circles','Circle and 2 ellipses', 'Near-inclusion and circle','$\mathcal{O}(k^{2})$'}, 'interpreter', 'latex', fss, 19);
+
+loglog(vsing.ks, vsing.conds(2*sl+1:3*sl,2), 'g-.', lws, lw);
+hold on;
+loglog(vsing.ks, vsing.conds(2*sl+1:3*sl,1), 'g', lws, lw); 
+loglog(vsing.ks, vsing.conds(4*sl+1:5*sl,2), 'c--', lws, lw);
+loglog(vsing.ks, vsing.conds(4*sl+1:5*sl,1), 'c', lws, lw); 
+loglog(v.ks, v.conds(1:kl,2), 'm:', lws, lw);
+loglog(v.ks, v.conds(1:kl,1), 'm', lws, lw);
+loglog([vsing.ks(1), vsing.ks(end)], max(max(v.conds))*[vsing.ks(1)/vsing.ks(end), 1].^(3/2), 'r-', lws, lw); 
+% xlabel('$k$',fss,fs, 'interpreter', 'latex'); 
+xlabel('k',fss,fs); 
+ylabel('Condition number',fss,fs); 
+% ylabel('Cond($A$)', fss, fs, 'interpreter', 'latex');
+set(gca,fss,fs);
+legend({'Near-inclusion $\tilde{A}$','Near-inclusion $A$','Nonconvex polygon $\tilde{A}$', 'Nonconvex polygon $A$', ...
+    'Two circles $\tilde{A}$', 'Two circles $A$','$\mathcal{O}(k^{3/2})$'}, 'interpreter', 'latex', fss, 19);
+
+
+figure
+loglog(vsing.ks, vsing.nbIter(2*sl+1:3*sl,2), 'g-.', lws, lw);
+hold on;
+loglog(vsing.ks, vsing.nbIter(2*sl+1:3*sl,1), 'g', lws, lw); 
+loglog(vsing.ks, vsing.nbIter(4*sl+1:5*sl,2), 'c--', lws, lw);
+loglog(vsing.ks, vsing.nbIter(4*sl+1:5*sl,1), 'c', lws, lw); 
+loglog(v.ks, v.nbIter(1:kl,2), 'm:', lws, lw);
+loglog(v.ks, v.nbIter(1:kl,1), 'm', lws, lw);
+loglog([vsing.ks(1), vsing.ks(end)], vsing.nbIter(3*sl,2)*[vsing.ks(1)/vsing.ks(end), 1].^(1/4), 'r-', lws, lw); 
+% xlabel('$k$',fss,fs, 'interpreter', 'latex'); 
+xlabel('k',fss,fs); 
+ylabel('# GMRES iterations',fss,fs); 
+% ylabel('Cond($A$)', fss, fs, 'interpreter', 'latex');
+set(gca,fss,fs);
+legend({'Near-inclusion $\tilde{A}$','Near-inclusion $A$','Nonconvex polygon $\tilde{A}$', 'Nonconvex polygon $A$', ...
+    'Two circles $\tilde{A}$', 'Two circles $A$','$\mathcal{O}(k^{1/4})$'}, 'interpreter', 'latex', fss, 19);
