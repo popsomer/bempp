@@ -1,4 +1,5 @@
-% Adaptive Asymptotic Recompression for single scattering obstacles: recompute correlations at each wavenumber in an automatic and 
+% Old version of Adaptive Asymptotic Recompression for single scattering obstacles: 
+% recompute correlations at each wavenumber in an automatic and 
 % efficient way to get decreasing window function supports for general geometries.
 %% Initialising
 clearvars
