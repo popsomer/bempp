@@ -2,7 +2,7 @@
 % automatically determine where to put our window functions for general geometries.
 %% Initialising
 clearvars
-close all
+% close all
 format longe
 set(0,'DefaultFigureWindowStyle','docked');
 
@@ -10,8 +10,10 @@ percDecay = 1; % Percentage of the window for the C-inf decay: 0 means a block w
 thrType = 'l'; % Or 'g' for global threshold
 Tcor = 0.02;
 
-ks =  2.^(7:10);
-obsts = [5 7 6];
+% ks =  2.^(7:10);
+ks = 2^7;
+% obsts = [5 7 6];
+obsts = 6;
 kl = length(ks);
 maxob = length(obsts);
 
@@ -120,7 +122,7 @@ for oi = 1:length(obsts)
 	end
 end
 
-
+return
 %% Plot spy for article
 figure;
 fs = 20;
@@ -134,12 +136,13 @@ ylabel('i'); xlabel('j');
 set(gca,'FontSize',fs);
 
 %% Plot R for article
-[R, sigma] = calcCorr(par, c1, Tcor, percDecay, [5, now()], A1);
+[R, sigma] = calcCorr(par, c1, Tcor, percDecay, [5, now()], A1); % The approximation of R used to make figure
 
 fs = 20;
 figure; 
 % pcolor(min(abs(R),0.1) );
-pcolor(max(log(abs(R)),-3) );
+% pcolor(max(log(abs(R)),-3) );
+pcolor(log(max(abs(R),1e-2)) );
 hold on
 shading interp; 
 xlabel('n'); 
@@ -151,7 +154,8 @@ set(h,'FontSize',fs, 'color', 'r');
 plot(size(R,2)*5/6+2*ones(2,1), [-50; size(R,2)+120], '--r', 'LineWidth', 3);
 
 hh = colorbar(); 
-ylabel(hh,'max$(\log|R_{m,n}|,-3)$', 'interpreter','latex', 'FontSize',fs); 
+ylabel(hh,'$\log(\max(|R_{m,n}|,10^{-2}))$', 'interpreter','latex', 'FontSize',fs); 
+% ylabel(hh,'max$(\log|R_{m,n}|,-3)$', 'interpreter','latex', 'FontSize',fs); 
 % ylabel(hh,'min$(|r_{m,n}|,0.1)$', 'interpreter','latex', 'FontSize',fs); 
 set(gca,'YDir','rev')
 

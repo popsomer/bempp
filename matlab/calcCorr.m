@@ -24,8 +24,8 @@ if ~exist('method','var')
     method = 'colR';
 end
 
-% fr = 1.5; % factor of number of columns over rows of R
-fr = 1; % For fast computation of correlations without deboor interpolation
+fr = 1.5; % factor of number of columns over rows of R
+% fr = 1; % For fast computation of correlations without deboor interpolation
 if isfield(par, 'obsts')
     sigma = [];
     obbounds = zeros(2,length(par.obsts));
@@ -84,8 +84,8 @@ if exist('A','var') && isfield(par, 'obsts') && strncmpi(method,'col',3) && ~str
         end
     end
     if strcmp(method,'colB')
-        allBounds = zeros(4,0,par.N);
-        % New columns will be added if more than zero windows are needed
+        allBounds = zeros(4,1,par.N);
+        % New columns will be added if more than one window is needed
         for i = 1:par.N
             obsin = find((i >= par.r(1,:)) & (i <= par.r(2,:)));
             tc = par.obsts(obsin).colltau(i-par.r(1,obsin)+1);
@@ -174,7 +174,7 @@ elseif exist('A','var') && ~isfield(par, 'obsts') && strncmpi(method,'col',3) &&
     end
     
     if strcmp(method, 'colB')
-        allBounds = zeros(4,0,par.N);
+        allBounds = zeros(4,1,par.N);
         curThr = par.xi*max(max(abs(R))); % Global threshold
         for i = 1:par.N
             if (toc-prevToc > tim(1))
@@ -199,13 +199,13 @@ elseif exist('A','var') && ~isfield(par, 'obsts') && strncmpi(method,'col',3) &&
     end
     return
 elseif exist('A','var') && ~isfield(par, 'obsts') && strcmp(method,'rowB')
-    allBounds = zeros(4,0,par.N);
+    allBounds = zeros(4,1,par.N);
     u = [par.t(end-par.dbf:end-1)-1, par.t, par.t(2:par.dbf+1)+1]; % the extended knots
     if fr == 1
         c1ip = [c; c(1:par.dbf)];
     else
         c1ip = deboor(par.dbf, u, [c; c(1:par.dbf)], sigma);
-        warning('Change code to use deboor interpolation for A');
+%         warning('Change code to use deboor interpolation for A');
     end
     Rrow = 0*sigma;
     jNs = nan*zeros(3,sr);
@@ -217,7 +217,7 @@ elseif exist('A','var') && ~isfield(par, 'obsts') && strcmp(method,'rowB')
     [j1, j2] = bounds2Ind(sigma,sigma(roi)-Tcor,sigma(roi)+Tcor); % noSplit will be true
     wi = chi(sigma(j1:j2),sigma(roi)-Tcor, sigma(roi)-(1-pd)*Tcor, sigma(roi)+Tcor*(1-pd),sigma(roi)+Tcor,0);
     
-    curThrs = zeros(par.N,1);
+%     curThrs = zeros(par.N,1);
     for i = 1:par.N
         if (toc-prevToc > tim(1))
             prevToc = toc;
@@ -232,7 +232,11 @@ elseif exist('A','var') && ~isfield(par, 'obsts') && strcmp(method,'rowB')
 %         integrand(isnan(integrand)) = 0;
 %         integrand = deboor(par.dbf,u, [transpose(A(i,:)); transpose(A(i,1:par.dbf))], sigma).*c1ip;
 %         integrandt = transpose(deboor(par.dbf,u, [transpose(A(i,:)); transpose(A(i,1:par.dbf))], sigma).*c1ip); % Use this if fr ~= 1
-        integrandt = [transpose(A(i,:)); transpose(A(i,1:par.dbf))].*c1ip;
+        if fr == 1
+            integrandt = [transpose(A(i,:)); transpose(A(i,1:par.dbf))].*c1ip;
+        else
+            integrandt = transpose(deboor(par.dbf,u, [transpose(A(i,:)); transpose(A(i,1:par.dbf))], sigma).*c1ip); % Use this if fr ~= 1
+        end
         % The variant above and below agree up to two digits and they are about as fast: fastest would be fr = 1
 %         integrand = transpose(deboor(par.dbf,u, [transpose(A(i,:)).*c; transpose(A(i,1:par.dbf)).*c(1:par.dbf)], sigma));
         
@@ -265,15 +269,18 @@ elseif exist('A','var') && ~isfield(par, 'obsts') && strcmp(method,'rowB')
         end
         
         curThr = par.xi*max(abs(Rrow)); % Local threshold
-        curThrs(i) = curThr;
+%         curThrs(i) = curThr;
         I = find(abs(Rrow) >= curThr);
         ini = [0 find(I(2:end) - I(1:end-1) ~= 1) length(I)];
-        bounds = [tc-a2w(1)/par.k, sigma(I(ini(1:(length(ini)-1) )+1)); tc+a2w(1)/par.k, sigma(I(ini(2:length(ini))))]; % id 1 on tc\pm T
-        decay = repmat(a2w(2)*a2w(1)/par.k,1,size(bounds,2));
+        bounds = [(tc-0.02), sigma(I(ini(1:(length(ini)-1) )+1)); (tc+0.02), sigma(I(ini(2:length(ini))))];
+        decay = repmat(0.02,1,size(bounds,2));
+        decay(1) = 0.02*16/par.k;
+%         bounds = [tc-a2w(1)/par.k, sigma(I(ini(1:(length(ini)-1) )+1)); tc+a2w(1)/par.k, sigma(I(ini(2:length(ini))))]; % id 1 on tc\pm T
+%         decay = repmat(a2w(2)*a2w(1)/par.k,1,size(bounds,2));
         bounds = sortBounds(i,par,[(bounds + [-decay; decay]); [1;1]*decay], []); % size of bounds can change in this
         allBounds(:,1:size(bounds,2),i) = bounds;
     end
-    plot(par.colltau, curThrs); hold on;
+%     plot(par.colltau, curThrs); hold on;
     R = allBounds;
     return
 end

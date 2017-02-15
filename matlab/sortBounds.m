@@ -18,6 +18,7 @@ for nrWind = size(bounds,2):-1:1
         error('Did not expect for example [0.9; 0.1;..] = [0;0.1;..] & [0.9;1;..] at this point');
     elseif bounds(2,nrWind)-bounds(1,nrWind) < 3/par.N
         % The window is too small (maybe because the corresponding correlations are just above threshold): this would impede a Cinf window.
+        % Also happens for a zero column
         if (isempty(collx) && (bounds(1,nrWind) < par.colltau(i) ) && (bounds(2,nrWind) > par.colltau(i) ) )
             warning('windRow:removeGreen', 'Removing the Green singularity because 3 points are not enough to capture it.');
         end

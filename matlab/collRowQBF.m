@@ -67,13 +67,15 @@ Nj = Lj*istep + (length(qbf_w) - istep);
 tau = (A+(j1-1):step:A+(j1-1)+(Nj-1)*step)/par.N;
 
 if exist('collx','var') && ~isempty(collx)
-    kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((repmat(collx,1,length(tau))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
+%     kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((repmat(collx,1,length(tau))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
+    kernelVals = kernel(par, tau, collx, wind);           
 % else
 %     kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
 else
     tc = par.colltau(i);
     if exist('shift', 'var'),     tc = par.colltau(i) + shift; end
-    kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
+%     kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
+    kernelVals = kernel(par, tau, tc, wind);
 end
 row = zeros(1,Lj); % We could adjust A here, but that would not allow using parfor in the loop over i and might cause copying A.
 % Perform Sweldens quadrature on the given kernelvalues; this gives NaN on singularities that are removed later.
@@ -85,11 +87,13 @@ for l=1:Lj
     elseif (l == Lj) % Using windows: this would need l=0 so recalculate for A+j1-2 and Lj=1
         tau = ( (A+j1-2):step:(A+j1-2+step*(length(qbf_w)-1) ) )/par.N;
         if exist('collx','var') && ~isempty(collx)
-            kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((repmat(collx,1,length(tau))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
+%             kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((repmat(collx,1,length(tau))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
+            kernelVals = kernel(par, tau, collx, wind);
         else
-            tc = par.colltau(i);
-            if exist('shift', 'var'),     tc = par.colltau(i) + shift; end
-            kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
+%             tc = par.colltau(i);
+%             if exist('shift', 'var'),     tc = par.colltau(i) + shift; end
+%             kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
+            kernelVals = kernel(par, tau, tc, wind);
         end
         row(1) = qbf_w * kernelVals.'/par.N;
     else % The problem is the first cubic spline is not centered around 0, so symmetry in the discretization matrix is lost.
@@ -186,16 +190,33 @@ for j=-1:dbf % Removes NaN due to singularity
                     end
                 end
             end
-            f = wind(x).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(x)))-par.par(x) ).^2, 1)) ).*par.gradnorm(x).*z2;
-            row(idxRow) = row(idxRow) + f*w;
+%             f = wind(x).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(x)))-par.par(x) ).^2, 1)) ).*par.gradnorm(x).*z2;
+%             row(idxRow) = row(idxRow) + f*w;
+            row(idxRow) = row(idxRow) + (kernel(par, x, tc, wind).*z2)*w;
         end
     else % Use the general routine.
         if tau1 > tau2
             tau1 = tau1-1;
         end
         tau = (qbf_x+1)/2*(tau2-tau1)+tau1;
-        f = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
-        row(idxRow) = qbf_w*f.'/par.N;
+%         if isfield(par, 'secondKind')
+%             xy = par.par(tc*ones(size(tau)))-par.par(tau);
+%             res = sqrt(sum(xy.^2, 1));
+%             z = 0*res;
+%             
+%             I1 = find(abs(res) > 1e-12); % I1 can be empty
+%             z(I1) = sum(par.normal(tau(I1)) .*xy(:,I1)) .*z1 .*1i/4 *par.k *besselh(1, 1, par.k*res(I1)) ./res(I1);
+%             
+%             I2 = find(abs(res) <= 1e-12); % I2 can be empty
+%             g = par.grad(tau(I2));
+%             dg = par.derGrad(tau(I2));
+%             z(I2) = (dg(1,:).*g(2,:) -g(1,:).*dg(2,:))./(4*(g(1,:).^2 +g(2,:).^2).^(3/2) *pi);
+%             f = wind(tau).*z;
+%         else
+%             f = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
+%         end
+%         row(idxRow) = qbf_w*f.'/par.N;
+         row(idxRow) = qbf_w*kernel(par,tau,tc,wind).'/par.N;
     end
 end
 
@@ -215,4 +236,33 @@ else
         + (t(end)-y)/(t(end)-t(2)) * bspline_eval(t(2:end), k-1, y);
 end
 
+end
+
+% Evaluate the kernel for the single or double layer potential.
+% This function was inlined for time measurements for integral formulations of the first kind.
+function ker = kernel(par,tau,tc,wind)
+
+if length(tc) == 1
+    collx = par.par(tc*ones(size(tau)));
+else
+    collx = repmat(tc,1,length(tau));
+end
+if isfield(par, 'secondKind') % dlp
+%     xy = par.par(tc*ones(size(tau)))-par.par(tau);
+    xy = collx-par.par(tau);
+    res = sqrt(sum(xy.^2, 1));
+    z = 0*res;
+    
+    I1 = find(abs(res) > 1e-12); % I1 can be empty
+    z(I1) = sum(par.normal(tau(I1)) .*xy(:,I1)) .*z1 .*1i/4 *par.k *besselh(1, 1, par.k*res(I1)) ./res(I1);
+    
+    I2 = find(abs(res) <= 1e-12); % I2 can be empty
+    g = par.grad(tau(I2));
+    dg = par.derGrad(tau(I2));
+    z(I2) = (dg(1,:).*g(2,:) -g(1,:).*dg(2,:))./(4*(g(1,:).^2 +g(2,:).^2).^(3/2) *pi);
+    ker = wind(tau).*z;
+else % slp
+%     ker = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
+    ker = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((collx-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
+end
 end

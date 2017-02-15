@@ -274,7 +274,23 @@ end
 if isfield(v,'timeA') && isfield(v,'timeSol')
     figure;
     if (size(v.timeA,2) >=4)
+        lw = 2.3;
+        loglog(v.ks, v.timeA(idxs,1:2), lws, lw); 
+        xlabel('k',fss,fs); 
+        ylabel('Time(s)');
+        set(gca,fss,fs);
+        nzTiCo = find(v.timeA(idxs,4));
+        hold on; 
+        loglog(v.ks, v.timeSol(idxs,1:3), '-.', lws, lw);
+        loglog(v.ks, v.timeSol(idxs,4:end), '--', lws, lw);
+        loglog(v.ks(nzTiCo), v.timeA(idxs(nzTiCo),4), 'k*', 'MarkerSize', 12);
+        legend({'$A$','$\tilde{A}$','$A$\textbackslash$b$','$\tilde{A}$\textbackslash$b$',...
+            'GM $A$\textbackslash$b$','GM $\tilde{A}$\textbackslash$b$', '$R_{m,n}$'}, 'interpreter','latex',fss,fs);
+        
+        % Above figure for article
+        figure;
         loglog(v.ks, v.timeA(idxs,1:3), lws, lw); xlabel('k',fss,fs); set(gca,fss,fs);
+        ylabel('Time(s)');
         nzTiCo = find(v.timeA(idxs,4));
         hold on; loglog(v.ks(nzTiCo), v.timeA(idxs(nzTiCo),4), 'k*', 'MarkerSize', 12);
         loglog(v.ks, v.timeSol(idxs,1:3), '-.', lws, lw);
@@ -284,7 +300,7 @@ if isfield(v,'timeA') && isfield(v,'timeSol')
             'GM $(\tilde{A}^{-1}A)$\textbackslash$(\tilde{A}^{-1}b)$',...
             'GM $A$\textbackslash$b$ with $x_0=\tilde{x}$'}, 'interpreter','latex',fss,fs);
     else
-        loglog(v.ks, v.timeA(idxs,:), lws, lw); xlabel('k',fss,fs); set(gca,fss,fs);
+        loglog(v.ks, v.timeA(idxs,:), lws, lw); set(gca,fss,fs);
         if size(v.timeSol,2) > 3
             loglog(v.ks, v.timeSol(idxs,1:3), '-.', lws, lw);
             loglog(v.ks, v.timeSol(idxs,4:6), '--', lws, lw);
@@ -331,11 +347,16 @@ if isfield(v,'field')
 end
 if exist('A','var') && ~isempty(A)
 	figure; spy(A);
-	set(gca,'XTick',0:round(size(A,1)/10):size(A,1))
-	set(gca,'XTickLabel',0:0.1:1)
-	set(gca,'YTick',0:round(size(A,2)/10):size(A,2))
-	set(gca,'YTickLabel',0:0.1:1)
 	ylabel('Collocation \tau', fss, fs);
 	xlabel('Interaction \tau', fss, fs);
 	set(gca,fss, fs)
+% 	set(gca,'XTick',0:round(size(A,1)/10):size(A,1))
+% 	set(gca,'XTickLabel',0:0.1:1)
+	set(gca,'XTick',0:round(size(A,1)/5):size(A,1))
+	set(gca,'XTickLabel',0:0.2:1)
+	set(gca,'YTick',0:round(size(A,2)/10):size(A,2))
+	set(gca,'YTickLabel',0:0.1:1)
+%     set(get(gca,'XTick'),'FontSize',14)
+    set(gca,'tickdir','out')
+    set(gca, 'Layer','top')
 end

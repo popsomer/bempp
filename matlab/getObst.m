@@ -34,7 +34,7 @@ switch idx
 		x = [ 0.6071  0.6141  0.6302  0.6233  0.5611  0.4965  0.4343  0.3906  0.3836  0.3975  0.4067  0.3952  0.3813  ...
 			0.4067  0.4712  0.5426  0.5887  0.6256  0.6141  0.6071; 0.5365  0.6272  0.7178  0.8173  0.8874  0.9020  0.8787  ...
 			0.8085  0.7120  0.6067  0.5073  0.4079  0.3056  0.2354  0.1827  0.1798  0.2149  0.2909  0.3845  0.4664];
-	        dbf = 1; ppw = 7; xi = 0.04;
+	        dbf = 1; ppw = 7; xi = 0.04; %xi = 0.025; 
 	case 5 % Two circles
 		%par = struct('obsts', [struct('par', @(t) repmat([-0.5;-0.5], 1, length(t)) + [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',... % Article asyCompr
 		par = struct('obsts', [struct('par', @(t) [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',... % Article limitcycle
@@ -102,7 +102,7 @@ if exist('x','var')
     
     par = struct('par', @(t) parS(t), 'gradnorm', @(t) sqrt(sum(gradS(t).^2, 1)), ...
         'normal', @(t) [1 0; 0 -1]*flipud(gradS(t))./repmat(sqrt(sum(gradS(t).^2, 1)),2,1), ...
-        'grad', @(t) gradS(t),'cur', @(t) curS(t), 'corners', [] );
+        'grad', @(t) gradS(t), 'derGrad', @(t) derGradS(t), 'cur', @(t) curS(t), 'corners', [] );
 elseif exist('y','var')
     ny = size(y,2);
     
@@ -198,6 +198,45 @@ function g = gradS(t)
 		g = real(g);
 	end
 end
+
+function x = derGradS(t)
+    fxds = fx;
+    fyds = fy;
+    v = 2;
+    while v > 0
+        fxds = 1i*2*pi *(n .*fxds);
+        fyds = 1i*2*pi *(n .*fyds);
+        if mod(N,2) == 0
+            fxds(N/2+1) = imag(fxds(N/2+1));
+            fyds(N/2+1) = imag(fyds(N/2+1));
+        end
+        v = v-1;
+    end
+    x = zeros(2, length(t));
+    if mod(N,2) == 1
+        for j=1:N
+            x(1,:) = x(1,:) + fxds(j)*exp(1i*2*pi*n(j)*t);
+            x(2,:) = x(2,:) + fyds(j)*exp(1i*2*pi*n(j)*t);
+        end
+    else
+        M = N/2;
+        x(1,:) = fxds(1)*exp(1i*2*pi*n(1)*t);
+        x(2,:) = fyds(1)*exp(1i*2*pi*n(1)*t);
+        for j=1:M-1
+            x(1,:) = x(1,:) + fxds(1+j)*exp(1i*2*pi*n(1+j)*t);
+            x(1,:) = x(1,:) + fxds(M+1+j)*exp(1i*2*pi*n(M+1+j)*t);
+            x(2,:) = x(2,:) + fyds(1+j)*exp(1i*2*pi*n(1+j)*t);
+            x(2,:) = x(2,:) + fyds(M+1+j)*exp(1i*2*pi*n(M+1+j)*t);
+        end
+        x(1,:) = x(1,:) -fxds(M+1)*cos(2*pi*n(M+1)*t);
+        x(2,:) = x(2,:) -fyds(M+1)*cos(2*pi*n(M+1)*t);
+    end
+    if sum(abs(imag(t))) == 0
+        x = real(x);
+    end
+end
+
+
 
 function p = parPolygon(t)
     p = NaN*zeros(2,length(t));

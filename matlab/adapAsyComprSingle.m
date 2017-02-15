@@ -14,8 +14,13 @@ Tcor = 0.02;
 % the percentage below the threshold from where the window is identically zero.
 corrDist = 0; 
 
-ks = 2.^(7:10);
-obsts = [8 3];
+% ks = 2.^(7:10);
+% ks = 16:8:64;
+% ks = [64, 72];
+% ks = 2.^(7:8)
+ks = 2^7
+% obsts = [8 3];
+obsts = 3;
 mti = 0;
 
 kl = length(ks);
@@ -68,26 +73,26 @@ for oi = 1:length(obsts)
 			if corrDist
 				toAdd = Cinf(sigma,tc-Tcor, tc-Tcor/5, tc+Tcor/5, tc+Tcor,1); % Add to the diagonal to ensure the Green singularity is included.
 				A2(i,:) = windRow(i, par, [], [], 0, 1, abs(R(i,:)/curThr) +toAdd, corrDist, sigma);
-			else % Physical distance
-        		        I = find(abs(R(cli,:)) >= curThr);
-		                ini = [0 find(I(2:end) - I(1:end-1) ~= 1) length(I)];
-                		bounds = [tc-Tcor, sigma(I(ini(1:(length(ini)-1) )+1)); tc+Tcor, sigma(I(ini(2:length(ini))))]; % identically 1 on tc \pm T
-                		decay = repmat(Tcor*percDecay,1,size(bounds,2));
-		                bounds = [(bounds + [-decay; decay]); [1;1]*decay];
-		                A2(i,:) = windRow(i,par,bounds);
+            else % Physical distance
+                I = find(abs(R(cli,:)) >= curThr);
+                ini = [0 find(I(2:end) - I(1:end-1) ~= 1) length(I)];
+                bounds = [tc-Tcor, sigma(I(ini(1:(length(ini)-1) )+1)); tc+Tcor, sigma(I(ini(2:length(ini))))]; % identically 1 on tc \pm T
+                decay = repmat(Tcor*percDecay,1,size(bounds,2));
+                bounds = [(bounds + [-decay; decay]); [1;1]*decay];
+                A2(i,:) = windRow(i,par,bounds);
 			end
 		end % loop over row-indices i
 		v.timeA(idx,2) = toc;
 		
 		v = validate(A1,A2,par,v,idx);
-		save('aacSingle.mat','v')
+% 		save('aacSingle.mat','v')
 	        display([num2str(oi) ' = oi, ki = ' num2str(ki) ', now is ' datestr(now) ', expected end ' datestr(start + ...
         	    (now-start)*sum(ks.^2)/sum(ks(1:ki).^2)*( length(obsts)-oi + 1) )  ]);
 	end
 end
 return
 %% Show the correlations of the near-inclusion
-[R, sigma] = calcCorr(par, c1, Tcor, percDecay, [5, now()], A1);
+[R, sigma] = calcCorr(par, c1, Tcor, percDecay, [5, now()], A1); % Approximation of R used to make figure
 % figure; surf(abs(R), 'EdgeColor','none'); xlabel('n'); ylabel('m'); 
 
 fs = 20;
@@ -95,6 +100,7 @@ figure;
 % pcolor(abs(R) );
 % pcolor(log(abs(R)) );
 pcolor(log(max(abs(R),1e-2)) );
+% pcolor(log(max(abs(R),1)) );
 % pcolor(max(log(abs(R)),-3) );
 % pcolor(max(log(abs(R)),0) );
 % pcolor(min(abs(R),0.1) );
@@ -105,7 +111,7 @@ shading interp;
 xlabel('n'); 
 ylabel('m'); 
 set(gca,'FontSize',fs);
-lw = 2; co = '--r';
+lw = 2.7; co = '--r';
 h = text(round(size(R,2)*0.35)+2-40, -100, '$\mathbf{q}$', 'interpreter', 'latex');
 set(h,'FontSize',fs, 'color', 'r');
 plot(round(size(R,2)*0.35)+2*ones(2,1), [-50; size(R,2)+120], co, 'LineWidth', lw);
@@ -122,6 +128,7 @@ hh = colorbar();
 % ylabel(hh,'min$(|r_{m,n}|,0.1)$', 'interpreter','latex', 'FontSize',fs); 
 % ylabel(hh,'max$(\log|R_{m,n}|,-3)$', 'interpreter','latex', 'FontSize',fs); 
 ylabel(hh,'$\log(\max(|R_{m,n}|,10^{-2}))$', 'interpreter','latex', 'FontSize',fs); 
+% ylabel(hh,'$\log(\max(|R_{m,n}|,1))$', 'interpreter','latex', 'FontSize',fs); 
 % ylabel(hh,'$\log|r_{m,n}|$', 'interpreter','latex', 'FontSize',fs); 
 set(gca,'YDir','rev')
 
