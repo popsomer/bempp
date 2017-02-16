@@ -116,12 +116,39 @@ else
 	% Add points to the right using periodicity.
 	tau2 = [tau tau(1:dbf*istep + 1)];
 	
-	kernelvals = 1i/4*besselh(0,1,par.k*sqrt(sum((repmat(x,1,size(tau2,2))-par.par(tau2) ).^2, 1)));
-	gnvals = par.gradnorm(tau2);
+% 	kernelvals = 1i/4*besselh(0,1,par.k*sqrt(sum((repmat(x,1,size(tau2,2))-par.par(tau2) ).^2, 1)));
+% 	gnvals = par.gradnorm(tau2);
+    kgVals = kernelGrad(par, tau2, x);
 	z = 0;
 	for i=1:par.N
-		z = z + sol(i) * sum(qbf_w .* kernelvals((i-1)*istep+1:(i-1)*istep+length(qbf_w)) ...
-			.* gnvals((i-1)*istep+1:(i-1)*istep+length(qbf_w)));
+% 		z = z + sol(i) * sum(qbf_w .* kernelvals((i-1)*istep+1:(i-1)*istep+length(qbf_w)) ...
+% 			.* gnvals((i-1)*istep+1:(i-1)*istep+length(qbf_w)));
+		z = z + sol(i) * sum(qbf_w .* kgVals((i-1)*istep+1:(i-1)*istep+length(qbf_w)) );
 	end
 	z = z/par.N;
+end
+
+end
+
+% Evaluate the kernel for the single or double layer potential.
+% This function was inlined for time measurements for integral formulations of the first kind.
+function ker = kernelGrad(par, tau, x)
+
+x = repmat(x,1,length(tau));
+if isfield(par, 'secondKind') % dlp
+    xy = x-par.par(tau);
+    res = sqrt(sum(xy.^2, 1));
+    z = 0*res;
+    
+    I1 = find(abs(res) > 1e-12); % I1 can be empty
+    z(I1) = sum(par.normal(tau(I1)) .*xy(:,I1)) .*1i/4 .*par.k .*besselh(1, 1, par.k*res(I1)) ./res(I1);
+    
+    I2 = find(abs(res) <= 1e-12); % I2 can be empty
+    g = par.grad(tau(I2));
+    dg = par.derGrad(tau(I2));
+    z(I2) = (dg(1,:).*g(2,:) -g(1,:).*dg(2,:))./(4*(g(1,:).^2 +g(2,:).^2).^(3/2) *pi);
+    ker = z.*par.gradnorm(tau);
+else % slp
+    ker = 1i/4.*besselh(0, 1, par.k*sqrt(sum((x-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
+end
 end

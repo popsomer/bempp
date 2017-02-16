@@ -77,6 +77,7 @@ else
 %     kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
     kernelVals = kernel(par, tau, tc, wind);
 end
+u = [par.t(end-dbf:end-1)-1, par.t, par.t(2:dbf+1)+1]; % the extended knots
 row = zeros(1,Lj); % We could adjust A here, but that would not allow using parfor in the loop over i and might cause copying A.
 % Perform Sweldens quadrature on the given kernelvalues; this gives NaN on singularities that are removed later.
 for l=1:Lj
@@ -99,11 +100,20 @@ for l=1:Lj
     else % The problem is the first cubic spline is not centered around 0, so symmetry in the discretization matrix is lost.
         row(l+1) = qbf_w * (kernelVals((l-1)*istep+1:(l-1)*istep+length(qbf_w))).'/par.N;
     end
+    if isfield(par, 'secondKind') && dbf == 1 && (~exist('collx','var') || isempty(collx)) % Add mass matrix
+        k = l +j1 -1;
+        row(l) = wind(par.colltau(k))*par.secondKind(1)*((tc -u(k))/(u(k+1) -u(k))*((tc >= u(k)) && (tc < u(k+1))) ...
+            + (u(k+2) -tc)/(u(k+2) -u(k+1))*((tc >= u(k+1)) && (tc < u(k+2)))) + par.secondKind(2)*row(l);
+        if k <= par.dbf
+            row(l) = row(l) + wind(par.colltau(k))*par.secondKind(1)*(tc -u(k+par.N))/(u(k+par.N+1) -u(k+par.N))*((tc >= u(k+par.N)) && ...
+                (tc < u(k+par.N+1))) + (u(k+par.N+2) -tc)/(u(k+par.N+2) -u(k+par.N+1))*((tc >= u(k+par.N+1)) && (tc < u(k+par.N+2)));
+        end
+    end
 end
 if exist('collx','var') && ~isempty(collx)
     return % A singularity is not possible when calculating the coupling matrix
 end
-u = [par.t(end-dbf:end-1)-1, par.t, par.t(2:dbf+1)+1]; % the extended knots
+% u = [par.t(end-dbf:end-1)-1, par.t, par.t(2:dbf+1)+1]; % the extended knots
 % It would not be advisable to return when i is not in [j1,j2], as there could be windows close by i not in [j1,j2].
 for j=-1:dbf % Removes NaN due to singularity
     idx = mod(i+j-1,par.N)+1;
@@ -218,6 +228,18 @@ for j=-1:dbf % Removes NaN due to singularity
 %         row(idxRow) = qbf_w*f.'/par.N;
          row(idxRow) = qbf_w*kernel(par,tau,tc,wind).'/par.N;
     end
+    
+    if isfield(par, 'secondKind') && dbf == 1 && (~exist('collx','var') || isempty(collx)) % Add mass matrix
+        k = idxRow +j1 -1;
+%         k = l +j1 -1;
+        row(idxRow) = wind(par.colltau(k))*par.secondKind(1)*((tc -u(k))/(u(k+1) -u(k))*((tc >= u(k)) && (tc < u(k+1))) ...
+            + (u(k+2) -tc)/(u(k+2) -u(k+1))*((tc >= u(k+1)) && (tc < u(k+2)))) + par.secondKind(2)*row(idxRow);
+        if k <= par.dbf
+            row(idxRow) = row(idxRow) + wind(par.colltau(k))*par.secondKind(1)*(tc -u(k+par.N))/(u(k+par.N+1) -u(k+par.N))*((tc >= u(k+par.N)) ...
+                && (tc < u(k+par.N+1))) + (u(k+par.N+2) -tc)/(u(k+par.N+2) -u(k+par.N+1))*((tc >= u(k+par.N+1)) && (tc < u(k+par.N+2)));
+        end
+    end
+    
 end
 
 end
@@ -254,13 +276,13 @@ if isfield(par, 'secondKind') % dlp
     z = 0*res;
     
     I1 = find(abs(res) > 1e-12); % I1 can be empty
-    z(I1) = sum(par.normal(tau(I1)) .*xy(:,I1)) .*z1 .*1i/4 *par.k *besselh(1, 1, par.k*res(I1)) ./res(I1);
+    z(I1) = sum(par.normal(tau(I1)) .*xy(:,I1)) .*1i/4 .*par.k .*besselh(1, 1, par.k*res(I1)) ./res(I1);
     
     I2 = find(abs(res) <= 1e-12); % I2 can be empty
     g = par.grad(tau(I2));
     dg = par.derGrad(tau(I2));
     z(I2) = (dg(1,:).*g(2,:) -g(1,:).*dg(2,:))./(4*(g(1,:).^2 +g(2,:).^2).^(3/2) *pi);
-    ker = wind(tau).*z;
+    ker = wind(tau).*z.*par.gradnorm(tau);
 else % slp
 %     ker = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
     ker = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((collx-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);

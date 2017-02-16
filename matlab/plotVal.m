@@ -343,7 +343,8 @@ if isfield(v,'field')
 		end
 	else
 		plot3(v.parametr(1,:), v.parametr(2,:), max(max(abs(v.field)))*ones(size(v.parametr(1,:))), 'w', lws, lw);
-	end
+    end
+    set(gca,fss,fs);
 end
 if exist('A','var') && ~isempty(A)
 	figure; spy(A);
