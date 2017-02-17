@@ -1,15 +1,22 @@
 % Use the visibility criterion to determine which regions to include in the windows for the near-inclusion obstacle.
 
 %% Integral equation of the second kind
-% clearvars, close all, format longe
+clearvars, close all, format longe
 set(0,'DefaultFigureWindowStyle','docked');
 
-par = getObst(4);
+par = getObst(1);
+% par = getObst(4);
 % par.secondKind = 'second';
 par.secondKind = [1/2, 1]; % skpar_a = 1/2, skpar_b = 1: A1 = MM/2 + A1;
-par.xi = 0.005;
-par.ppw = 14;
-par.bc = @(k,x) -1*besselh(0,1, k*sqrt( (x(1,:)' - 0.51).^2 + (x(2,:)' -0.53).^2) ); % Pt source
+% par.secondKind = [0, 1]; % A1 = par.secondKind(1)*MM/2 + par.secondKind(2)*[A1 via dlp];
+% par.ppw = 10;
+% par.xi = 0.005;
+% par.xi = 0.01;
+% Keep par.xi = 0.04
+
+par.bc = @(k,x) -1*besselh(0,1, k*sqrt( (x(1,:)' - 0.05).^2 + (x(2,:)' -0.0).^2) ); % Pt source inside circle
+% par.bc = @(k,x) -1*besselh(0,1, k*sqrt( (x(1,:)' - 0.1).^2 + (x(2,:)' -0.0).^2) ); % Pt source inside circle
+% par.bc = @(k,x) -1*besselh(0,1, k*sqrt( (x(1,:)' - 0.51).^2 + (x(2,:)' -0.53).^2) ); % Pt source
 % par.bc = @(k,x) 1*besselh(0,1, k*sqrt( (x(1,:)' - 0.51).^2 + (x(2,:)' -0.53).^2) ); % Pt source
 % dbcx = @(k,x) besselh(1,1, k*sqrt( (x(1,:)' - 0.51).^2 + (x(2,:)' -0.53).^2) ).*...
 %     k./2./sqrt( (x(1,:)' - 0.51).^2 + (x(2,:)' -0.53).^2).*2.*(x(1,:)' - 0.51); 
@@ -21,6 +28,8 @@ percDecay = 1;
 avm = 100;
 printtoc = 3;
 
+% par.k = 2^9;
+% par.k = 2^6;
 par.k = 2^7;
 par.N = ceil(par.ppw*par.k);
 par.t = linspace(0,1,par.N+1); % The knots of the periodic spline;
@@ -75,8 +84,10 @@ c1 = A1\b;
 [R, sigma] = calcCorr(par, c1, Tcor, percDecay, [printtoc, now], A1);
 colLow = par.colltau;
 
-% Computations for standard asymptotically compressed matrix
-A2 = A1;%zeros(par.N);
+%% Computations for standard asymptotically compressed matrix
+% par.xi = 0.015;
+% A2 = A1;
+A2 = zeros(par.N);
 tic;
 prevToc = toc;
 for i = 1:par.N
@@ -86,15 +97,29 @@ for i = 1:par.N
             ', tmp comprErr=' num2str(norm(A2(1:(i-1),:)*c1-b(1:(i-1)))/norm(b(1:(i-1))  ))])
     end
     tc = par.colltau(i);
-    [~, cli] = min(abs(colLow-tc));
-    curThr = par.xi*max(abs(R(cli,:)));
-    I = find(abs(R(cli,:)) >= curThr);
-    ini = [0 find(I(2:end) - I(1:end-1) ~= 1) length(I)];
-    bounds = [tc-Tcor, sigma(I(ini(1:(length(ini)-1) )+1)); tc+Tcor, sigma(I(ini(2:length(ini))))]; % identically 1 on tc \pm T
-    decay = repmat(Tcor*percDecay,1,size(bounds,2));
-    bounds = [(bounds + [-decay; decay]); [1;1]*decay];
-%     A2(i,:) = windRow(i,par,bounds);
-    A2(i,:) = windRow(i, par, bounds, 0, 1);
+    if 1 % Use correlations
+        [~, cli] = min(abs(colLow-tc));
+        curThr = par.xi*max(abs(R(cli,:)));
+        I = find(abs(R(cli,:)) >= curThr);
+        ini = [0 find(I(2:end) - I(1:end-1) ~= 1) length(I)];
+        bounds = [tc-Tcor, sigma(I(ini(1:(length(ini)-1) )+1)); tc+Tcor, sigma(I(ini(2:length(ini))))]; % identically 1 on tc \pm T
+        %     bounds = [tc-Tcor ; tc+Tcor]; % Only Green
+        decay = repmat(Tcor*percDecay,1,size(bounds,2));
+        bounds = [(bounds + [-decay; decay]); [1;1]*decay];
+    else % Capture the SP, specifically for the circle: actually a bit more accurate for same compression
+%         Tsp = 0.2*(par.k/64)^(-1/2); Tsi = 0.1*(par.k/64)^(-1/2);% So that about 2.7% solerr at k=64
+        Tsp = 0.2; Tsi = 0.1;
+        % Other windows than for slpot/firstkind! Always sp at pointsymmetric,
+        % also add sing because need C^inf window
+        if (tc < 0.5)
+            bounds = [tc-Tsi, 0.5+tc-Tsp; tc+Tsi, 0.5+tc+Tsp; Tsi, Tsp; Tsi, Tsp]; % Shadow: singularity and stationary point
+        else
+            bounds = [tc-0.5-Tsp, tc-Tsi; tc-0.5+Tsp, tc+Tsi; Tsp, Tsi; Tsp, Tsi]; % Shadow: singularity and stationary point
+        end
+        bounds(3:4,:) = bounds(3:4,:)*0.999; %This percentage is for the decay of the windows
+    end
+    A2(i,:) = windRow(i,par,bounds);
+%     A2(i,:) = windRow(i, par, bounds, 0, 1);
 end % loop over row-indices i
 % A2 = MM/2 +A2;
 c2 = A2\b;
@@ -103,7 +128,7 @@ c2 = A2\b;
 taus = linspace(0+1/avm,1-1/avm,avm);
 % vSecKind = validate(A1,A2,par,struct('perc', zeros(1,2), 'errSol', zeros(1,2), 'conds', zeros(1,2), ...
 %     'avm', avm, 'taus', taus, 'errBCavm', zeros(1,2) ),1)
-vSecKind = validate(A1,A2,par,struct('perc', zeros(1,2), 'errSol', zeros(1,2), 'conds', zeros(1,2), 'ks', par.k, ...
+vSecKind = validate(A1,A2,par,struct('perc', zeros(1,2), 'errSol', zeros(1,2), 'conds', zeros(1,2), 'ks', par.k, 'errInt', zeros(1,2), ...
     'avm', avm, 'taus', taus, 'errBCavm', zeros(1,2) ,'errBCcol', zeros(1,2), 'compresErr', zeros(1,2), 'field', zeros(30) ), 1);
 v = struct();
 v.field = vSecKind.field;
@@ -113,20 +138,24 @@ v.ys = vSecKind.ys;
 plotVal(v,A2)
 
 vSecKind.errExt = zeros(1,2);
-extXs = [(0.5 + 0.6*cos(2*pi*taus)); (0.5 + 0.6*sin(2*pi*taus))]; %Encircles nearly convex obstacle
+% extXs = [(0.5 + 0.6*cos(2*pi*taus)); (0.5 + 0.6*sin(2*pi*taus))]; %Encircles nearly convex obstacle
+extXs = [(0.8*cos(2*pi*taus)); (0.8*sin(2*pi*taus))]; %Encircles circle
+sgn = +1;
 asdf = zeros(3, vSecKind.avm);
 for av = 1:vSecKind.avm
     asdf(1,av) = par.bc(par.k, extXs(:,av));
     asdf(2,av) = evalFieldQBF(par, extXs(:,av) ,c1, 0);
     asdf(3,av) = evalFieldQBF(par, extXs(:,av) ,c2, 1);
-    vSecKind.errExt(1,1) = vSecKind.errExt(1,1) + abs(par.bc(par.k,extXs(:,av)) - evalFieldQBF(par,extXs(:,av),c1,0) )/vSecKind.avm;
-    vSecKind.errExt(1,2) = vSecKind.errExt(1,2) + abs(par.bc(par.k,extXs(:,av)) - evalFieldQBF(par,extXs(:,av),c2,1) )/vSecKind.avm;
+    vSecKind.errExt(1,1) = vSecKind.errExt(1,1) + abs(par.bc(par.k,extXs(:,av)) - sgn*evalFieldQBF(par,extXs(:,av),c1,0) )/vSecKind.avm;
+    vSecKind.errExt(1,2) = vSecKind.errExt(1,2) + abs(par.bc(par.k,extXs(:,av)) - sgn*evalFieldQBF(par,extXs(:,av),c2,1) )/vSecKind.avm;
 end
 vSecKind.errExt = vSecKind.errExt/mean(abs(asdf(1,:)));
 figure; plot(taus, [abs(asdf(2,:)); abs(asdf(2,:) -asdf(1,:)); abs(asdf(3,:) -asdf(1,:))] );
-vSecKind  % The error on the boundary conditions has not been adjusted to Neumann BC
+vSecKind.xi = par.xi  % The error on the boundary conditions has not been adjusted to IE of the second kind/Neumann BC
 % v = validate(A1,A2, par, struct('field', zeros(70))); plotVal(v)
+
 return
+
 %% test
 for ix = 1:100:par.N
     figure; plot(par.colltau, [real(transpose(A1(ix,:)).*c1), imag(transpose(A1(ix,:)).*c1)]); title(num2str(ix))
