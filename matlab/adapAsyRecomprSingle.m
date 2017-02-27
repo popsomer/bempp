@@ -324,7 +324,7 @@ loglog(v.ks, v.perc(2*kl+1:3*kl,2), 'k-', lws, lw);
 loglog([vsing.ks(2), vsing.ks(end)], min(min(vsing.perc))*[vsing.ks(2)/vsing.ks(end), 1].^(-1/2), 'r-', lws, lw); 
 xlabel('k',fss,fs); 
 set(gca,fss,fs);
-legend({'Circle', 'Ellipse', 'Near-inclusion','Nearly convex', 'Nonconvex polygon', ...
+legend({'Circle', 'Ellipse', 'Near-inclusion','Almost convex', 'Nonconvex polygon', ...
     '2 Circles','Circle and 2 ellipses', 'Near-inclusion and circle','$\mathcal{O}(k^{-1/2})$'}, 'interpreter', 'latex', fss, 19);
 
 

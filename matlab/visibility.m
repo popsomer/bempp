@@ -263,9 +263,10 @@ for i = 1:par.N
             bounds = [];
             pt = par.obsts(obsin).par(tc);
 %             if pt(1) > Tcor % Only compression in the illuminated region
-%             if pt(1) < -Tcor % Only compression in the illuminated region
+%             if pt(1) < -Tcor % Only compression in the illuminated region, wrong attempt
+            if pt(1) < -0.5-Tcor % Only compression in the illuminated region by the source
 %             if ((obsin == 1) && (tc > 0.25) && (tc < 0.5)) || ((obsin == 2) && (tc > 0.5) && (tc < 0.75))
-            if ((obsin == 1) && (tc > 0.27) && (tc < 0.48)) || ((obsin == 2) && (tc > 0.52) && (tc < 0.73))
+%             if ((obsin == 1) && (tc > 0.27) && (tc < 0.48)) || ((obsin == 2) && (tc > 0.52) && (tc < 0.73)) %Correct attempt
                 % Only compression in the illuminated region of both
                 bounds = [tc-2*Tcor; tc+2*Tcor; percDecay*Tcor; percDecay*Tcor];
             end
