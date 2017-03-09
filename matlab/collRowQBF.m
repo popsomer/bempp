@@ -18,9 +18,7 @@ if ~exist('wind','var') || isempty(wind)
     if isfield(par, 'difase') % One can include phase information in difase which is interpolated and exploited here.
         wind = @(taut) exp(2i*pi*par.k*interp1(par.Tase,par.difase,taut, 'spline', 'extrap'));
     elseif isfield(par, 'phase') % One can include exact phase information in phase which is exploited here.
-%         wind = @(taut) arrayfun(@(tautest) exp(1i*par.k*par.phase(tautest)), taut);
         wind = @(taut) exp(1i*par.k*par.phase(taut));
-%         wind = @(taut) exp(-1i*par.k*phase(taut));
     else
         wind = @(taut) ones(size(taut));
     end
@@ -33,7 +31,6 @@ if par.dbf == 1
         qbf_x = linspace(-1, 1, par.quadR*2+1);
         step = qbf_x(2)-qbf_x(1);
         qbf_x = qbf_x(1:end-1) + step/2;
-%         qbf_w = [linspace(0, 1, par.quadR), linspace(1, 0, par.quadR)]; % /par.N already included
         qbf_w = (1-abs(qbf_x))/sum(1-abs(qbf_x));
         istep = round(1/step);
     else
@@ -60,21 +57,16 @@ end
 % The size of the row
 Lj = j2-j1+1;
 
-% if isfield(par, 'quadR')
 % Total number of points in one row: there are istep additional points per element and 4+1 points for the first element,
 % minus the istep already counted. Leave out D = 2 around the collocation point for the regular part.
 Nj = Lj*istep + (length(qbf_w) - istep);
 tau = (A+(j1-1):step:A+(j1-1)+(Nj-1)*step)/par.N;
 
 if exist('collx','var') && ~isempty(collx)
-%     kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((repmat(collx,1,length(tau))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
-    kernelVals = kernel(par, tau, collx, wind);           
-% else
-%     kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
+    kernelVals = kernel(par, tau, collx, wind);  
 else
     tc = par.colltau(i);
     if exist('shift', 'var'),     tc = par.colltau(i) + shift; end
-%     kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
     kernelVals = kernel(par, tau, tc, wind);
 end
 u = [par.t(end-dbf:end-1)-1, par.t, par.t(2:dbf+1)+1]; % the extended knots
@@ -88,12 +80,8 @@ for l=1:Lj
     elseif (l == Lj) % Using windows: this would need l=0 so recalculate for A+j1-2 and Lj=1
         tau = ( (A+j1-2):step:(A+j1-2+step*(length(qbf_w)-1) ) )/par.N;
         if exist('collx','var') && ~isempty(collx)
-%             kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((repmat(collx,1,length(tau))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
             kernelVals = kernel(par, tau, collx, wind);
         else
-%             tc = par.colltau(i);
-%             if exist('shift', 'var'),     tc = par.colltau(i) + shift; end
-%             kernelVals = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
             kernelVals = kernel(par, tau, tc, wind);
         end
         row(1) = qbf_w * kernelVals.'/par.N;
@@ -113,7 +101,6 @@ end
 if exist('collx','var') && ~isempty(collx)
     return % A singularity is not possible when calculating the coupling matrix
 end
-% u = [par.t(end-dbf:end-1)-1, par.t, par.t(2:dbf+1)+1]; % the extended knots
 % It would not be advisable to return when i is not in [j1,j2], as there could be windows close by i not in [j1,j2].
 for j=-1:dbf % Removes NaN due to singularity
     idx = mod(i+j-1,par.N)+1;
@@ -156,7 +143,6 @@ for j=-1:dbf % Removes NaN due to singularity
         else
             n = 7;
         end
-%         n = 7;
         minsize = 1e-10;
         q = mod([par.corners tc]-tau1,1)+tau1;
         
@@ -200,8 +186,6 @@ for j=-1:dbf % Removes NaN due to singularity
                     end
                 end
             end
-%             f = wind(x).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(x)))-par.par(x) ).^2, 1)) ).*par.gradnorm(x).*z2;
-%             row(idxRow) = row(idxRow) + f*w;
             row(idxRow) = row(idxRow) + (kernel(par, x, tc, wind).*z2)*w;
         end
     else % Use the general routine.
@@ -209,29 +193,11 @@ for j=-1:dbf % Removes NaN due to singularity
             tau1 = tau1-1;
         end
         tau = (qbf_x+1)/2*(tau2-tau1)+tau1;
-%         if isfield(par, 'secondKind')
-%             xy = par.par(tc*ones(size(tau)))-par.par(tau);
-%             res = sqrt(sum(xy.^2, 1));
-%             z = 0*res;
-%             
-%             I1 = find(abs(res) > 1e-12); % I1 can be empty
-%             z(I1) = sum(par.normal(tau(I1)) .*xy(:,I1)) .*z1 .*1i/4 *par.k *besselh(1, 1, par.k*res(I1)) ./res(I1);
-%             
-%             I2 = find(abs(res) <= 1e-12); % I2 can be empty
-%             g = par.grad(tau(I2));
-%             dg = par.derGrad(tau(I2));
-%             z(I2) = (dg(1,:).*g(2,:) -g(1,:).*dg(2,:))./(4*(g(1,:).^2 +g(2,:).^2).^(3/2) *pi);
-%             f = wind(tau).*z;
-%         else
-%             f = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
-%         end
-%         row(idxRow) = qbf_w*f.'/par.N;
          row(idxRow) = qbf_w*kernel(par,tau,tc,wind).'/par.N;
     end
     
     if isfield(par, 'secondKind') && dbf == 1 && (~exist('collx','var') || isempty(collx)) % Add mass matrix
         k = idxRow +j1 -1;
-%         k = l +j1 -1;
         row(idxRow) = wind(par.colltau(k))*par.secondKind(1)*((tc -u(k))/(u(k+1) -u(k))*((tc >= u(k)) && (tc < u(k+1))) ...
             + (u(k+2) -tc)/(u(k+2) -u(k+1))*((tc >= u(k+1)) && (tc < u(k+2)))) + par.secondKind(2)*row(idxRow);
         if k <= par.dbf
@@ -270,7 +236,6 @@ else
     collx = repmat(tc,1,length(tau));
 end
 if isfield(par, 'secondKind') % dlp
-%     xy = par.par(tc*ones(size(tau)))-par.par(tau);
     xy = collx-par.par(tau);
     res = sqrt(sum(xy.^2, 1));
     z = 0*res;
@@ -284,7 +249,6 @@ if isfield(par, 'secondKind') % dlp
     z(I2) = (dg(1,:).*g(2,:) -g(1,:).*dg(2,:))./(4*(g(1,:).^2 +g(2,:).^2).^(3/2) *pi);
     ker = wind(tau).*z.*par.gradnorm(tau);
 else % slp
-%     ker = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(tau)))-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
     ker = wind(tau).*1i/4.*besselh(0, 1, par.k*sqrt(sum((collx-par.par(tau) ).^2, 1)) ).*par.gradnorm(tau);
 end
 end

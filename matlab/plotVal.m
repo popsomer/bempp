@@ -26,9 +26,6 @@ if iscell(idxs) && (A == 0) % Print a LaTeX table of results for all obstacles.
     no = length(idxs);
     kl = length(v.ks);
     nbs = 2;
-%     if isfield(v,'nbGm')
-%         nbs = 2+v.nbGm;
-%     end
     if isfield(v,'mti')
         nbs = 2+v.mti;
     end
@@ -351,13 +348,10 @@ if exist('A','var') && ~isempty(A)
 	ylabel('Collocation \tau', fss, fs);
 	xlabel('Interaction \tau', fss, fs);
 	set(gca,fss, fs)
-% 	set(gca,'XTick',0:round(size(A,1)/10):size(A,1))
-% 	set(gca,'XTickLabel',0:0.1:1)
 	set(gca,'XTick',0:round(size(A,1)/5):size(A,1))
 	set(gca,'XTickLabel',0:0.2:1)
 	set(gca,'YTick',0:round(size(A,2)/10):size(A,2))
 	set(gca,'YTickLabel',0:0.1:1)
-%     set(get(gca,'XTick'),'FontSize',14)
     set(gca,'tickdir','out')
     set(gca, 'Layer','top')
 end

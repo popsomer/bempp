@@ -21,9 +21,6 @@ switch idx
             'normal', @(t) [cos(2*pi*t); sin(2*pi*t)], 'grad', @(t) [-pi*sin(2*pi*t); pi*cos(2*pi*t)] , ...
             'derGrad', @(t) repmat([0;0], 1, length(t)) + [-2*pi^2*cos(2*pi*t); -2*pi^2*sin(2*pi*t)], 'corners', [], ...
             'bc', @(k,x) -1*exp(1i*k*(x')*[cos(0); sin(0)]), 'dbf', 1, 'ppw', 6, 'xi', 0.04);
-% 		par = struct('par', @(t) repmat([0;0], 1, length(t)) + [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm', @(t) pi*ones(size(t)), ...
-%             'normal', @(t) [cos(2*pi*t); sin(2*pi*t)], 'corners', [], 'bc', @(k,x) -1*exp(1i*k*(x')*[cos(0); sin(0)]), 'dbf', 1, ...
-%             'ppw', 6, 'xi', 0.04);
 		return
 	case 2 % Ellipse
 		par = struct('par', @(t) repmat([0;0], 1, length(t)) + [0.3*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm', ...
@@ -45,12 +42,6 @@ switch idx
 			struct('par', @(t) repmat([-0.5;1.5], 1, length(t)) + [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',... % Article asyCompr
 			@(t) pi*ones(size(t)), 'normal', @(t) [cos(2*pi*t); sin(2*pi*t)], 'corners', [], 'dbf', 1, 'ppw', 10)], ...
         	    'bc', @(k,x) -1*exp(1i*k*(x')*[cos(0); sin(0)]), 'xi', 3e-3);
-        % Above article asyCompr, below article limitCycle        
-% 		par = struct('obsts', [struct('par', @(t) [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',... % Article limitcycle
-% 			@(t) pi*ones(size(t)), 'normal', @(t) [cos(2*pi*t); sin(2*pi*t)], 'corners', [], 'dbf', 1, 'ppw', 10) ...
-% 			struct('par', @(t) repmat([0; 2], 1, length(t)) + [0.5*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',...% Article limitCycle with d = 1 = 2r
-% 			@(t) pi*ones(size(t)), 'normal', @(t) [cos(2*pi*t); sin(2*pi*t)], 'corners', [], 'dbf', 1, 'ppw', 10)], ...
-%         	    'bc', @(k,x) -1*exp(1i*k*(x')*[cos(0); sin(0)]), 'xi', 3e-3);
 		return
 	case 6 % Three ellipses
 		par = struct('obsts', [struct('par', @(t) repmat([0;0], 1, length(t)) + [0.3*cos(2*pi*t); 0.5*sin(2*pi*t)], 'gradnorm',...
@@ -197,9 +188,7 @@ function g = gradS(t)
 			g(1,:) = g(1,:) + fxd(M+1+j)*exp(1i*2*pi*n(M+1+j)*t);
 			g(2,:) = g(2,:) + fyd(1+j)*exp(1i*2*pi*n(1+j)*t);
 			g(2,:) = g(2,:) + fyd(M+1+j)*exp(1i*2*pi*n(M+1+j)*t);
-		end
-% 		g(1,:) = g(1,:) - imag(fxd(M+1))*sin(2*pi*n(M+1)*t); % Old
-% 		g(2,:) = g(2,:) - imag(fyd(M+1))*sin(2*pi*n(M+1)*t); % Old
+        end
 		g(1,:) = g(1,:) - fx(M+1)*2*pi*n(M+1)*sin(2*pi*n(M+1)*t);
 		g(2,:) = g(2,:) - fy(M+1)*2*pi*n(M+1)*sin(2*pi*n(M+1)*t);
 	end
@@ -276,7 +265,6 @@ function p = onePar(t)
     p(:,ix) = 5*t(ix)*[1; -1];
     ix = (t >= 0.55) && (t <= 0.8);
     p(:,ix) = 5*t(ix)*[-1; 1];
-%     if (t >= 0.2) && (t <= 0.45)
 end
 
 end % function getObst

@@ -16,7 +16,7 @@
 %   sigma     - The locations of the windows, corresponding the columns of R
 %   [obbounds - Additional information for multiple scattering obstacles]
 function [R, sigma, obbounds] = calcCorr(par, c, Tcor, pd, tim, A, method, a2w)
-% function [R, sigma, obbounds] = calcCorr(par, c, Tcor, pd, tim, A)
+
 if ~exist('tim','var') || isempty(tim)
     tim = [inf, 0];
 end
@@ -34,20 +34,15 @@ if isfield(par, 'obsts')
         sigma = [sigma linspace(0,1,round(par.obsts(obst).N*fr) )];
         obbounds(2,obst) = length(sigma);
     end
-%     sr = length(sigma);
-%     R = zeros(par.N,sr);
     colLow = cell(length(par.obsts),1);
     rlow = par.r;
     for obst = 1:length(par.obsts)
         colLow{obst} = par.obsts(obst).colltau;
     end
 else
-%     R = zeros(par.N,round(par.N*fr));
-%     sigma = linspace(0,1,size(R,2) );
     sigma = linspace(0,1,round(par.N*fr));
 end
 sr = length(sigma);
-% sr = size(R,2);
 prevToc = toc;
 
 if exist('A','var') && isfield(par, 'obsts') && strncmpi(method,'col',3) && ~strcmp(method,'colRint')
@@ -106,34 +101,11 @@ if exist('A','var') && isfield(par, 'obsts') && strncmpi(method,'col',3) && ~str
                     bounds = [sigma(I(ini(1:(length(ini)-1) )+1)); sigma(I(ini(2:length(ini))))];
                     collx = par.obsts(obsin).par(par.obsts(obsin).colltau(i-par.r(1,obsin)+1) );
                 end
-%                 lb = size(bounds,2);
                 decay = repmat(a2w(2)*a2w(1)/par.k,1,size(bounds,2));
-                % decay(1) = TcorN;
-                % allBounds(:,:,i) = [allBounds(:,:,i), [(bounds + [-decay; decay]); [1;1]*decay]];
-%                 allBounds(:,1:lb,i) = sortBounds(i,par,[(bounds + [-decay; decay]); [1;1]*decay]);
                 bounds = sortBounds(i,par,[(bounds + [-decay; decay]); [1;1]*decay], collx);
                 allBounds(:,1:size(bounds,2),i) = bounds;
             end
         end
-        % When making A2, do
-%         for i = 1:par.N
-%             if (toc-prevToc > printtoc)
-%                 prevToc = toc;
-%                 display(['Obst ' num2str(obstacle) ' at k=' num2str(ks(ki)) ': ', num2str(i/par.N,'%7.3f') '=A2%, now=' datestr(now)...
-%                     ', est. # sec. left for A2=' num2str(toc*(par.N-i)/i) ', tmp comprErr=' num2str(norm(A2(1:(i-1),:)*c1-b(1:(i-1)))/...
-%                     norm(b(1:(i-1))  )) ', est. end ' datestr(expectedEnd-(sum(v.timeA(:,2))/extf*(ppw(oi)*ks(ki)).^powTime - ...
-%                     toc*par.N/i )/24/3600)]);
-%             end
-%             obsin = find((i >= par.r(1,:)) & (i <= par.r(2,:)));
-%             collx = par.obsts(obsin).par(par.obsts(obsin).colltau(i-par.r(1,obsin)+1) );
-%             for obst = 1:length(par.obsts)
-%                 if obst == obsin
-%                     A2(i,par.r(1,obsin):par.r(2,obsin)) = windRow(i-par.r(1,obsin)+1,par.obsts(obsin),bounds,0,1);
-%                 else
-%                     A2(i,par.r(1,obst):par.r(2,obst)) = windRow('error',par.obsts(obst),bounds,0,1, collx);
-%                 end
-%             end
-%         end        
         R = allBounds;
     end
     return
@@ -154,19 +126,14 @@ elseif exist('A','var') && ~isfield(par, 'obsts') && strncmpi(method,'col',3) &&
             T2 = sigma(roi)+Tcor;
             [j1, j2, noSplit] = bounds2Ind(par.colltau,T1,T2);
             if noSplit
-%                 wi = chi(par.colltau(j1:j2),T1, T1+pd*Tcor, T2-pd*Tcor, T2,0);
                 wic = transpose(chi(par.colltau(j1:j2),T1, T1+pd*Tcor, T2-pd*Tcor, T2,0)).*c(j1:j2);
                 for i = oldNzIdxs
-%                     R(i,roi) = (wi.*A(i,j1:j2))*c(j1:j2);
                     R(i,roi) = A(i,j1:j2)*wic;
                 end
             else
-%                 wi1 = chi(par.colltau(j1:par.N),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1);
-%                 wi2 = chi(par.colltau(1:j2),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1);
                 wic1 = transpose(chi(par.colltau(j1:par.N),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1)).*c(j1:par.N);
                 wic2 = transpose(chi(par.colltau(1:j2),T1, T1+pd*Tcor, T2-pd*Tcor, T2,1)).*c(1:j2);
                 for i = oldNzIdxs
-%                     R(i,roi) = (wi1.*A(i,j1:par.N))*c(j1:par.N) + (wi2.*A(i,1:j2))*c(1:j2);
                     R(i,roi) = A(i,j1:par.N)*wic1 + A(i,1:j2)*wic2;
                 end
             end
@@ -189,9 +156,7 @@ elseif exist('A','var') && ~isfield(par, 'obsts') && strncmpi(method,'col',3) &&
             I = find(abs(R(cli,:)) >= curThr);
             ini = [0 find(I(2:end) - I(1:end-1) ~= 1) length(I)];
             bounds = [tc-a2w(1)/par.k, sigma(I(ini(1:(length(ini)-1) )+1)); tc+a2w(1)/par.k, sigma(I(ini(2:length(ini))))]; % id 1 on tc\pm T
-%             lb = size(bounds,2);
-            decay = repmat(a2w(2)*a2w(1)/par.k,1,size(bounds,2));
-%             decay(1) = TcorN; % Increasingly smaller window for Green singularity
+            decay = repmat(a2w(2)*a2w(1)/par.k,1,size(bounds,2)); % Increasingly smaller window for Green singularity
             bounds = sortBounds(i,par,[(bounds + [-decay; decay]); [1;1]*decay],[]); % size of bounds can change in this
             allBounds(:,1:size(bounds,2),i) = bounds;
         end
@@ -205,7 +170,6 @@ elseif exist('A','var') && ~isfield(par, 'obsts') && strcmp(method,'rowB')
         c1ip = [c; c(1:par.dbf)];
     else
         c1ip = deboor(par.dbf, u, [c; c(1:par.dbf)], sigma);
-%         warning('Change code to use deboor interpolation for A');
     end
     Rrow = 0*sigma;
     jNs = nan*zeros(3,sr);
@@ -217,7 +181,6 @@ elseif exist('A','var') && ~isfield(par, 'obsts') && strcmp(method,'rowB')
     [j1, j2] = bounds2Ind(sigma,sigma(roi)-Tcor,sigma(roi)+Tcor); % noSplit will be true
     wi = chi(sigma(j1:j2),sigma(roi)-Tcor, sigma(roi)-(1-pd)*Tcor, sigma(roi)+Tcor*(1-pd),sigma(roi)+Tcor,0);
     
-%     curThrs = zeros(par.N,1);
     for i = 1:par.N
         if (toc-prevToc > tim(1))
             prevToc = toc;
@@ -227,11 +190,6 @@ elseif exist('A','var') && ~isfield(par, 'obsts') && strcmp(method,'rowB')
         end
         tc = par.colltau(i);
         
-%         integrand = 1i/4.*besselh(0, 1, par.k*sqrt(sum((par.par(tc*ones(size(sigma))) ...
-%             -par.par(sigma) ).^2, 1)) ).*c1ip.*par.gradnorm(sigma);
-%         integrand(isnan(integrand)) = 0;
-%         integrand = deboor(par.dbf,u, [transpose(A(i,:)); transpose(A(i,1:par.dbf))], sigma).*c1ip;
-%         integrandt = transpose(deboor(par.dbf,u, [transpose(A(i,:)); transpose(A(i,1:par.dbf))], sigma).*c1ip); % Use this if fr ~= 1
         if fr == 1
             integrandt = [transpose(A(i,:)); transpose(A(i,1:par.dbf))].*c1ip;
         else
@@ -240,24 +198,8 @@ elseif exist('A','var') && ~isfield(par, 'obsts') && strcmp(method,'rowB')
         % The variant above and below agree up to two digits and they are about as fast: fastest would be fr = 1
 %         integrand = transpose(deboor(par.dbf,u, [transpose(A(i,:)).*c; transpose(A(i,1:par.dbf)).*c(1:par.dbf)], sigma));
         
-%         for roi = 1:sr
-%             [j1, j2, noSplit] = bounds2Ind(sigma,sigma(roi)-Tcor,sigma(roi)+Tcor);
-%             % This could be sped up by computing j1(roi), j2(roi) and wi(roi,:) outside the loop 
-%             % over i and using fr=1 to remove two deboor calls, but sum(wi.*integrand(j1:j2) ) cannot be sped up
-%             if noSplit
-%                 wi = chi(sigma(j1:j2),sigma(roi)-Tcor, sigma(roi)-(1-pd)*Tcor, sigma(roi)+Tcor*(1-pd),sigma(roi)+Tcor,0);
-% %                 Rrow(roi) = sum(wi.*integrand(j1:j2) );
-%                 Rrow(roi) = wi*integrandt(j1:j2);
-%             else
-%                 wi1 = chi(sigma(j1:sr),sigma(roi)-Tcor, sigma(roi)-(1-pd)*Tcor, sigma(roi)+Tcor*(1-pd),sigma(roi)+Tcor,1);
-%                 wi2 = chi(sigma(1:j2), sigma(roi)-Tcor, sigma(roi)-(1-pd)*Tcor, sigma(roi)+Tcor*(1-pd),sigma(roi)+Tcor,1);
-%                 Rrow(roi) = wi1*integrandt(j1:sr) + wi2*integrandt(1:j2);
-% %                 Rrow(roi) = sum(wi1.*integrand(j1:sr) ) + sum(wi2.*integrand(1:j2) );
-%             end
-%         end
         nzCols = find(A(i,:)); % Will not be empty
         Rrow(:) = 0; % Need to reinitialise for each i
-%         for roi = 1:sr
         for roi = nzCols
             if jNs(3,roi)
                 Rrow(roi) = wi*integrandt(jNs(1,roi):jNs(2,roi)); % Faster than sum(wi.*integrand) and reuse wi
@@ -269,18 +211,14 @@ elseif exist('A','var') && ~isfield(par, 'obsts') && strcmp(method,'rowB')
         end
         
         curThr = par.xi*max(abs(Rrow)); % Local threshold
-%         curThrs(i) = curThr;
         I = find(abs(Rrow) >= curThr);
         ini = [0 find(I(2:end) - I(1:end-1) ~= 1) length(I)];
         bounds = [(tc-0.02), sigma(I(ini(1:(length(ini)-1) )+1)); (tc+0.02), sigma(I(ini(2:length(ini))))];
         decay = repmat(0.02,1,size(bounds,2));
         decay(1) = 0.02*16/par.k;
-%         bounds = [tc-a2w(1)/par.k, sigma(I(ini(1:(length(ini)-1) )+1)); tc+a2w(1)/par.k, sigma(I(ini(2:length(ini))))]; % id 1 on tc\pm T
-%         decay = repmat(a2w(2)*a2w(1)/par.k,1,size(bounds,2));
         bounds = sortBounds(i,par,[(bounds + [-decay; decay]); [1;1]*decay], []); % size of bounds can change in this
         allBounds(:,1:size(bounds,2),i) = bounds;
     end
-%     plot(par.colltau, curThrs); hold on;
     R = allBounds;
     return
 end
@@ -353,7 +291,6 @@ for i = 1:par.N
             end
         end
     end
-    debug = 1;
 end
 
 end

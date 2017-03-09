@@ -8,8 +8,7 @@ set(0,'DefaultFigureWindowStyle','docked');
 par = getObst(3);
 
 printtoc = 5;
-par.k = 2.^7;
-% par.k = 2.^9;
+par.k = 2.^9;
 par.N = par.ppw*par.k;
 par.t = linspace(0,1,par.N+1); % The knots of the periodic spline;
 par.colltau = par.t(1:par.N);
@@ -21,15 +20,8 @@ parametr = par.par(ts');
 fs = 25;
 %$[\min(0.365-T,\tau-0.02-T), \max(0.665+T,\tau+0.02+T)]$ for $\tau \in [0.3,0.72]$, where the length of the decaying part $T=0.1$
 leftb = 0.365;
-% leftb = 0.27;
 rightb = 0.665;
-% righte = 0.73;
 T = 0.1;
-
-%     leftb = 0.28;
-%     righte = 0.72;
-%     T = 0.02;
-
 
 figure;
 plot(parametr(1,:),parametr(2,:),'k', 'LineWidth',3);
@@ -88,26 +80,20 @@ for doCompr = 0:1
         if (tc < 0.2)
             bounds = [];
         elseif tc < 0.3
-            % 		bounds = [min(tc-T*1.1,0.27);max(0.25,tc+T*1.1);T;T];
             if doCompr
                 bounds = [tc-0.02-T; tc+0.02+T; T; T];
             else
                 bounds = [];% Use this to do no compression for these collocation points either
             end
-            % 	elseif tc < 0.7
         elseif tc < 0.72
             bounds = [min(leftb-T,tc-0.02-T); max(rightb+T,tc+0.02+T); T; T];
             %$[\min(0.365-T,\tau-0.02-T), \max(0.665+T,\tau+0.02+T)]$ for $\tau \in [0.3,0.72]$, where the length of the decaying part $T=0.1$
-            % 		bounds = [min(leftb-T,tc-T); max(rightb+T,tc+T); T; T];
         elseif tc < 0.8
             if doCompr
-%                 bounds = [min(0.75,tc-0.02-T); max(tc+0.02+T,0.73);T;T];
                 bounds = [tc-0.02-T; tc+0.02+T; T; T];
             else
-%                 bounds = [tc-0.02-T; tc+0.02+T; T; T];
                 bounds = [];
             end
-            %         bounds = [];
         else
             bounds = [];
         end
@@ -116,60 +102,13 @@ for doCompr = 0:1
     
     %% Show the results
     plotVal(struct(),A2) % Show the structure of the compressed matrix
-    % v = validate(A1,A2,par,struct('perc', zeros(1,2), 'errSol', zeros(1,2), 'conds', zeros(1,2) ),1)
     avm = 100;
     display([num2str(par.k) ' = k, doCompr = ' num2str(doCompr)]);
     v = validate(A1,A2,par,struct('perc', zeros(1,2), 'errSol', zeros(1,2), 'conds', zeros(1,2), ...
         'avm', avm, 'taus', rand(avm,1), 'errBCavm', zeros(1,2) ),1)
 end
 
-return
 
-%% Two circles: tests of ranges
-th2 = 200/360*2*pi; th1OK = fsolve(@(th1) (cos(th2) -cos(th1))*cos(th1) + sin(th1)*(4+sin(th2)-sin(th1)), pi/4)
-thh1 = acos(4*sin(th2)*cos(th2)+cos(th2) +(-1).^(0:1)*1/2*sqrt(cos(th2)^2*(8*sin(th2)+2)^2 -4*(15*sin(th2)^2+8*sin(th2)+1)) )
-4+sin(th2)-cot(th2)*(cos(thh1)-cos(th2)) - sin(thh1)
-
-th2 = 333/360*2*pi; th1OK = fsolve(@(th1) (cos(th2) -cos(th1))*cos(th1) + sin(th1)*(4+sin(th2)-sin(th1)), pi/4)
-th1test = asin((8+2*sin(th2) + (-1).^(0:1) *sqrt(64+32*sin(th2)+4*sin(th2)^2-4*sin(th2)^2*(17+8*sin(th2))))/(34+16*sin(th2)));
-th1test = [th1test, (pi-th1test)]
-(cos(th2) -cos(th1test)).*cos(th1test) + sin(th1test).*(4+sin(th2)-sin(th1test))
-
-pl = 1;
-if pl
-    th2s = linspace(pi,2*pi,100)';
-else
-    th2s = [200; 300]*pi/180;
-end
-th1pls= nan*[th2s, th2s, th2s]; 
-for ti=1:length(th2s)
-%     th1pls(ti,:) = asin((8+2*sin(th2s(ti)) + (-1).^(0:1) *sqrt(64+32*sin(th2s(ti))+4*sin(th2s(ti))^2 ...
-%         -4*sin(th2s(ti))^2*(17+8*sin(th2s(ti)))))/(34+16*sin(th2s(ti)))); 
-    if(th2s(ti) < 3*pi/2)
-        th1pls(ti,1) = asin((8+2*sin(th2s(ti)) + sqrt(64+32*sin(th2s(ti))+4*sin(th2s(ti))^2 ...
-            -4*sin(th2s(ti))^2*(17+8*sin(th2s(ti)))))/(34+16*sin(th2s(ti))));
-        th1pls(ti,2) = pi-asin((8+2*sin(th2s(ti)) -sqrt(64+32*sin(th2s(ti))+4*sin(th2s(ti))^2 ...
-            -4*sin(th2s(ti))^2*(17+8*sin(th2s(ti)))))/(34+16*sin(th2s(ti))));
-        g2g2 = acos(4*sin(th2s(ti))*cos(th2s(ti))+cos(th2s(ti)) -1/2*sqrt(cos(th2s(ti))^2*(8*sin(...
-            th2s(ti))+2)^2 -4*(15*sin(th2s(ti))^2+8*sin(th2s(ti))+1)) );
-    else
-        th1pls(ti,2) = pi-asin((8+2*sin(th2s(ti)) + sqrt(64+32*sin(th2s(ti))+4*sin(th2s(ti))^2 ...
-            -4*sin(th2s(ti))^2*(17+8*sin(th2s(ti)))))/(34+16*sin(th2s(ti))));
-        th1pls(ti,1) = asin((8+2*sin(th2s(ti)) -sqrt(64+32*sin(th2s(ti))+4*sin(th2s(ti))^2 ...
-            -4*sin(th2s(ti))^2*(17+8*sin(th2s(ti)))))/(34+16*sin(th2s(ti))));
-        g2g2 = acos(4*sin(th2s(ti))*cos(th2s(ti))+cos(th2s(ti)) +1/2*sqrt(cos(th2s(ti))^2*(8*sin(...
-            th2s(ti))+2)^2 -4*(15*sin(th2s(ti))^2+8*sin(th2s(ti))+1)) );
-    end
-    if imag(g2g2) == 0
-        th1pls(ti,3) = g2g2;
-    end
-end
-
-if pl
-    figure; plot(th2s, th1pls)
-else
-    format short; th1pls/pi*180
-end
 
 %% Two circles: initialisation of the calculation
 clearvars
@@ -178,7 +117,7 @@ format longe
 set(0,'DefaultFigureWindowStyle','docked');
 
 par = getObst(5);
-Tcor = 0.15; %0.02;
+Tcor = 0.15;
 percDecay = 1;
 printtoc = 0.5;
 par.k = 2.^8;
@@ -243,12 +182,14 @@ if 0
 end
 
 %% Compressed matrix
+% comprMeth = 1; % then only compression in the illuminated region by the source, 
+% comprMeth = 2; % then correct compression in generalised illuminated region by both source and other circle,
+comprMeth = 3; % then correct illuminated and compression in coupling matrices
+
 A2 = zeros(par.N);
 tic;
 prevToc = toc;
-% for i = 1653:par.N
 for i = 1:par.N
-% for i = par.N:-1:1
     if (toc-prevToc > printtoc)
         prevToc = toc;
         display([num2str(i/par.N,'%7.3f') '=A2%, now=' datestr(now) ', est. # sec. left for A2=' ...
@@ -262,19 +203,14 @@ for i = 1:par.N
         if (obst == obsin) 
             bounds = [];
             pt = par.obsts(obsin).par(tc);
-%             if pt(1) > Tcor % Only compression in the illuminated region
-%             if pt(1) < -Tcor % Only compression in the illuminated region, wrong attempt
-            if pt(1) < -0.5-Tcor % Only compression in the illuminated region by the source
-%             if ((obsin == 1) && (tc > 0.25) && (tc < 0.5)) || ((obsin == 2) && (tc > 0.5) && (tc < 0.75))
-%             if ((obsin == 1) && (tc > 0.27) && (tc < 0.48)) || ((obsin == 2) && (tc > 0.52) && (tc < 0.73)) %Correct attempt
-                % Only compression in the illuminated region of both
+            if ((comprMeth == 1) && (pt(1) < -0.5-Tcor)) || ( (comprMeth >= 2) &&...
+                   ( ((obsin == 1) && (tc > 0.27) && (tc < 0.48)) || ((obsin == 2) && (tc > 0.52) && (tc < 0.73)) ) )
                 bounds = [tc-2*Tcor; tc+2*Tcor; percDecay*Tcor; percDecay*Tcor];
             end
             A2(i,par.r(1,obsin):par.r(2,obsin)) = windRow(i-par.r(1,obsin)+1, par.obsts(obsin), bounds);
-%             A2(i,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst), 1,par.obsts(obst).N);
         elseif obsin == 2
             if tc < 0.5
-%                 continue % Cannot see each other
+                bounds = [0; 0.5];
             elseif tc < 3/4
                 g2g2 = acos(4*sin(2*pi*tc)*cos(2*pi*tc)+cos(2*pi*tc) -1/2*sqrt(cos(2*pi*tc)^2*(8*sin(...
                     2*pi*tc)+2)^2 -4*(15*sin(2*pi*tc)^2+8*sin(2*pi*tc)+1)) );
@@ -296,17 +232,33 @@ for i = 1:par.N
                     min(g2g2, pi-asin((8+2*sin(2*pi*tc) + sqrt(64+32*sin(2*pi*tc)+4*sin(2*pi*tc)^2 ...
                     -4*sin(2*pi*tc)^2*(17+8*sin(2*pi*tc))))/(34+16*sin(2*pi*tc))))]/2/pi;
             end
-%             decay = repmat(Tcor*percDecay,1,size(bounds,2));
-%             bounds = [(bounds + [-decay; decay]/percDecay); [1;1]*decay];
-%             A2(i,par.r(1,obst):par.r(2,obst)) = windRow('error', par.obsts(obst), bounds,[],[],collx);
-%             A2(i,par.r(1,obst):par.r(2,obst)) = windRow('error', par.obsts(obst), [],[],[],collx);
-            A2(i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N,  [], collx);
-        else
-%             A2(i,par.r(1,obst):par.r(2,obst)) = windRow('error', par.obsts(obst), [],[],[],collx);
-            A2(i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N,  [], collx);
+            if comprMeth >= 3
+                bounds = [0; 0.5]; % Ignore the bounds from the part of obst 1 that can be seen from obst 2
+                decay = repmat(Tcor*percDecay,1,size(bounds,2));
+                bounds = [(bounds + [-decay; decay]/percDecay); [1;1]*decay];
+                A2(i,par.r(1,obst):par.r(2,obst)) = windRow('error', par.obsts(obst), bounds,[],[],collx);
+            else
+                A2(i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N,  [], collx);
+            end
+        else % obsin = 1, obst = 2
+            if comprMeth >= 3
+                bounds = [0.5; 1];
+                decay = repmat(Tcor*percDecay,1,size(bounds,2));
+                bounds = [(bounds + [-decay; decay]/percDecay); [1;1]*decay];
+                A2(i,par.r(1,obst):par.r(2,obst)) = windRow('error', par.obsts(obst), bounds,[],[],collx);
+            else
+                A2(i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N,  [], collx);
+            end
         end
     end
 end
 v.timeA(1,2) = toc;
 v = validate(A1,A2,par,v,1)
+
+figure; spy(A2);
+set(gca,'XTick',0:1e3:5e3);
+set(gca,'tickdir','out'); 
+ylabel('m'); 
+xlabel('l'); 
+set(gca,'Fontsize', 22)
 

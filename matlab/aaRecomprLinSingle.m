@@ -1,28 +1,25 @@
-% Adaptive Asymptotic Recompression for single scattering obstacles: recompute correlations at each wavenumber in an automatic and 
-% efficient way to get decreasing window function supports for general geometries.
+% Adaptive Asymptotic Recompression for single scattering obstacles: recompute correlations at exponentially spaced
+% wavenumbers in an automatic and efficient way to get decreasing window function supports for linearly spaced wavenumbers.
+
 %% Initialising
 clearvars
 close all
 format longe
 set(0,'DefaultFigureWindowStyle','docked');
 
-percDecay = 1; % else R wrong or could define another \xi for A2?
+percDecay = 1; 
 thrType = 'l'; % Or 'g' for global threshold
 Tcor = 0.02;
-corrDist = 0; % Nonzero then use correlation iso physical distance to determine window, value gives perc below thr where wind=0
-%ks = 2.^(4:11);
-ksR = 2.^(4:10);
-dk = 16;
+ksR = 2.^(4:10); % Exponentially spaced wavenumbers at which to recompute the correlations
+dk = 16; % Step in linearly spaced wavenumbers
 ks = ksR(1);
 for a = 2:length(ksR)
     ks = [ks, (ksR(a-1)+dk):dk:(ksR(a)-dk), ksR(a)];
 end
-ks = [ks, (ksR(end)+dk):dk:(2*ksR(end))]
+ks = [ks, (ksR(end)+dk):dk:(2*ksR(end))]; % All wavenumbers to be tested
 
-%printtoc = 300;
 printtoc = 100;
-%obsts = [1 2 3 4 8];
-obsts = 8
+obsts = 8;
 mti = 2;
 kl = length(ks);
 maxob = length(obsts);
@@ -68,7 +65,7 @@ for oi = 1:length(obsts)
         
         %% Compute correlations
         if ki == 1
-	    % Re-use the full solution, also for computing R.
+            % Re-use the full solution, also for computing R.
             A2 = A1;
             v.timeA(idx,2) = v.timeA(idx,1);
             if oi == 1, expectedEnd = now; extf = 0; end
@@ -102,17 +99,16 @@ for oi = 1:length(obsts)
         end
         
         %% Compute correlations
-%        if (ki ~= kl) % Compute the R to be used for the next ki
-	if any(ks(ki) == ksR)
+        if any(ks(ki) == ksR)
             tic
             [R, sigma] = calcCorr(par, A2\b, Tcor, percDecay, [printtoc,expectedEnd-...
                 (sum(v.timeA(:,4))/extf*(ppw(oi)*ks(ki)).^powTime)/24/3600], A2);
             v.timeA(idx,4) = toc;
             colLow = par.colltau; % Save these for higher freqencies.
         end
-	if ki == kl
-		v.field = zeros(120,120);
-	end
+        if ki == kl
+            v.field = zeros(120,120);
+        end
         v = validate(A1,A2,par,v,idx);
         save('recomprSingle.mat','-regexp','^(?!(A1|A2|R)$).')
         v.timeA(idx,3) = (now-startk)*24*3600;
@@ -123,34 +119,6 @@ for oi = 1:length(obsts)
             ' sec and now is ' datestr(now) ', expected end ' datestr(expectedEnd)]);
     end
 end
-return
-%% Print a table of the error on the boundary conditions
-plotVal(v, 0, {'Circle', 'Ellipse', 'Near-inclusion','Almost convex', 'Nonconvex polygon'});
 
-%% Make plot of the percentages combined with multiple scattering obstacles
-vsing = v;
-load recomprMultiple.mat
-fss = 'Fontsize'; fs = 22;
-lws = 'LineWidth'; lw = 5;
-mss = 'MarkerSize'; ms = 15;
-l = {'+', 'x', 'o', 'v', '*', 'h', 'd'}; 
-ll = {'-','--',':', '-.'};
-c = 'brgkcmy';
+plotVal(v) % For a figure of the timings
 
-sl = length(vsing.ks);
-figure; 
-loglog(vsing.ks, vsing.perc(1:sl,2), 'b-', lws, lw); 
-hold on;
-loglog(vsing.ks, vsing.perc(sl+1:2*sl,2), 'r--', lws, lw); 
-loglog(vsing.ks, vsing.perc(2*sl+1:3*sl,2), 'g-.', lws, lw); 
-loglog(vsing.ks, vsing.perc(3*sl+1:4*sl,2), 'k:', lws, lw); 
-loglog(vsing.ks, vsing.perc(4*sl+1:5*sl,2), 'c--', lws, lw); 
-
-loglog(v.ks, v.perc(1:kl,2), 'm:', lws, lw); 
-loglog(v.ks, v.perc(kl+1:2*kl,2), 'b-.', lws, lw); 
-loglog(v.ks, v.perc(2*kl+1:3*kl,2), 'k-', lws, lw); 
-loglog([vsing.ks(2), vsing.ks(end)], min(min(vsing.perc))*[vsing.ks(2)/vsing.ks(end), 1].^(-1/2), 'r-', lws, lw); 
-xlabel('k',fss,fs); 
-set(gca,fss,fs);
-legend({'Circle', 'Ellipse', 'Near-inclusion','Almost convex', 'Nonconvex polygon', ...
-    '2 Circles','Circle and 2 ellipses', 'Near-inclusion and circle','$\mathcal{O}(k^{-1/2})$'}, 'interpreter', 'latex', fss, 19);

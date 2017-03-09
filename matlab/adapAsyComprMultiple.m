@@ -1,8 +1,9 @@
 % Adaptive Asymptotic Compression for multiple scattering obstacles: compute correlations to 
 % automatically determine where to put our window functions for general geometries.
+
 %% Initialising
 clearvars
-% close all
+close all
 format longe
 set(0,'DefaultFigureWindowStyle','docked');
 
@@ -10,10 +11,17 @@ percDecay = 1; % Percentage of the window for the C-inf decay: 0 means a block w
 thrType = 'l'; % Or 'g' for global threshold
 Tcor = 0.02;
 
-% ks =  2.^(7:10);
-ks = 2^7;
-% obsts = [5 7 6];
-obsts = 6;
+sim = 1; % 1 means table of residue on IE for 2 circles, 2 is corr 2 circles, 3 is corr three circles
+if sim == 1
+    ks =  2.^(7:10);
+    obsts = 5;
+elseif sim == 2
+    ks = 2^7;
+    obsts = 5;
+elseif sim == 3
+    ks = 2^7;
+    obsts = 6;
+end
 kl = length(ks);
 maxob = length(obsts);
 
@@ -66,22 +74,22 @@ for oi = 1:length(obsts)
 		for obst = 1:length(par.obsts)
 			b(par.r(1,obst):par.r(2,obst)) = par.bc(par.k,par.obsts(obst).par(par.obsts(obst).colltau));
 		end
-		c1 = A1\b;
+        c1 = A1\b;
         
-	        %% Computing the correlations
-        	if ki == 1
-	            tic;
-        	    [R, sigma,obbounds] = calcCorr(par, c1, Tcor, percDecay); 
-	            v.timeA(idx,4) = toc;
-        	    colLow = cell(length(par.obsts),1);
-	            rlow = par.r;
-        	    for obst = 1:length(par.obsts)
-	                colLow{obst} = par.obsts(obst).colltau;
-        	    end
-	        end
+        %% Computing the correlations
+        if ki == 1
+            tic;
+            [R, sigma,obbounds] = calcCorr(par, c1, Tcor, percDecay);
+            v.timeA(idx,4) = toc;
+            colLow = cell(length(par.obsts),1);
+            rlow = par.r;
+            for obst = 1:length(par.obsts)
+                colLow{obst} = par.obsts(obst).colltau;
+            end
+        end
         
-		%% Computing A2
-	        curThr = par.xi*max(abs(R));
+        %% Computing A2
+        curThr = par.xi*max(abs(R));
 		A2 = zeros(par.N);
 		tic;
 		prevToc = toc;
@@ -122,26 +130,17 @@ for oi = 1:length(obsts)
 	end
 end
 
-return
-%% Plot spy for article
-figure;
-fs = 20;
-spy(A2);
-hold on;
-par.obsts(3).colltau(par.N*5/6-par.r(1,3)+2)
-h = text(par.N*5/6+2-40, -100, '$\mathbf{p}$', 'interpreter', 'latex');
-set(h,'FontSize',fs, 'color', 'r');
-plot(par.N*5/6+2*ones(2,1), [-50; par.N+120], 'r', 'LineWidth', 3);
-ylabel('i'); xlabel('j');
-set(gca,'FontSize',fs);
+if sim == 1
+    % Print the table for the article: residue of the integral equation for the two circles
+    plotVal(v,0,{'Two circles'})
+    return;
+end
 
 %% Plot R for article
 [R, sigma] = calcCorr(par, c1, Tcor, percDecay, [5, now()], A1); % The approximation of R used to make figure
 
 fs = 20;
 figure; 
-% pcolor(min(abs(R),0.1) );
-% pcolor(max(log(abs(R)),-3) );
 pcolor(log(max(abs(R),1e-2)) );
 hold on
 shading interp; 
@@ -155,10 +154,6 @@ plot(size(R,2)*5/6+2*ones(2,1), [-50; size(R,2)+120], '--r', 'LineWidth', 3);
 
 hh = colorbar(); 
 ylabel(hh,'$\log(\max(|R_{m,n}|,10^{-2}))$', 'interpreter','latex', 'FontSize',fs); 
-% ylabel(hh,'max$(\log|R_{m,n}|,-3)$', 'interpreter','latex', 'FontSize',fs); 
-% ylabel(hh,'min$(|r_{m,n}|,0.1)$', 'interpreter','latex', 'FontSize',fs); 
 set(gca,'YDir','rev')
 
-%% Print table for article
-plotVal(v,0,{'Two circles', 'Near-inclusion and circle', 'Three ellipses'})
 

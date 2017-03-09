@@ -1,5 +1,6 @@
-% Adaptive Asymptotic Recompression for multiple scattering obstacles: recompute correlations at each wavenumber in an automatic and 
-% efficient way to get decreasing window function supports for general geometries.
+% Adaptive Asymptotic Recompression for multiple scattering obstacles: recompute correlations at expomentially spaced
+% wavenumbers in an automatic and efficient way to get decreasing window function supports for linearly spaced wavenumbers.
+
 %% Initialising
 clearvars
 close all
@@ -7,14 +8,11 @@ format longe
 set(0,'DefaultFigureWindowStyle','docked');
 
 percDecay = 1;
-Tcor = 0.02; 
+Tcor = 0.02;
 fr = 1.5; % Fraction of N for number of columns of R
-
 avm = 100; % Number of random taus to average BC over
 taus = rand(avm,1);
 
-%ks = 2.^(4:10);
-%obsts = 5:7;
 ksR = 2.^(4:10);
 dk = 16;
 ks = ksR(1);
@@ -22,6 +20,7 @@ for a = 2:length(ksR)
     ks = [ks, (ksR(a-1)+dk):dk:(ksR(a)-dk), ksR(a)];
 end
 ks = [ks, (ksR(end)+dk):dk:round(1.4*ksR(end))];
+
 kl = length(ks);
 obsts = 5;
 maxob = length(obsts);
@@ -40,52 +39,52 @@ end
 startAll = now;
 powTime = 1.5;
 for oi = 1:length(obsts)
-	obstacle = obsts(oi);
-	par = getObst(obstacle);
-	for ki = 1:kl
- 	       startk = now;
-		idx = (oi-1)*kl+ki;
-        	TcorN = Tcor*(ks(1)/ks(ki));
-		par.k = ks(ki);
-		par.N = 0;
-		par.r = zeros(2,length(par.obsts)); % ranges
-	        for obst = 1:length(par.obsts)
-			par.obsts(obst).k = par.k;
-			par.obsts(obst).N = par.obsts(obst).ppw*par.k;
-			par.r(1,obst) = par.N+1;
-			par.N = par.N + par.obsts(obst).N;
-			par.r(2,obst) = par.N;
-			
-			par.obsts(obst).t = linspace(0,1,par.obsts(obst).N+1); % The knots of the periodic spline;
-			par.obsts(obst).colltau = par.obsts(obst).t(1:par.obsts(obst).N);
-        	end
-		
-		%% Computating full solution
-		A1 = zeros(par.N); tic; prevToc = toc;
-		for i = 1:par.N
-			if (ki ~= 1) && (toc-prevToc > printtoc)
-				prevToc = toc;
-				display(['Obst. ' num2str(obstacle) ' at k=' num2str(ks(ki)) ': ' num2str( (i-1)/par.N,'%7.3f'),...
+    obstacle = obsts(oi);
+    par = getObst(obstacle);
+    for ki = 1:kl
+        startk = now;
+        idx = (oi-1)*kl+ki;
+        TcorN = Tcor*(ks(1)/ks(ki));
+        par.k = ks(ki);
+        par.N = 0;
+        par.r = zeros(2,length(par.obsts)); % ranges
+        for obst = 1:length(par.obsts)
+            par.obsts(obst).k = par.k;
+            par.obsts(obst).N = par.obsts(obst).ppw*par.k;
+            par.r(1,obst) = par.N+1;
+            par.N = par.N + par.obsts(obst).N;
+            par.r(2,obst) = par.N;
+            
+            par.obsts(obst).t = linspace(0,1,par.obsts(obst).N+1); % The knots of the periodic spline;
+            par.obsts(obst).colltau = par.obsts(obst).t(1:par.obsts(obst).N);
+        end
+        
+        %% Computating full solution
+        A1 = zeros(par.N); tic; prevToc = toc;
+        for i = 1:par.N
+            if (ki ~= 1) && (toc-prevToc > printtoc)
+                prevToc = toc;
+                display(['Obst. ' num2str(obstacle) ' at k=' num2str(ks(ki)) ': ' num2str( (i-1)/par.N,'%7.3f'),...
                     '=A1%, now=' datestr(now) ', est. # sec left for A1=' num2str(toc*(par.N-i+1)/(i-1)) ', est. end ' datestr(expectedEnd-...
                     (sum(v.timeA(:,1))/extf*(ppw(oi)*ks(ki)).^powTime - toc*par.N/(i-1) )/24/3600)])
-			end
-			obsin = find((i >= par.r(1,:)) & (i <= par.r(2,:)));
-			collx = par.obsts(obsin).par(par.obsts(obsin).colltau(i-par.r(1,obsin)+1) );
-			for obst = 1:length(par.obsts)
-				if obst == obsin
-					A1(i,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst));
-				else
-					A1(i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collx);
-				end
-			end
-		end
-		v.timeA(idx,1) = toc;
-		% The solution is needed for computing the correlations for ki==1 and for the temporary errors
-		b = zeros(par.N,1);
-		for obst = 1:length(par.obsts)
-			b(par.r(1,obst):par.r(2,obst)) = par.bc(par.k,par.obsts(obst).par(par.obsts(obst).colltau));
-		end
-		c1 = A1\b;
+            end
+            obsin = find((i >= par.r(1,:)) & (i <= par.r(2,:)));
+            collx = par.obsts(obsin).par(par.obsts(obsin).colltau(i-par.r(1,obsin)+1) );
+            for obst = 1:length(par.obsts)
+                if obst == obsin
+                    A1(i,par.r(1,obst):par.r(2,obst)) = collRowQBF(i-par.r(1,obst)+1,par.obsts(obst));
+                else
+                    A1(i,par.r(1,obst):par.r(2,obst)) = collRowQBF('error',par.obsts(obst),1,par.obsts(obst).N, [], collx);
+                end
+            end
+        end
+        v.timeA(idx,1) = toc;
+        % The solution is needed for computing the correlations for ki==1 and for the temporary errors
+        b = zeros(par.N,1);
+        for obst = 1:length(par.obsts)
+            b(par.r(1,obst):par.r(2,obst)) = par.bc(par.k,par.obsts(obst).par(par.obsts(obst).colltau));
+        end
+        c1 = A1\b;
         
         if ki == 1
             % The full solution is already computed: re-use it, also for computing the correlations
@@ -138,8 +137,7 @@ for oi = 1:length(obsts)
         end
         
         %% Computing correlations
-%        if (ki ~= kl) % Compute the R to be used for the next ki
-	if any(ks(ki) == ksR)
+        if any(ks(ki) == ksR)
             tic;
             [R, sigma,obbounds] = calcCorr(par, A2\b, Tcor, percDecay, [printtoc,expectedEnd-...
                 (sum(v.timeA(:,4))/extf*(ppw(oi)*ks(ki)).^powTime)/24/3600],A2);
@@ -150,10 +148,10 @@ for oi = 1:length(obsts)
                 colLow{obst} = par.obsts(obst).colltau;
             end
         end
-	if ki == kl
-		v.field = zeros(120,120);
-	end
-		v = validate(A1,A2,par,v,idx);
+        if ki == kl
+            v.field = zeros(120,120);
+        end
+        v = validate(A1,A2,par,v,idx);
         save('recomprMultiple.mat','-regexp','^(?!(A1|A2|R)$).')
         v.timeA(idx,3) = (now-startk)*24*3600; % Also has the time for validation
         
@@ -161,8 +159,5 @@ for oi = 1:length(obsts)
         expectedEnd = startAll + (now - startAll)*sum(sum( (ppw*ks).^powTime ) )/extf;
         display(['Obstacle ' num2str(obstacle) ' at k = ' num2str(ks(ki)) ' took ' num2str(v.timeA(idx,3) ) ...
             ' sec and now is ' datestr(now) ', expected end ' datestr(expectedEnd)]);
-	end
+    end
 end
-return
-%% Compression percentages areplotted in aaRecomprSingle, print timing table here
-%plotVal(v,0,{'2 Circles','Circle and 2 ellipses', 'Near-inclusion and circle'});

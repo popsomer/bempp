@@ -65,9 +65,6 @@ for oi = 3:8
     end
     siz = max(parametr, [],2)-min(parametr,[],2);
     mid = (max(parametr, [],2) +min(parametr,[],2) )/2;
-%     h = text(hormove(oi)+mean(parametr(1,:)) - 0.5*siz(1), vertmove(oi)+mean(parametr(2,:)), labels{oi});
-%     h = text(hormove(oi)+mean(parametr(1,:)) - 0.5*siz(1), vertmove(oi)+mean(parametr(2,:))-0.2*siz(2), las{oi});
-%     title({labels{oi}; las{oi}}); %title([labels{oi} ', ' las{oi}]);
     title({labels{oi}; ['\rm{' las{oi} '}']});
     set(h,'FontSize',10);
     axis([mid(1)-0.6*max(siz), mid(1)+0.6*max(siz), mid(2)-0.6*max(siz), mid(2)+0.6*max(siz)]);

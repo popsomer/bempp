@@ -1,6 +1,6 @@
-% Old version of Adaptive Asymptotic Recompression for multiple scattering obstacles: 
-% recompute correlations at each wavenumber in an automatic and 
-% efficient way to get decreasing window function supports for general geometries.
+% Adaptive Asymptotic Recompression for multiple scattering obstacles: 
+% recompute correlations at each of the wavenumbers, which are exponentially spaced.
+
 %% Initialising
 clearvars
 close all
@@ -9,8 +9,6 @@ set(0,'DefaultFigureWindowStyle','docked');
 
 percDecay = 1;
 Tcor = 0.02; 
-fr = 1.5; % Fraction of N for number of columns of R
-
 avm = 100; % Number of random taus to average BC over
 taus = rand(avm,1);
 
@@ -23,6 +21,7 @@ mti = 2;
 v = struct('conds', zeros(maxob*kl,2), 'mti', mti, 'avm', avm, 'taus', taus, 'errBCavm', zeros(maxob*kl,2+mti),...
     'perc', zeros(maxob*kl,2), 'errSol', zeros(maxob*kl,2+mti), 'compresErr', zeros(maxob*kl,2),  'errInt', zeros(maxob*kl,2+mti), ...
     'timeSol', zeros(maxob*kl,2+mti), 'nbIter', zeros(maxob*kl,mti), 'timeA', zeros(maxob*kl,4), 'ks', ks);
+
 ppw = zeros(maxob,1); % Total N divided by k, for the time estimates
 for oi = 1:length(obsts)
     par = getObst(obsts(oi));
@@ -35,26 +34,26 @@ powTime = 1.5;
 for oi = 1:length(obsts)
 	obstacle = obsts(oi);
 	par = getObst(obstacle);
-	for ki = 1:kl
- 	       startk = now;
-		idx = (oi-1)*kl+ki;
-        	TcorN = Tcor*(ks(1)/ks(ki));
-		par.k = ks(ki);
-		par.N = 0;
-		par.r = zeros(2,length(par.obsts)); % ranges
-	        for obst = 1:length(par.obsts)
-			par.obsts(obst).k = par.k;
-			par.obsts(obst).N = par.obsts(obst).ppw*par.k;
-			par.r(1,obst) = par.N+1;
-			par.N = par.N + par.obsts(obst).N;
-			par.r(2,obst) = par.N;
-			
-			par.obsts(obst).t = linspace(0,1,par.obsts(obst).N+1); % The knots of the periodic spline;
-			par.obsts(obst).colltau = par.obsts(obst).t(1:par.obsts(obst).N);
-        	end
-		
-		%% Computating full solution
-		A1 = zeros(par.N); tic; prevToc = toc;
+    for ki = 1:kl
+        startk = now;
+        idx = (oi-1)*kl+ki;
+        TcorN = Tcor*(ks(1)/ks(ki));
+        par.k = ks(ki);
+        par.N = 0;
+        par.r = zeros(2,length(par.obsts)); % ranges
+        for obst = 1:length(par.obsts)
+            par.obsts(obst).k = par.k;
+            par.obsts(obst).N = par.obsts(obst).ppw*par.k;
+            par.r(1,obst) = par.N+1;
+            par.N = par.N + par.obsts(obst).N;
+            par.r(2,obst) = par.N;
+            
+            par.obsts(obst).t = linspace(0,1,par.obsts(obst).N+1); % The knots of the periodic spline;
+            par.obsts(obst).colltau = par.obsts(obst).t(1:par.obsts(obst).N);
+        end
+        
+        %% Computating full solution
+        A1 = zeros(par.N); tic; prevToc = toc;
 		for i = 1:par.N
 			if (ki ~= 1) && (toc-prevToc > printtoc)
 				prevToc = toc;
@@ -153,5 +152,5 @@ for oi = 1:length(obsts)
 	end
 end
 
-%% Compression percentages areplotted in aaRecomprSingle, print timing table here
-plotVal(v,0,{'2 Circles','Circle and 2 ellipses', 'Near-inclusion and circle'});
+% Compression percentages are plotted in aaRecomprSingle
+

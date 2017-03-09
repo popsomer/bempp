@@ -23,7 +23,6 @@ if par.dbf == 1
         end
         step = qbf_x(2)-qbf_x(1);
         qbf_x = qbf_x(1:end-1) + step/2;
-%         qbf_w = [linspace(0, 1, par.quadR), linspace(1, 0, par.quadR)]; % /par.N already included
         qbf_w = (1-abs(qbf_x))/sum(1-abs(qbf_x));
         istep = round(1/step);
     elseif isfield(par, 'quadR') && isfield(par, 'obsts') && isfield(par.obsts(1), 'fco')
@@ -34,7 +33,6 @@ if par.dbf == 1
         end
         step = qbf_x(2)-qbf_x(1);
         qbf_x = qbf_x(1:end-1) + step/2;
-%         qbf_w = [linspace(0, 1, par.quadR), linspace(1, 0, par.quadR)]; % /par.N already included
         qbf_w = (1-abs(qbf_x))/sum(1-abs(qbf_x));
         istep = round(1/step);
     else
@@ -60,7 +58,6 @@ if isfield(par,'obsts') && isfield(par.obsts(1), 'phase') && comprSol
 		gnvals = par.obsts(obst).gradnorm(tau2).*exp(1i*par.k*par.obsts(obst).phase(tau2) );
 		zt = 0;
 		for i=1:par.obsts(obst).fN
-% 			zt = zt + sol(i+par.r(1,obst)-1) * sum(qbf_w .* kernelvals((i-1)*istep+1:(i-1)*istep+length(qbf_w)) ...
 			zt = zt + sol(i+par.fr(1,obst)-1) * sum(qbf_w .* kernelvals((i-1)*istep+1:(i-1)*istep+length(qbf_w)) ...
 				.* gnvals((i-1)*istep+1:(i-1)*istep+length(qbf_w)));
 		end
@@ -116,13 +113,9 @@ else
 	% Add points to the right using periodicity.
 	tau2 = [tau tau(1:dbf*istep + 1)];
 	
-% 	kernelvals = 1i/4*besselh(0,1,par.k*sqrt(sum((repmat(x,1,size(tau2,2))-par.par(tau2) ).^2, 1)));
-% 	gnvals = par.gradnorm(tau2);
     kgVals = kernelGrad(par, tau2, x);
 	z = 0;
 	for i=1:par.N
-% 		z = z + sol(i) * sum(qbf_w .* kernelvals((i-1)*istep+1:(i-1)*istep+length(qbf_w)) ...
-% 			.* gnvals((i-1)*istep+1:(i-1)*istep+length(qbf_w)));
 		z = z + sol(i) * sum(qbf_w .* kgVals((i-1)*istep+1:(i-1)*istep+length(qbf_w)) );
 	end
 	z = z/par.N;

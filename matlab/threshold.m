@@ -1,4 +1,5 @@
 % Investigate the dependence of errors on the threshold.
+
 %% Initialising
 clearvars
 close all
@@ -15,19 +16,16 @@ corrDist = 0;
 ks = 2^8;
 printtoc = 10;
 mti = 0;
-% mti = 2;
 thrp = logspace(-5,0,20);
 tl = length(thrp);
 
 avm = 100; % Number of random taus to average BC over
 taus = rand(avm,1);
-% v = struct('conds', zeros(tl,2), 'mti', mti, 'avm', avm, 'taus', taus, 'errBCavm', zeros(tl,2+mti),...
 v = struct('mti', mti, 'avm', avm, 'taus', taus, 'errBCavm', zeros(tl,2+mti),...
     'nnz', zeros(tl,2), 'perc', zeros(tl,2), 'errSol', zeros(tl,2+mti), ...
     'errBCcol', zeros(tl,2+mti), 'compresErr', zeros(tl,2),  'errInt', zeros(tl,2+mti), ...
     'timeSol', zeros(tl,2+mti), 'nbIter', zeros(tl,mti), 'timeA', zeros(tl,4), 'ks', ks);
 
-% par = getObst(1);
 par = getObst(4);
 par.k = ks;
 par.N = par.ppw*par.k;
@@ -40,7 +38,7 @@ for i = 1:par.N
     if (toc-prevToc > printtoc)
         prevToc = toc;
         display([num2str( (i-1)/par.N,'%7.3f') ' = fraction of full matrix, estimated end on ' datestr(now + ...
-            toc*((tl+5)*par.N/(i-1) - 1)/24/3600 ) ]); %' asdf ' num2str(toc*((tl+1)*par.N/(i-1) - 1)) ])
+            toc*((tl+5)*par.N/(i-1) - 1)/24/3600 ) ]); 
     end
     % 	parfor i=1:par.N % Instead of sequential loop
     A1(i,:) = collRowQBF(i,par);
@@ -115,8 +113,6 @@ loglog(thrp, thrp, 'b:', lws, lw);
 loglog(thrp, v.errInt(:,2), 'm-', lws,lw);
 loglog(thrp, v.errInt(:,1), 'c:', lws,lw);
 
-% legend({'$||c-\tilde{c}||/||c||$', 'err BC $\tilde{c}$', 'err BC $c$', '$||\tilde{A}c-b||/||b||$', '$\xi$'...
-%     'int field $\tilde{c}$', 'int field $c$', '\% nnz'}, 'interpreter','latex', fss, fs)
 legend({'\% nonzeros', '$||c-\tilde{c}||/||c||$', '$||\tilde{A}c-b||/||b||$', 'Res. i.e. $\tilde{c}$', 'Res. i.e. $c$', '$\xi$'...
     'Int. field $\tilde{c}$', 'Int. field $c$'}, 'interpreter','latex', fss, fs)
 xlabel('\xi')

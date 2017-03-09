@@ -1,20 +1,20 @@
-% Old version of Adaptive Asymptotic Recompression for single scattering obstacles: 
-% recompute correlations at each wavenumber in an automatic and 
-% efficient way to get decreasing window function supports for general geometries.
+% Adaptive Asymptotic Recompression for single scattering obstacles: recompute correlations at each 
+% of the wavenumbers, which are exponentially spaced.
+
 %% Initialising
 clearvars
 close all
 format longe
 set(0,'DefaultFigureWindowStyle','docked');
 
-percDecay = 1; % else R wrong or could define another \xi for A2?
+percDecay = 1;
 thrType = 'l'; % Or 'g' for global threshold
 Tcor = 0.02;
-corrDist = 0; % Nonzero then use correlation iso physical distance to determine window, value gives perc below thr where wind=0
+
 ks = 2.^(4:11);
 printtoc = 300;
 obsts = [1 2 3 4 8];
-obsts = 4; % For sparsity pattern
+% obsts = 4; % For a plot of the sparsity pattern
 mti = 2;
 kl = length(ks);
 maxob = length(obsts);
@@ -60,7 +60,7 @@ for oi = 1:length(obsts)
         
         %% Compute correlations
         if ki == 1
-	    % Re-use the full solution, also for computing R.
+            % Re-use the full solution, also for computing R.
             A2 = A1;
             v.timeA(idx,2) = v.timeA(idx,1);
             if oi == 1, expectedEnd = now; extf = 0; end
@@ -75,7 +75,8 @@ for oi = 1:length(obsts)
                 if (toc-prevToc > printtoc)
                     prevToc = toc;
                     display(['Obst. ' num2str(obstacle) ' at k=' num2str(ks(ki)) ': ' num2str(i/par.N,'%7.3f') '=A2%, now=' datestr(now) ...
-                        ', est. # sec. left for A2=' num2str(toc*(par.N-i)/i) ', temp. compr. error=' num2str(norm(A2(1:(i-1),:)*c1-b(1:(i-1)))/norm(b(1:(i-1))  ))...
+                        ', est. # sec. left for A2=' num2str(toc*(par.N-i)/i) ', temp. compr. error=' ...
+                        num2str(norm(A2(1:(i-1),:)*c1-b(1:(i-1)))/norm(b(1:(i-1))  ))...
                         ', est. end ' datestr(expectedEnd - (sum(v.timeA(:,2))/extf*(ppw(oi)*ks(ki)).^powTime - toc*par.N/i)/24/3600)]);
                 end
                 tc = par.colltau(i);
@@ -102,7 +103,7 @@ for oi = 1:length(obsts)
             colLow = par.colltau; % Save these for higher freqencies.
         end
         v = validate(A1,A2,par,v,idx);
-%         save('recomprSingle.mat','-regexp','^(?!(A1|A2|R)$).') % Don't save results when plotting sparsity pattern
+        save('recomprSingle.mat','-regexp','^(?!(A1|A2|R)$).') % Don't overwrite results when plotting sparsity pattern
         v.timeA(idx,3) = (now-startk)*24*3600;
         
         extf = sum(sum( (reshape(ppw(1:oi-1),oi-1,1)*ks).^powTime) ) + sum( (ppw(oi)*ks(1:ki)).^powTime);
@@ -112,14 +113,13 @@ for oi = 1:length(obsts)
     end
 end
 
-% plotVal(v,A2); % plot sparsity pattern
-plotVal(struct(),A2); % plot sparsity pattern
-return % When plotting sparsity pattern
 
-%% Print a table of the error on the boundary conditions
+%% Print a table of the error on the boundary conditions and so on
+% plotVal(struct(),A2); return; % When plotting the sparsity pattern
 plotVal(v, 0, {'Circle', 'Ellipse', 'Near-inclusion','Nearly convex', 'Nonconvex polygon'});
 
-%% Make plot of the percentages combined with multiple scattering obstacles
+
+%% Make a plot of the percentages combined with multiple scattering obstacles
 vsing = v;
 load recomprMultiple.mat
 fss = 'Fontsize'; fs = 22;
@@ -147,25 +147,9 @@ set(gca,fss,fs);
 legend({'Circle', 'Ellipse', 'Near-inclusion','Nearly convex', 'Nonconvex polygon', ...
     '2 Circles','Circle and 2 ellipses', 'Near-inclusion and circle','$\mathcal{O}(k^{-1/2})$'}, 'interpreter', 'latex', fss, 19);
 
-%% Make plot of condition numbers
 
+%% Make a plot of condition numbers
 figure; 
-
-% idx = 1;
-% loglog(vsing.ks, vsing.conds(2*sl+1:3*sl,idx), 'g-.', lws, lw); 
-% hold on;
-% loglog(vsing.ks, vsing.conds(3*sl+1:4*sl,idx), 'k:', lws, lw); 
-% loglog(vsing.ks, vsing.conds(4*sl+1:5*sl,idx), 'c--', lws, lw); 
-% 
-% loglog(v.ks, v.conds(1:kl,idx), 'm:', lws, lw); 
-% loglog(v.ks, v.conds(kl+1:2*kl,idx), 'b-.', lws, lw); 
-% loglog(v.ks, v.conds(2*kl+1:3*kl,idx), 'k-', lws, lw); 
-% loglog([vsing.ks(2), vsing.ks(end)], max(max(v.conds))*[vsing.ks(2)/vsing.ks(end), 1].^(2), 'r-', lws, lw); 
-% xlabel('k',fss,fs); 
-% set(gca,fss,fs);
-% legend({'Near-inclusion','Nearly convex', 'Nonconvex polygon', ...
-%     '2 Circles','Circle and 2 ellipses', 'Near-inclusion and circle','$\mathcal{O}(k^{2})$'}, 'interpreter', 'latex', fss, 19);
-
 loglog(vsing.ks, vsing.conds(2*sl+1:3*sl,2), 'g-.', lws, lw);
 hold on;
 loglog(vsing.ks, vsing.conds(2*sl+1:3*sl,1), 'g', lws, lw); 
@@ -174,10 +158,8 @@ loglog(vsing.ks, vsing.conds(4*sl+1:5*sl,1), 'c', lws, lw);
 loglog(v.ks, v.conds(1:kl,2), 'm:', lws, lw);
 loglog(v.ks, v.conds(1:kl,1), 'm', lws, lw);
 loglog([vsing.ks(1), vsing.ks(end)], max(max(v.conds))*[vsing.ks(1)/vsing.ks(end), 1].^(3/2), 'r-', lws, lw); 
-% xlabel('$k$',fss,fs, 'interpreter', 'latex'); 
 xlabel('k',fss,fs); 
 ylabel('Condition number',fss,fs); 
-% ylabel('Cond($A$)', fss, fs, 'interpreter', 'latex');
 set(gca,fss,fs);
 legend({'Near-inclusion $\tilde{A}$','Near-inclusion $A$','Nonconvex polygon $\tilde{A}$', 'Nonconvex polygon $A$', ...
     'Two circles $\tilde{A}$', 'Two circles $A$','$\mathcal{O}(k^{3/2})$'}, 'interpreter', 'latex', fss, 19);
@@ -192,10 +174,9 @@ loglog(vsing.ks, vsing.nbIter(4*sl+1:5*sl,1), 'c', lws, lw);
 loglog(v.ks, v.nbIter(1:kl,2), 'm:', lws, lw);
 loglog(v.ks, v.nbIter(1:kl,1), 'm', lws, lw);
 loglog([vsing.ks(1), vsing.ks(end)], vsing.nbIter(3*sl,2)*[vsing.ks(1)/vsing.ks(end), 1].^(1/4), 'r-', lws, lw); 
-% xlabel('$k$',fss,fs, 'interpreter', 'latex'); 
 xlabel('k',fss,fs); 
 ylabel('# GMRES iterations',fss,fs); 
-% ylabel('Cond($A$)', fss, fs, 'interpreter', 'latex');
 set(gca,fss,fs);
 legend({'Near-inclusion $\tilde{A}$','Near-inclusion $A$','Nonconvex polygon $\tilde{A}$', 'Nonconvex polygon $A$', ...
     'Two circles $\tilde{A}$', 'Two circles $A$','$\mathcal{O}(k^{1/4})$'}, 'interpreter', 'latex', fss, 19);
+

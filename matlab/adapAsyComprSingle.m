@@ -1,5 +1,6 @@
 % Adaptive Asymptotic Compression for single scattering obstacles: compute correlations to 
 % automatically determine where to put our window functions for general geometries.
+
 %% Initialising
 clearvars
 close all
@@ -14,12 +15,7 @@ Tcor = 0.02;
 % the percentage below the threshold from where the window is identically zero.
 corrDist = 0; 
 
-% ks = 2.^(7:10);
-% ks = 16:8:64;
-% ks = [64, 72];
-% ks = 2.^(7:8)
-ks = 2^7
-% obsts = [8 3];
+ks = 2^7;
 obsts = 3;
 mti = 0;
 
@@ -49,21 +45,21 @@ for oi = 1:length(obsts)
 		for i = 1:par.N
 		% 	parfor i=1:par.N % Instead of a sequential loop
 			A1(i,:) = collRowQBF(i,par);
-		end
-		v.timeA(idx,1) = toc;
-	        b = par.bc(par.k,par.par(par.colltau));
-        	c1 = A1\b; % The solution is needed for computing the correlations.
+        end
+        v.timeA(idx,1) = toc;
+        b = par.bc(par.k,par.par(par.colltau));
+        c1 = A1\b; % The solution is needed for computing the correlations.
         
-	        %% Computing correlations
-        	if ki == 1 % Re-use the R that is computed here at higher frequencies.
-        	    tic
-	            [R, sigma] = calcCorr(par, c1, Tcor, percDecay); % Don't use A1, but the integral.
-	            v.timeA(idx,4) = toc;
-        	    colLow = par.colltau; % Save these for higher freqencies.
-	        end
+        %% Computing correlations
+        if ki == 1 % Re-use the R that is computed here at higher frequencies.
+            tic
+            [R, sigma] = calcCorr(par, c1, Tcor, percDecay); % Don't use A1, but the integral.
+            v.timeA(idx,4) = toc;
+            colLow = par.colltau; % Save these for higher freqencies.
+        end
         
-		%% Compute A2
-		A2 = zeros(par.N); % We could actually use a sparse matrix structure now because its structure is given by R.
+        %% Compute A2
+        A2 = zeros(par.N); % We could actually use a sparse matrix structure now because its structure is given by R.
 		curThr = par.xi*max(max(abs(R)));
 		tic;
 		for i = 1:par.N
@@ -85,27 +81,18 @@ for oi = 1:length(obsts)
 		v.timeA(idx,2) = toc;
 		
 		v = validate(A1,A2,par,v,idx);
-% 		save('aacSingle.mat','v')
-	        display([num2str(oi) ' = oi, ki = ' num2str(ki) ', now is ' datestr(now) ', expected end ' datestr(start + ...
-        	    (now-start)*sum(ks.^2)/sum(ks(1:ki).^2)*( length(obsts)-oi + 1) )  ]);
+		save('aacSingle.mat','v')
+        display([num2str(oi) ' = oi, ki = ' num2str(ki) ', now is ' datestr(now) ', expected end ' datestr(start + ...
+            (now-start)*sum(ks.^2)/sum(ks(1:ki).^2)*( length(obsts)-oi + 1) )  ]);
 	end
 end
-return
+
 %% Show the correlations of the near-inclusion
 [R, sigma] = calcCorr(par, c1, Tcor, percDecay, [5, now()], A1); % Approximation of R used to make figure
-% figure; surf(abs(R), 'EdgeColor','none'); xlabel('n'); ylabel('m'); 
 
 fs = 20;
 figure; 
-% pcolor(abs(R) );
-% pcolor(log(abs(R)) );
 pcolor(log(max(abs(R),1e-2)) );
-% pcolor(log(max(abs(R),1)) );
-% pcolor(max(log(abs(R)),-3) );
-% pcolor(max(log(abs(R)),0) );
-% pcolor(min(abs(R),0.1) );
-% pcolor(min(abs(R),0.6) );
-% pcolor(min(abs(R),1.4) );
 hold on
 shading interp;
 xlabel('n'); 
@@ -125,13 +112,6 @@ set(h,'FontSize',fs, 'color', 'r');
 plot(round(size(R,2)*0.65)+2*ones(2,1), [-50; size(R,2)+120], co, 'LineWidth', lw);
 
 hh = colorbar(); 
-% ylabel(hh,'min$(|r_{m,n}|,0.1)$', 'interpreter','latex', 'FontSize',fs); 
-% ylabel(hh,'max$(\log|R_{m,n}|,-3)$', 'interpreter','latex', 'FontSize',fs); 
 ylabel(hh,'$\log(\max(|R_{m,n}|,10^{-2}))$', 'interpreter','latex', 'FontSize',fs); 
-% ylabel(hh,'$\log(\max(|R_{m,n}|,1))$', 'interpreter','latex', 'FontSize',fs); 
-% ylabel(hh,'$\log|r_{m,n}|$', 'interpreter','latex', 'FontSize',fs); 
 set(gca,'YDir','rev')
-
-%% Print the table for the polygon
-plotVal(v,0,{'Polygon', 'Near-inclusion'})
 
