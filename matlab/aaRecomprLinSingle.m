@@ -104,7 +104,7 @@ for oi = 1:length(obsts)
             [R, sigma] = calcCorr(par, A2\b, Tcor, percDecay, [printtoc,expectedEnd-...
                 (sum(v.timeA(:,4))/extf*(ppw(oi)*ks(ki)).^powTime)/24/3600], A2);
             v.timeA(idx,4) = toc;
-            colLow = par.colltau; % Save these for higher freqencies.
+            colLow = par.colltau; % Save these for higher frequencies.
         end
         if ki == kl
             v.field = zeros(120,120);

@@ -157,7 +157,7 @@ prevToc = toc;
 for i = 1:par.N
     if (toc-prevToc > printtoc)
         prevToc = toc;
-        display([num2str(ki,'%8.4f') '=ki, ' num2str(i/par.N,'%7.3f') 'A2%, est. sec left=' num2str(toc*(par.N-i)/i)])
+        display([num2str(i,'%8.4f') '=i, ' num2str(i/par.N,'%7.3f') 'A2%, est. sec left=' num2str(toc*(par.N-i)/i)])
     end
     tc = par.colltau(i);
     [~, cli] = min(abs(colLow-tc));

@@ -21,9 +21,9 @@ vertmove = [0, -0.1, 0.4, -0.1  , 0.5 , 1.1, 0.2, 0];
 cols = 'rgbmkcy';
 marks = {'v', '+', 'o', 'x', '*', 'h', 'd'};
 figure; 
-for oi = 3:8
+for oi = 1:8
     par = getObst(oi);
-    subplot(2,3,oi-2);
+    subplot(2,4,oi);
     if isfield(par,'obsts')
         parametr = [];
         for moi = 1:length(par.obsts)
@@ -65,7 +65,22 @@ for oi = 3:8
     end
     siz = max(parametr, [],2)-min(parametr,[],2);
     mid = (max(parametr, [],2) +min(parametr,[],2) )/2;
+    hold on;
+    rad = norm(siz);
+    if abs(-1*besselh(0,1, 100*sqrt( (0.7 - 1).^2 + (pi -1).^2) )/par.bc(100, [0.7; pi]) -1 ) < 1e-12
+        % Point source
+        quiver(1 + 0.04*rad*cos(linspace(0,2*pi,6)), 1 + 0.04*rad*sin(linspace(0,2*pi,6)), ...
+            0.1*rad*cos(linspace(0,2*pi,6)), 0.1*rad*sin(linspace(0,2*pi,6)), 'm', 'Autoscale','off');
+    elseif abs(-1*exp(1i*222*([exp(1); -0.11]')*[cos(0); sin(0)])/par.bc(222, [exp(1); -0.11]) -1 ) < 1e-12
+        % Incident plane wave
+        quiver(mid(1) -0.8*siz(1)*ones(1,6), mid(2)+rad*linspace(-0.3,0.3,6), 0.1*rad*ones(1,6), zeros(1,6), 'm','Autoscale','off');
+    else % superpos 3 plane waves
+        quiver(mid(1)+0.8*rad*ones(1,6), mid(2)+siz(2)*linspace(-0.3,0.3,6), -0.3*rad*ones(1,6), zeros(1,6), 'm','Autoscale','off');
+        quiver(mid(1)+ rad*0.7*cos(2*pi/3) +rad*linspace(-0.3,0.3,6)*cos(pi/6), mid(2) +rad*0.7*sin(2*pi/3) +rad*linspace(-0.3,0.3,6)*sin(pi/6), ...
+            0.1*rad*cos(-pi/3)*ones(1,6), 0.1*rad*sin(-pi/3)*ones(1,6), 'm','Autoscale','off')
+        quiver(mid(1) + rad*0.7*cos(-2*pi/3) +rad*linspace(-0.3,0.3,6)*cos(-pi/6), mid(2) +rad*0.7*sin(-2*pi/3) +rad*linspace(-0.3,0.3,6)*sin(-pi/6), ...
+            0.2*rad*cos(pi/3)*ones(1,6), 0.2*rad*sin(pi/3)*ones(1,6), 'm','Autoscale','off')
+    end
     title({labels{oi}; ['\rm{' las{oi} '}']});
-    set(h,'FontSize',10);
-    axis([mid(1)-0.6*max(siz), mid(1)+0.6*max(siz), mid(2)-0.6*max(siz), mid(2)+0.6*max(siz)]);
+    axis equal;
 end

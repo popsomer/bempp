@@ -103,7 +103,7 @@ for oi = 1:length(obsts)
             colLow = par.colltau; % Save these for higher freqencies.
         end
         v = validate(A1,A2,par,v,idx);
-        save('recomprSingle.mat','-regexp','^(?!(A1|A2|R)$).') % Don't overwrite results when plotting sparsity pattern
+        save('recomprSingleExp.mat','-regexp','^(?!(A1|A2|R)$).') % Don't overwrite results when plotting sparsity pattern
         v.timeA(idx,3) = (now-startk)*24*3600;
         
         extf = sum(sum( (reshape(ppw(1:oi-1),oi-1,1)*ks).^powTime) ) + sum( (ppw(oi)*ks(1:ki)).^powTime);
@@ -121,7 +121,7 @@ plotVal(v, 0, {'Circle', 'Ellipse', 'Near-inclusion','Nearly convex', 'Nonconvex
 
 %% Make a plot of the percentages combined with multiple scattering obstacles
 vsing = v;
-load recomprMultiple.mat
+load recomprMultipleExp.mat
 fss = 'Fontsize'; fs = 22;
 lws = 'LineWidth'; lw = 5;
 mss = 'MarkerSize'; ms = 15;

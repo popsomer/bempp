@@ -142,7 +142,7 @@ for oi = 1:length(obsts)
             end
         end
 		v = validate(A1,A2,par,v,idx);
-        save('recomprMultiple.mat','-regexp','^(?!(A1|A2|R)$).')
+        save('recomprMultipleExp.mat','-regexp','^(?!(A1|A2|R)$).')
         v.timeA(idx,3) = (now-startk)*24*3600; % Also has the time for validation
         
         extf = sum(sum( (reshape(ppw(1:oi-1),oi-1,1)*ks).^powTime) ) + sum( (ppw(oi)*ks(1:ki)).^powTime);
